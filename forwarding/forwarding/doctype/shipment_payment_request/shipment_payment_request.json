@@ -1,0 +1,218 @@
+{
+ "actions": [],
+ "autoname": "SPR-.####",
+ "creation": "2021-03-05 14:51:35.059088",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "company",
+  "job_type",
+  "paid_to",
+  "voucher_type",
+  "saddad_no",
+  "bl_no",
+  "eta",
+  "consignee",
+  "column_break_4",
+  "date",
+  "vat_id",
+  "credit_account",
+  "shipping_payment_request_details_section",
+  "shipping_payment_request_details",
+  "section_break_10",
+  "column_break_12",
+  "total_amount",
+  "section_break_13",
+  "prepared_by",
+  "column_break_15",
+  "checked_by",
+  "column_break_17",
+  "approved_by",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "paid_to",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Paid To",
+   "options": "Paid To",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_4",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Today",
+   "fieldname": "date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Posting Date"
+  },
+  {
+   "fetch_from": "paid_to.vat_id",
+   "fetch_if_empty": 1,
+   "fieldname": "vat_id",
+   "fieldtype": "Data",
+   "label": "VAT ID"
+  },
+  {
+   "fieldname": "credit_account",
+   "fieldtype": "Link",
+   "label": "Default Credit Account",
+   "options": "Account",
+   "permlevel": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "shipping_payment_request_details_section",
+   "fieldtype": "Section Break",
+   "label": "Shipping Payment Request Details"
+  },
+  {
+   "fieldname": "shipping_payment_request_details",
+   "fieldtype": "Table",
+   "label": "Shipping Payment Request Details",
+   "options": "Shipment Payment Request Details",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_break_10",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_12",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "total_amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Total Amount",
+   "read_only": 1
+  },
+  {
+   "fieldname": "voucher_type",
+   "fieldtype": "Select",
+   "label": "Voucher Type",
+   "options": "\nBank Entry\nCash Entry",
+   "permlevel": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Shipment Payment Request",
+   "print_hide": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_13",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "prepared_by",
+   "fieldtype": "Data",
+   "label": "Prepared By"
+  },
+  {
+   "fieldname": "column_break_15",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "checked_by",
+   "fieldtype": "Data",
+   "label": "Checked By"
+  },
+  {
+   "fieldname": "column_break_17",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "approved_by",
+   "fieldtype": "Data",
+   "label": "Approved By"
+  },
+  {
+   "fieldname": "saddad_no",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "SADDAD No"
+  },
+  {
+   "fieldname": "bl_no",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "BL No"
+  },
+  {
+   "fieldname": "eta",
+   "fieldtype": "Date",
+   "hidden": 1,
+   "label": "ETA"
+  },
+  {
+   "fieldname": "job_type",
+   "fieldtype": "Link",
+   "label": "Job Type",
+   "options": "Job Type"
+  },
+  {
+   "fieldname": "consignee",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Consignee",
+   "options": "Consignee"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2021-10-26 13:53:58.198012",
+ "modified_by": "Administrator",
+ "module": "Forwarding",
+ "name": "Shipment Payment Request",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Purchase Master Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

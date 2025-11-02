@@ -1,0 +1,49 @@
+{
+ "actions": [],
+ "creation": "2021-04-01 15:53:16.035322",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "s",
+  "container_type",
+  "date1",
+  "date2"
+ ],
+ "fields": [
+  {
+   "fieldname": "s",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Process"
+  },
+  {
+   "fieldname": "container_type",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Container Type"
+  },
+  {
+   "fieldname": "date1",
+   "fieldtype": "Date",
+   "label": "date1"
+  },
+  {
+   "fieldname": "date2",
+   "fieldtype": "Date",
+   "label": "Date2"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2021-04-03 13:58:42.260381",
+ "modified_by": "Administrator",
+ "module": "Forwarding",
+ "name": "Pick Up Schedule",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

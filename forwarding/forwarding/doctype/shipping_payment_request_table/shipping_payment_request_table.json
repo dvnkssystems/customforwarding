@@ -1,0 +1,50 @@
+{
+ "actions": [],
+ "creation": "2021-03-07 19:33:17.678144",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "shipment_payment_request",
+  "paid_to",
+  "total_amount"
+ ],
+ "fields": [
+  {
+   "fieldname": "shipment_payment_request",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Shipment Payment Request",
+   "options": "Shipment Payment Request",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "shipment_payment_request.total_amount",
+   "fetch_if_empty": 1,
+   "fieldname": "total_amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Total Amount"
+  },
+  {
+   "fetch_from": "shipment_payment_request.paid_to",
+   "fetch_if_empty": 1,
+   "fieldname": "paid_to",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Paid To"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2021-03-20 12:58:08.426628",
+ "modified_by": "Administrator",
+ "module": "Forwarding",
+ "name": "Shipping Payment Request Table",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

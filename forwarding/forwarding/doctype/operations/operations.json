@@ -1,0 +1,691 @@
+{
+ "actions": [],
+ "autoname": "format:{branch_abb}-{job_type_abb}-{mos_abb}-{YY}-{#####}",
+ "creation": "2021-01-25 15:26:43.909496",
+ "doctype": "DocType",
+ "document_type": "Document",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "operation_id",
+  "operations_status",
+  "date",
+  "country",
+  "country_abb",
+  "branch",
+  "branch_abb",
+  "job_type",
+  "job_type_abb",
+  "inco_terms",
+  "from_quotation",
+  "column_break_8",
+  "mode_of_shipment",
+  "mos_abb",
+  "movement_type",
+  "scope_of_work",
+  "sow_abb",
+  "freight_forwarding",
+  "custom_clearance",
+  "transport",
+  "cost_center",
+  "project",
+  "shipment_type",
+  "customer_details_section",
+  "customer",
+  "to_attention",
+  "po_no",
+  "po_date",
+  "column_break_23",
+  "company",
+  "company_address_name",
+  "company_address",
+  "shipping_details_section",
+  "port_of_loading",
+  "port_of_destination",
+  "loading_country",
+  "destination_country",
+  "place_of_delivery",
+  "vessel_name",
+  "consignee",
+  "column_break_31",
+  "awb_number",
+  "awb_date",
+  "house_number",
+  "shipping_line",
+  "air_line",
+  "customer_supplier",
+  "handling_agent",
+  "column_break_35",
+  "voyage_number",
+  "flight_number",
+  "etd_date",
+  "atd_date",
+  "atd_delay_reason",
+  "carrier",
+  "shipper",
+  "column_break_40",
+  "eta_date",
+  "ata_date",
+  "ata_delay_reason",
+  "transit_time",
+  "free_time",
+  "commodity",
+  "parcels_section",
+  "shipment_parcel",
+  "calculate_weight",
+  "parcel_template",
+  "add_template",
+  "cargo_details_section",
+  "net_weight",
+  "gross_weight",
+  "weight_uom",
+  "cbm",
+  "packages",
+  "chargable_weight",
+  "column_break_55",
+  "cargo_description",
+  "section_break_75",
+  "container_details",
+  "freight_forwarding_details_section",
+  "freight",
+  "custom_clearance_details_section",
+  "custom_clearance_id",
+  "transportation_details_section",
+  "transportation",
+  "section_break_76",
+  "cost_table",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "default": "Saudi Arabia",
+   "fieldname": "country",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Country",
+   "options": "Territory",
+   "set_only_once": 1
+  },
+  {
+   "fieldname": "branch",
+   "fieldtype": "Link",
+   "in_global_search": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Branch",
+   "options": "Branch",
+   "reqd": 1
+  },
+  {
+   "fieldname": "job_type",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Job Type",
+   "options": "Job Type",
+   "reqd": 1
+  },
+  {
+   "fieldname": "mode_of_shipment",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Mode Of Shipment",
+   "options": "Mode Of Shipment",
+   "reqd": 1,
+   "set_only_once": 1
+  },
+  {
+   "fetch_from": "movement_type.scope_of_work",
+   "fetch_if_empty": 1,
+   "fieldname": "scope_of_work",
+   "fieldtype": "Link",
+   "in_filter": 1,
+   "label": "Scope Of Work",
+   "options": "Scope Of Work",
+   "set_only_once": 1
+  },
+  {
+   "fetch_from": "country.abbreviation",
+   "fieldname": "country_abb",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Country Abb"
+  },
+  {
+   "fetch_from": "branch.abbreviation",
+   "fieldname": "branch_abb",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Branch Abb"
+  },
+  {
+   "fetch_from": "job_type.abbreviation",
+   "fieldname": "job_type_abb",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Job Type Abb"
+  },
+  {
+   "fetch_from": "mode_of_shipment.abbreviation",
+   "fieldname": "mos_abb",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "MOS Abb"
+  },
+  {
+   "fetch_from": "scope_of_work.abbreviation",
+   "fieldname": "sow_abb",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "SOW Abb"
+  },
+  {
+   "default": "country_abb.branch_abb.-.job_type_abb.mos_abb.-.sow_abb.-.YY.-.MM.-.#####",
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Naming Series",
+   "options": "country_abb.branch_abb.-.job_type_abb.mos_abb.-.sow_abb.-.YY.-.MM.-.#####\noperation_id"
+  },
+  {
+   "default": "0",
+   "fetch_from": "scope_of_work.freight_forwarding",
+   "fieldname": "freight_forwarding",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Freight Forwarding"
+  },
+  {
+   "default": "0",
+   "fetch_from": "scope_of_work.custom_clearance",
+   "fieldname": "custom_clearance",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Custom Clearance"
+  },
+  {
+   "default": "0",
+   "fetch_from": "scope_of_work.transport",
+   "fieldname": "transport",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Transport"
+  },
+  {
+   "depends_on": "eval:doc.freight_forwarding==\"1\"",
+   "fieldname": "freight_forwarding_details_section",
+   "fieldtype": "Section Break",
+   "label": "Freight Forwarding Details"
+  },
+  {
+   "depends_on": "eval:doc.custom_clearance==\"1\"",
+   "fieldname": "custom_clearance_details_section",
+   "fieldtype": "Section Break",
+   "label": "Custom Clearance Details"
+  },
+  {
+   "depends_on": "eval:doc.transport==\"1\"",
+   "fieldname": "transportation_details_section",
+   "fieldtype": "Section Break",
+   "label": "Transportation Details"
+  },
+  {
+   "fieldname": "column_break_8",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "customer_details_section",
+   "fieldtype": "Section Break",
+   "label": "Customer Details"
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer",
+   "reqd": 1
+  },
+  {
+   "fieldname": "to_attention",
+   "fieldtype": "Link",
+   "label": "To Attention",
+   "options": "Contact"
+  },
+  {
+   "fieldname": "po_no",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "PO No"
+  },
+  {
+   "fieldname": "po_date",
+   "fieldtype": "Data",
+   "label": "PO Date"
+  },
+  {
+   "fieldname": "custom_clearance_id",
+   "fieldtype": "Link",
+   "label": "Custom Clearance ID",
+   "options": "Custom Clearance"
+  },
+  {
+   "fieldname": "freight",
+   "fieldtype": "Link",
+   "label": "Freight",
+   "options": "Freight"
+  },
+  {
+   "fieldname": "transportation",
+   "fieldtype": "Link",
+   "label": "Transportation",
+   "options": "Transportation"
+  },
+  {
+   "fieldname": "shipping_details_section",
+   "fieldtype": "Section Break",
+   "label": "Shipping Details"
+  },
+  {
+   "fieldname": "port_of_loading",
+   "fieldtype": "Link",
+   "label": " Port Of Loading",
+   "options": "Port"
+  },
+  {
+   "fieldname": "port_of_destination",
+   "fieldtype": "Link",
+   "label": "Port Of Discharge",
+   "options": "Port"
+  },
+  {
+   "fieldname": "carrier",
+   "fieldtype": "Link",
+   "label": "Carrier",
+   "options": "Carrier"
+  },
+  {
+   "fieldname": "shipper",
+   "fieldtype": "Link",
+   "label": "Shipper",
+   "options": "Shipper"
+  },
+  {
+   "fieldname": "consignee",
+   "fieldtype": "Link",
+   "label": "Consignee",
+   "options": "Consignee"
+  },
+  {
+   "fieldname": "shipment_type",
+   "fieldtype": "Link",
+   "label": "Shipment Type",
+   "options": "Shipment Type"
+  },
+  {
+   "fieldname": "vessel_name",
+   "fieldtype": "Data",
+   "label": "Vessel Name"
+  },
+  {
+   "fieldname": "customer_supplier",
+   "fieldtype": "Link",
+   "label": "Customer Supplier",
+   "options": "Shipper"
+  },
+  {
+   "fieldname": "handling_agent",
+   "fieldtype": "Link",
+   "label": "Handling Agent",
+   "options": "Supplier"
+  },
+  {
+   "fieldname": "column_break_31",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "awb_number",
+   "fieldtype": "Data",
+   "label": "BL/AWB Number"
+  },
+  {
+   "fieldname": "awb_date",
+   "fieldtype": "Date",
+   "label": "BL/AWB Date"
+  },
+  {
+   "fieldname": "house_number",
+   "fieldtype": "Data",
+   "label": "HBL/HAWB Number"
+  },
+  {
+   "fieldname": "column_break_35",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval:doc.mode_of_shipment==\"Sea\"",
+   "fieldname": "voyage_number",
+   "fieldtype": "Data",
+   "label": "Voyage Number"
+  },
+  {
+   "fieldname": "etd_date",
+   "fieldtype": "Date",
+   "label": "ETD Date"
+  },
+  {
+   "fieldname": "atd_date",
+   "fieldtype": "Date",
+   "label": "ATD Date"
+  },
+  {
+   "fieldname": "atd_delay_reason",
+   "fieldtype": "Data",
+   "label": "ATD Delay Reason"
+  },
+  {
+   "fieldname": "column_break_40",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "eta_date",
+   "fieldtype": "Date",
+   "label": "ETA Date"
+  },
+  {
+   "fieldname": "ata_date",
+   "fieldtype": "Date",
+   "label": "ATA Date"
+  },
+  {
+   "fieldname": "ata_delay_reason",
+   "fieldtype": "Data",
+   "label": "ATA Delay Reason"
+  },
+  {
+   "fieldname": "inco_terms",
+   "fieldtype": "Link",
+   "label": "Inco Terms",
+   "options": "Inco Terms"
+  },
+  {
+   "fieldname": "cargo_details_section",
+   "fieldtype": "Section Break",
+   "label": "Cargo Details"
+  },
+  {
+   "fieldname": "net_weight",
+   "fieldtype": "Float",
+   "label": " Net Weight"
+  },
+  {
+   "fieldname": "gross_weight",
+   "fieldtype": "Float",
+   "label": "Gross weight"
+  },
+  {
+   "fieldname": "weight_uom",
+   "fieldtype": "Link",
+   "label": "Weight UOM",
+   "options": "UOM"
+  },
+  {
+   "fieldname": "cbm",
+   "fieldtype": "Int",
+   "label": "CBM"
+  },
+  {
+   "fieldname": "packages",
+   "fieldtype": "Data",
+   "label": "Packages"
+  },
+  {
+   "fieldname": "chargable_weight",
+   "fieldtype": "Float",
+   "label": "Chargable Weight"
+  },
+  {
+   "fieldname": "column_break_55",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "cargo_description",
+   "fieldtype": "Small Text",
+   "label": "Cargo Description"
+  },
+  {
+   "fieldname": "parcels_section",
+   "fieldtype": "Section Break",
+   "label": "Package"
+  },
+  {
+   "fieldname": "shipment_parcel",
+   "fieldtype": "Table",
+   "label": "Shipment Parcel",
+   "options": "Shipment Parcel"
+  },
+  {
+   "fieldname": "parcel_template",
+   "fieldtype": "Link",
+   "label": "Parcel Template",
+   "options": "Shipment Parcel Template"
+  },
+  {
+   "fieldname": "add_template",
+   "fieldtype": "Button",
+   "label": "Add Template"
+  },
+  {
+   "fieldname": "cost_table",
+   "fieldtype": "Table",
+   "label": "Cost Table",
+   "options": "Cost Table"
+  },
+  {
+   "fetch_from": "branch.cost_center",
+   "fieldname": "cost_center",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Cost Center",
+   "options": "Cost Center"
+  },
+  {
+   "fieldname": "project",
+   "fieldtype": "Link",
+   "label": "Project",
+   "options": "Project",
+   "permlevel": 1
+  },
+  {
+   "fieldname": "column_break_23",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "company_address_name",
+   "fieldtype": "Link",
+   "label": "Company Address Name",
+   "options": "Address"
+  },
+  {
+   "fieldname": "company_address",
+   "fieldtype": "Small Text",
+   "label": "Company Address",
+   "read_only": 1
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Operations",
+   "print_hide": 1,
+   "read_only": 1
+  },
+  {
+   "default": "Freight World Alofi Co.",
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
+  },
+  {
+   "fetch_from": "port_of_destination.country",
+   "fetch_if_empty": 1,
+   "fieldname": "destination_country",
+   "fieldtype": "Link",
+   "label": "Destination Country",
+   "options": "Territory"
+  },
+  {
+   "fetch_from": "port_of_loading.country",
+   "fetch_if_empty": 1,
+   "fieldname": "loading_country",
+   "fieldtype": "Link",
+   "label": "Loading Country",
+   "options": "Territory"
+  },
+  {
+   "fieldname": "section_break_76",
+   "fieldtype": "Section Break"
+  },
+  {
+   "default": "Today",
+   "fieldname": "date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Date",
+   "reqd": 1
+  },
+  {
+   "depends_on": "eval:doc.mode_of_shipment==\"Sea\" || doc.mode_of_shipment==\"Land\" ",
+   "fieldname": "shipping_line",
+   "fieldtype": "Link",
+   "label": "Shipping Line",
+   "options": "Shipping Line"
+  },
+  {
+   "fieldname": "movement_type",
+   "fieldtype": "Link",
+   "label": "Movement Type",
+   "options": "Movement Type"
+  },
+  {
+   "depends_on": "eval:doc.mode_of_shipment==\"Air\" || doc.mode_of_shipment==\"Land\" ",
+   "fieldname": "air_line",
+   "fieldtype": "Data",
+   "label": "Air Line"
+  },
+  {
+   "depends_on": "eval:doc.mode_of_shipment==\"Air\"",
+   "fieldname": "flight_number",
+   "fieldtype": "Data",
+   "label": "Flight Number"
+  },
+  {
+   "fieldname": "transit_time",
+   "fieldtype": "Data",
+   "label": "Transit Time"
+  },
+  {
+   "fieldname": "from_quotation",
+   "fieldtype": "Data",
+   "label": "From Quotation",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_75",
+   "fieldtype": "Section Break"
+  },
+  {
+   "default": "Container Details",
+   "fieldname": "container_details",
+   "fieldtype": "Table",
+   "label": "Container Details",
+   "options": "Container Details"
+  },
+  {
+   "fieldname": "operation_id",
+   "fieldtype": "Data",
+   "label": "Operation Id",
+   "unique": 1
+  },
+  {
+   "fieldname": "commodity",
+   "fieldtype": "Link",
+   "label": "Commodity",
+   "options": "Commodity"
+  },
+  {
+   "fieldname": "free_time",
+   "fieldtype": "Data",
+   "label": "Free Time"
+  },
+  {
+   "fieldname": "calculate_weight",
+   "fieldtype": "Button",
+   "label": "Calculate Weight"
+  },
+  {
+   "fieldname": "place_of_delivery",
+   "fieldtype": "Data",
+   "label": "Place of Delivery"
+  },
+  {
+   "default": "OPEN",
+   "fieldname": "operations_status",
+   "fieldtype": "Link",
+   "label": "Operations Status",
+   "options": "Operations Status"
+  }
+ ],
+ "is_submittable": 1,
+ "links": [
+  {
+   "link_doctype": "Freight",
+   "link_fieldname": "operations"
+  },
+  {
+   "link_doctype": "Transportation",
+   "link_fieldname": "operations"
+  },
+  {
+   "link_doctype": "Custom Clearance",
+   "link_fieldname": "operations"
+  }
+ ],
+ "modified": "2021-11-07 12:03:08.202177",
+ "modified_by": "Administrator",
+ "module": "Forwarding",
+ "name": "Operations",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Sales Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "show_preview_popup": 1,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

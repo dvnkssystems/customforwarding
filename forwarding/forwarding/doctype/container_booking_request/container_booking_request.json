@@ -1,0 +1,125 @@
+{
+ "actions": [],
+ "autoname": "CBR-.####",
+ "creation": "2021-03-27 14:47:08.490145",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "request_status",
+  "shipping_line",
+  "loading_country",
+  "port_of_loading",
+  "destination_country",
+  "port_of_destination",
+  "shipment_type",
+  "container_type",
+  "net_weight",
+  "gross_weight",
+  "column_break_11",
+  "vessel_name",
+  "voyage_number"
+ ],
+ "fields": [
+  {
+   "fieldname": "loading_country",
+   "fieldtype": "Link",
+   "label": "Loading Country",
+   "options": "Territory"
+  },
+  {
+   "fieldname": "port_of_loading",
+   "fieldtype": "Link",
+   "label": " Port Of Loading",
+   "options": "Port"
+  },
+  {
+   "fieldname": "destination_country",
+   "fieldtype": "Link",
+   "label": "Destination Country",
+   "options": "Territory"
+  },
+  {
+   "fieldname": "port_of_destination",
+   "fieldtype": "Link",
+   "label": "Port Of Destination",
+   "options": "Port"
+  },
+  {
+   "fieldname": "shipment_type",
+   "fieldtype": "Link",
+   "label": "Shipment Type",
+   "options": "Shipment Type"
+  },
+  {
+   "fieldname": "container_type",
+   "fieldtype": "Link",
+   "label": "Container Type",
+   "options": "Container Type"
+  },
+  {
+   "fieldname": "net_weight",
+   "fieldtype": "Data",
+   "label": " Net Weight"
+  },
+  {
+   "fieldname": "gross_weight",
+   "fieldtype": "Data",
+   "label": "Gross weight"
+  },
+  {
+   "fieldname": "request_status",
+   "fieldtype": "Select",
+   "label": "Request Status",
+   "options": "Waiting\nConfirmed"
+  },
+  {
+   "fieldname": "shipping_line",
+   "fieldtype": "Link",
+   "label": "Shipping Line",
+   "options": "Supplier"
+  },
+  {
+   "fieldname": "column_break_11",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval:doc.request_status==\"Confirmed\"",
+   "fieldname": "vessel_name",
+   "fieldtype": "Data",
+   "label": "Vessel Name",
+   "mandatory_depends_on": "eval:doc.request_status==\"Confirmed\""
+  },
+  {
+   "depends_on": "eval:doc.request_status==\"Confirmed\"",
+   "fieldname": "voyage_number",
+   "fieldtype": "Data",
+   "label": "Voyage Number",
+   "mandatory_depends_on": "eval:doc.request_status==\"Confirmed\""
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2021-03-27 15:03:41.383803",
+ "modified_by": "Administrator",
+ "module": "Forwarding",
+ "name": "Container Booking Request",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

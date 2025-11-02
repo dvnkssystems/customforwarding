@@ -1,0 +1,43 @@
+{
+ "actions": [],
+ "autoname": "field:container_type",
+ "creation": "2021-03-27 14:46:18.807331",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "container_type"
+ ],
+ "fields": [
+  {
+   "fieldname": "container_type",
+   "fieldtype": "Data",
+   "label": "Container Type",
+   "unique": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2021-03-27 14:46:28.332213",
+ "modified_by": "Administrator",
+ "module": "Forwarding",
+ "name": "Container Type",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

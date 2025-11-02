@@ -1,0 +1,65 @@
+{
+ "actions": [],
+ "autoname": "format:TM-{operations}",
+ "creation": "2021-02-20 13:53:35.818161",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "operations",
+  "container_details",
+  "transport",
+  "shipment_parcel"
+ ],
+ "fields": [
+  {
+   "fieldname": "operations",
+   "fieldtype": "Link",
+   "label": "Operations",
+   "options": "Operations"
+  },
+  {
+   "fieldname": "container_details",
+   "fieldtype": "Table",
+   "label": "Container Details",
+   "options": "Container Details"
+  },
+  {
+   "fieldname": "transport",
+   "fieldtype": "Link",
+   "label": "Transport",
+   "options": "Transportation"
+  },
+  {
+   "fieldname": "shipment_parcel",
+   "fieldtype": "Table",
+   "label": "Shipment Parcel",
+   "options": "Shipment Parcel"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2021-03-07 17:35:47.792095",
+ "modified_by": "Administrator",
+ "module": "Forwarding",
+ "name": "Terminal Management",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "quick_entry": 1,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

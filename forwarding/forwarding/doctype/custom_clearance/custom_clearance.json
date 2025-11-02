@@ -1,0 +1,199 @@
+{
+ "actions": [],
+ "autoname": "format:CC-{operations}",
+ "creation": "2021-01-28 12:02:59.482811",
+ "doctype": "DocType",
+ "document_type": "Document",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "operations",
+  "do_number",
+  "start_date",
+  "end_date",
+  "bayyan_number",
+  "bayyan_date",
+  "column_break_8",
+  "clearance_done_by",
+  "shipping_status",
+  "undertaking_no",
+  "undertaking_date",
+  "due_date",
+  "column_break_13",
+  "document_status",
+  "status",
+  "broker_name",
+  "employee",
+  "transporter_name",
+  "section_break_18",
+  "document_table",
+  "section_break_20",
+  "cost_table"
+ ],
+ "fields": [
+  {
+   "fieldname": "operations",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Operations",
+   "options": "Operations",
+   "reqd": 1
+  },
+  {
+   "fieldname": "document_table",
+   "fieldtype": "Table",
+   "label": "Document Table",
+   "options": "Document Table"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "\nManifest Submission\nArrived to Port\nSubmitted Declaration\nInspection stage\nReady to Release\nFully Release"
+  },
+  {
+   "fieldname": "do_number",
+   "fieldtype": "Data",
+   "label": "DO Number"
+  },
+  {
+   "fieldname": "start_date",
+   "fieldtype": "Date",
+   "label": "Start Date"
+  },
+  {
+   "fieldname": "end_date",
+   "fieldtype": "Date",
+   "label": "End Date"
+  },
+  {
+   "fieldname": "bayyan_number",
+   "fieldtype": "Data",
+   "label": "Bayyan Number",
+   "reqd": 1
+  },
+  {
+   "fieldname": "bayyan_date",
+   "fieldtype": "Date",
+   "label": "Bayyan Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "clearance_done_by",
+   "fieldtype": "Select",
+   "label": " Clearance Done By",
+   "options": "\nIn house\nBroker"
+  },
+  {
+   "fieldname": "undertaking_no",
+   "fieldtype": "Data",
+   "label": "Undertaking No"
+  },
+  {
+   "fieldname": "undertaking_date",
+   "fieldtype": "Date",
+   "label": "Undertaking date"
+  },
+  {
+   "fieldname": "due_date",
+   "fieldtype": "Date",
+   "label": "Due Date"
+  },
+  {
+   "depends_on": "eval:doc.clearance_done_by==\"Broker\"",
+   "fieldname": "broker_name",
+   "fieldtype": "Link",
+   "label": "Broker Name",
+   "options": "Supplier"
+  },
+  {
+   "depends_on": "eval:doc.clearance_done_by==\"In house\"",
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "label": "Employee",
+   "options": "Employee"
+  },
+  {
+   "fieldname": "transporter_name",
+   "fieldtype": "Link",
+   "label": "Transporter Name",
+   "options": "Supplier"
+  },
+  {
+   "fieldname": "document_status",
+   "fieldtype": "Select",
+   "label": "Document Status",
+   "options": "Working\nCompleted"
+  },
+  {
+   "fieldname": "column_break_13",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_18",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_8",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_20",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "cost_table",
+   "fieldtype": "Table",
+   "label": "Cost Table",
+   "options": "Cost Table"
+  },
+  {
+   "fieldname": "shipping_status",
+   "fieldtype": "Data",
+   "label": "Shipping Status"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [
+  {
+   "link_doctype": "Operations",
+   "link_fieldname": "custom_clearance_id"
+  }
+ ],
+ "modified": "2021-10-27 16:13:26.571243",
+ "modified_by": "Administrator",
+ "module": "Forwarding",
+ "name": "Custom Clearance",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Custom Clearance",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "quick_entry": 1,
+ "show_name_in_global_search": 1,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

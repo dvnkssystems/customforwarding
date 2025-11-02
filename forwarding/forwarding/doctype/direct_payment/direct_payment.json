@@ -1,0 +1,284 @@
+{
+ "actions": [],
+ "autoname": "naming_series:",
+ "creation": "2021-03-06 18:02:42.743260",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "company",
+  "paid_to",
+  "voucher_type",
+  "column_break_3",
+  "date",
+  "branch",
+  "b_abbv",
+  "cost_center",
+  "section_break_5",
+  "shipping_payment",
+  "section_break_7",
+  "shipping_payment_request_details",
+  "amt",
+  "section_break_9",
+  "account",
+  "section_break_19",
+  "vat_account",
+  "vat_precentage",
+  "total_debit_amount",
+  "column_break_9",
+  "total_credit_amount",
+  "cheque_no",
+  "cheque_date",
+  "reference_doctype",
+  "reference_id",
+  "amended_from",
+  "section_break_28",
+  "prepared_by",
+  "column_break_30",
+  "checked_by",
+  "column_break_32",
+  "approved_by",
+  "naming_series"
+ ],
+ "fields": [
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "paid_to",
+   "fieldtype": "Link",
+   "label": "Paid To",
+   "options": "Paid To"
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Today",
+   "fieldname": "date",
+   "fieldtype": "Date",
+   "label": "Posting Date",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "branch.cost_center",
+   "fieldname": "cost_center",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Cost Center",
+   "options": "Cost Center"
+  },
+  {
+   "fieldname": "section_break_5",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "shipping_payment",
+   "fieldtype": "Table",
+   "label": "Shipping Payment Request",
+   "options": "Shipping Payment Request Table"
+  },
+  {
+   "fieldname": "section_break_7",
+   "fieldtype": "Section Break",
+   "label": "Account To Debit"
+  },
+  {
+   "fieldname": "section_break_9",
+   "fieldtype": "Section Break",
+   "label": "Additional Account Adjustment"
+  },
+  {
+   "fieldname": "section_break_19",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "vat_account",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "VAT Account",
+   "options": "Account"
+  },
+  {
+   "fetch_from": "vat_account.tax_rate",
+   "fieldname": "vat_precentage",
+   "fieldtype": "Int",
+   "hidden": 1,
+   "label": "VAT Precentage",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "total_debit_amount",
+   "fieldtype": "Currency",
+   "label": "Total Debit Amount",
+   "read_only": 1
+  },
+  {
+   "fieldname": "voucher_type",
+   "fieldtype": "Select",
+   "label": "Voucher Type",
+   "options": "\nCash Entry\nBank Entry",
+   "reqd": 1,
+   "set_only_once": 1
+  },
+  {
+   "fieldname": "column_break_9",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "total_credit_amount",
+   "fieldtype": "Currency",
+   "label": "Total Credit Amount",
+   "read_only": 1
+  },
+  {
+   "fieldname": "cheque_no",
+   "fieldtype": "Data",
+   "label": "Reference Number",
+   "mandatory_depends_on": "eval:cur_frm.doc.voucher_type==\"Bank Entry\";"
+  },
+  {
+   "fieldname": "cheque_date",
+   "fieldtype": "Date",
+   "label": "Reference Date",
+   "mandatory_depends_on": "eval:cur_frm.doc.voucher_type==\"Bank Entry\";"
+  },
+  {
+   "default": "Journal Entry",
+   "fieldname": "reference_doctype",
+   "fieldtype": "Link",
+   "label": "Reference Doctype",
+   "options": "DocType",
+   "read_only": 1
+  },
+  {
+   "fieldname": "reference_id",
+   "fieldtype": "Dynamic Link",
+   "label": "Reference ID",
+   "options": "reference_doctype"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Direct Payment",
+   "print_hide": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "account",
+   "fieldtype": "Table",
+   "label": "Additional Account Adjustment",
+   "options": "Shipment Account Table"
+  },
+  {
+   "fieldname": "shipping_payment_request_details",
+   "fieldtype": "Table",
+   "label": "Shipping Request",
+   "options": "Shipment Request Details"
+  },
+  {
+   "fieldname": "amt",
+   "fieldtype": "Currency",
+   "label": "Amt"
+  },
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "naming_series"
+  },
+  {
+   "fieldname": "branch",
+   "fieldtype": "Link",
+   "label": "Branch",
+   "options": "Branch"
+  },
+  {
+   "fetch_from": "branch.abbreviation",
+   "fieldname": "b_abbv",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "B_abbv"
+  },
+  {
+   "fieldname": "section_break_28",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "prepared_by",
+   "fieldtype": "Data",
+   "label": "Prepared By"
+  },
+  {
+   "fieldname": "column_break_30",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "checked_by",
+   "fieldtype": "Data",
+   "label": "Checked By"
+  },
+  {
+   "fieldname": "column_break_32",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "approved_by",
+   "fieldtype": "Data",
+   "label": "Approved By"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [
+  {
+   "link_doctype": "Journal Entry",
+   "link_fieldname": "direct_payment_id"
+  }
+ ],
+ "modified": "2021-09-28 12:40:16.574651",
+ "modified_by": "Administrator",
+ "module": "Forwarding",
+ "name": "Direct Payment",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Purchase Master Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

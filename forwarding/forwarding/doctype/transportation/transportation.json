@@ -1,0 +1,180 @@
+{
+ "actions": [],
+ "autoname": "format:TT-{operations}",
+ "creation": "2021-02-01 21:45:39.456586",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "operations",
+  "vehicle",
+  "driver",
+  "trip_mon",
+  "delivery_trip",
+  "column_break_6",
+  "transportation_by",
+  "transporter",
+  "location",
+  "departure_location",
+  "departure_location_address",
+  "destination_location",
+  "destination_location_address",
+  "section_break_7",
+  "container_details",
+  "cost_table",
+  "section_break_3",
+  "document_table",
+  "section_break_5",
+  "activity_template",
+  "data_20",
+  "activity_template_table"
+ ],
+ "fields": [
+  {
+   "fieldname": "operations",
+   "fieldtype": "Link",
+   "label": "Operations",
+   "options": "Operations"
+  },
+  {
+   "fieldname": "section_break_3",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "document_table",
+   "fieldtype": "Table",
+   "label": "Document Table",
+   "options": "Document Table"
+  },
+  {
+   "fieldname": "section_break_5",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "activity_template",
+   "fieldtype": "Link",
+   "label": "Activity Template",
+   "options": "Activity Template"
+  },
+  {
+   "fieldname": "activity_template_table",
+   "fieldtype": "Table",
+   "label": "Activity Template Table",
+   "options": "Activity Template Table"
+  },
+  {
+   "fieldname": "section_break_7",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "cost_table",
+   "fieldtype": "Table",
+   "label": "Cost Table",
+   "options": "Cost Table"
+  },
+  {
+   "fieldname": "vehicle",
+   "fieldtype": "Link",
+   "label": "Vehicle",
+   "options": "Vehicle"
+  },
+  {
+   "fieldname": "driver",
+   "fieldtype": "Link",
+   "label": "Driver",
+   "options": "Driver"
+  },
+  {
+   "fieldname": "delivery_trip",
+   "fieldtype": "Link",
+   "label": "Delivery Trip",
+   "options": "Delivery Trip"
+  },
+  {
+   "fieldname": "transportation_by",
+   "fieldtype": "Data",
+   "label": "Transportation By"
+  },
+  {
+   "fieldname": "transporter",
+   "fieldtype": "Link",
+   "label": "Transporter",
+   "options": "Supplier"
+  },
+  {
+   "depends_on": "eval:doc.transportation_by==\"Third Party Transporter\"",
+   "fieldname": "location",
+   "fieldtype": "Section Break",
+   "label": "Location"
+  },
+  {
+   "fieldname": "departure_location",
+   "fieldtype": "Data",
+   "label": "Departure Location"
+  },
+  {
+   "fieldname": "departure_location_address",
+   "fieldtype": "Small Text",
+   "label": "Departure Location Address"
+  },
+  {
+   "fieldname": "destination_location",
+   "fieldtype": "Data",
+   "label": "Destination Location"
+  },
+  {
+   "fieldname": "destination_location_address",
+   "fieldtype": "Small Text",
+   "label": "Destination Location Address"
+  },
+  {
+   "fieldname": "data_20",
+   "fieldtype": "Data"
+  },
+  {
+   "fieldname": "trip_mon",
+   "fieldtype": "Currency",
+   "label": "Trip Money"
+  },
+  {
+   "fieldname": "column_break_6",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "container_details",
+   "fieldtype": "Table",
+   "label": "Container Details",
+   "options": "Container Details"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [
+  {
+   "link_doctype": "Operations",
+   "link_fieldname": "transportation"
+  }
+ ],
+ "modified": "2021-03-07 17:34:32.360277",
+ "modified_by": "Administrator",
+ "module": "Forwarding",
+ "name": "Transportation",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "quick_entry": 1,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

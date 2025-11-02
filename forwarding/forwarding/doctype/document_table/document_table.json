@@ -1,0 +1,61 @@
+{
+ "actions": [],
+ "creation": "2021-02-01 21:32:10.758182",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "document",
+  "received",
+  "date",
+  "attach",
+  "remark"
+ ],
+ "fields": [
+  {
+   "fieldname": "document",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Document",
+   "options": "Document List"
+  },
+  {
+   "fieldname": "received",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Received",
+   "options": "\nYes\nNo"
+  },
+  {
+   "fieldname": "date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Date"
+  },
+  {
+   "fieldname": "attach",
+   "fieldtype": "Attach",
+   "in_list_view": 1,
+   "label": "Attach"
+  },
+  {
+   "fieldname": "remark",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Remark"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2021-02-01 21:32:37.287475",
+ "modified_by": "Administrator",
+ "module": "Forwarding",
+ "name": "Document Table",
+ "owner": "Administrator",
+ "permissions": [],
+ "quick_entry": 1,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

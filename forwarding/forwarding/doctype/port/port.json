@@ -1,0 +1,86 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:{port_code}-{port_name}",
+ "creation": "2021-01-28 18:18:06.243352",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "port_name",
+  "port_code",
+  "country",
+  "mode_of_shipment",
+  "gate_pass_detail_section",
+  "issue_date",
+  "expiry_date"
+ ],
+ "fields": [
+  {
+   "fieldname": "port_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Port Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "port_code",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Port Code"
+  },
+  {
+   "fieldname": "country",
+   "fieldtype": "Link",
+   "label": "Country",
+   "options": "Territory"
+  },
+  {
+   "fieldname": "mode_of_shipment",
+   "fieldtype": "Link",
+   "label": "Mode Of Shipment",
+   "options": "Mode Of Shipment"
+  },
+  {
+   "fieldname": "gate_pass_detail_section",
+   "fieldtype": "Section Break",
+   "label": "Gate Pass Detail"
+  },
+  {
+   "fieldname": "issue_date",
+   "fieldtype": "Date",
+   "label": "Issue Date"
+  },
+  {
+   "fieldname": "expiry_date",
+   "fieldtype": "Date",
+   "label": "Expiry Date"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2021-11-03 00:30:56.852047",
+ "modified_by": "Administrator",
+ "module": "Forwarding",
+ "name": "Port",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "quick_entry": 1,
+ "search_fields": "port_code,country",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

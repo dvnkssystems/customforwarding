@@ -1,0 +1,55 @@
+{
+ "actions": [],
+ "autoname": "field:inco_term",
+ "creation": "2021-02-03 20:11:35.404482",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "inco_term",
+  "inco_term_name"
+ ],
+ "fields": [
+  {
+   "fieldname": "inco_term",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Inco Term",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "inco_term_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Inco Term Name",
+   "reqd": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2021-02-03 20:11:55.953839",
+ "modified_by": "Administrator",
+ "module": "Forwarding",
+ "name": "Inco Terms",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "quick_entry": 1,
+ "search_fields": "inco_term_name",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

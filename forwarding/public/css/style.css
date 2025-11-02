@@ -1,0 +1,72 @@
+.layout-side-section {
+    font-size: var(--text-md);
+    padding-right: 30px;
+    background-color: white;
+    margin-left: 20px;
+    border-radius: 13px;
+    /* padding: 10px; */
+    /* box-shadow: 0px 7px 8px 5px grey; */
+}
+.page-head .page-head-content {
+    height: var(--page-head-height);
+    background-color: white;
+}
+
+/* .col-lg-2.layout-side-section {
+    display: none;
+} */
+.widget {
+    display: flex;
+    flex-direction: column;
+    min-height: 1px;
+    padding: 15px;
+    border-radius: var(--border-radius-md);
+    height: 100%;
+    /* box-shadow: 0px 7px 8px 5px grey; */
+    background-color: var(--card-bg);
+}
+.container {
+    width: 100%!important;
+    margin-right: auto;
+    margin-left: auto;
+}
+.layout-side-section .sidebar-label {
+    margin-bottom: var(--margin-sm);
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    color: var(--text-muted);
+    letter-spacing: .04rem;
+    padding-top: 10px;
+    font-size: var(--text-sm);
+}
+.form-section.card-section {
+    margin-bottom: var(--margin-lg);
+    /* box-shadow: 0px 7px 8px 5px grey; */
+}
+.navbar {
+    height: 60px;
+    background: #2268a0;
+    box-shadow: var(--shadow-sm);
+    padding: 0;
+}
+#navbar-breadcrumbs li.disabled a {
+    color: #ffffff;
+    pointer-events: none;
+}
+
+.page-container {
+    background-color: #1d89fb61; 
+}
+.app-logo {
+    width: auto; 
+    height: 59px;
+}
+.navbar-home img {
+    max-height: 59px;
+    width: auto!important;
+}
+.for-email-login .page-card-head img, .for-forgot .page-card-head img, .for-login .page-card-head img, .for-signup .page-card-head img {
+    max-height: 60px!important;
+    margin-bottom: var(--margin-lg,30px);
+}

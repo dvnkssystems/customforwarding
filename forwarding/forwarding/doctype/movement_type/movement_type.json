@@ -1,0 +1,73 @@
+{
+ "actions": [],
+ "autoname": "field:movement_type",
+ "creation": "2021-03-30 10:01:11.787223",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "movement_type",
+  "scope_of_work",
+  "freight_forwarding",
+  "custom_clearance",
+  "transport"
+ ],
+ "fields": [
+  {
+   "fieldname": "movement_type",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Movement Type",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "freight_forwarding",
+   "fieldtype": "Check",
+   "label": "Freight Forwarding"
+  },
+  {
+   "default": "0",
+   "fieldname": "custom_clearance",
+   "fieldtype": "Check",
+   "label": "Custom Clearance"
+  },
+  {
+   "default": "0",
+   "fieldname": "transport",
+   "fieldtype": "Check",
+   "label": "Transport"
+  },
+  {
+   "fieldname": "scope_of_work",
+   "fieldtype": "Link",
+   "label": "Scope Of Work",
+   "options": "Scope Of Work"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2021-05-06 12:29:33.672202",
+ "modified_by": "Administrator",
+ "module": "Forwarding",
+ "name": "Movement Type",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

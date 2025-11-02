@@ -1,0 +1,430 @@
+{
+ "actions": [],
+ "autoname": "format:FF-{operations}",
+ "creation": "2021-01-28 12:02:25.256338",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "operations",
+  "customer",
+  "handling_agent",
+  "contact_person",
+  "awb_number",
+  "shipper",
+  "column_break_7",
+  "document_status",
+  "consignee",
+  "location_section",
+  "loading_country",
+  "port_of_loading",
+  "column_break_15",
+  "destination_country",
+  "port_of_destination",
+  "pick_up_time_at_place_of_origin",
+  "earliest_time1",
+  "column_break_16",
+  "latest_time1",
+  "rail_cut_off_at_origin",
+  "earliest_time2",
+  "column_break_20",
+  "latest_time2",
+  "inland_cutoff_at_origin",
+  "earliest_time3",
+  "column_break_24",
+  "latest_time3",
+  "container_pickup_at_origin",
+  "earliest_time4",
+  "column_break_28",
+  "latest_time4",
+  "aes_deadline",
+  "earliest_time5",
+  "column_break_32",
+  "latest_time5",
+  "shipping_instructions_deadline_for_advance_manifest_cargo",
+  "earliest_time6",
+  "column_break_19",
+  "latest_time6",
+  "cargo_cutoff_deadline",
+  "earliest_time7",
+  "column_break_9",
+  "latest_time7",
+  "container_details_section",
+  "container",
+  "transport_details",
+  "empty_container_depot",
+  "empty_container_release_date",
+  "return_container_depot",
+  "return_container_return_date",
+  "origin_pick_up_location",
+  "column_break_47",
+  "t_delivery_location",
+  "mode",
+  "vessel",
+  "etd",
+  "eta",
+  "section_break_56",
+  "cost_table",
+  "section_break_55",
+  "document_table",
+  "section_break_57",
+  "activity_template",
+  "activity_template_table"
+ ],
+ "fields": [
+  {
+   "fieldname": "operations",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Operations",
+   "options": "Operations",
+   "reqd": 1
+  },
+  {
+   "fieldname": "pick_up_time_at_place_of_origin",
+   "fieldtype": "Section Break",
+   "label": "Pick up Time at Place of Origin"
+  },
+  {
+   "fieldname": "rail_cut_off_at_origin",
+   "fieldtype": "Section Break",
+   "label": "Rail Cut Off at Origin"
+  },
+  {
+   "fieldname": "inland_cutoff_at_origin",
+   "fieldtype": "Section Break",
+   "label": "Inland Cutoff at Origin"
+  },
+  {
+   "fieldname": "container_pickup_at_origin",
+   "fieldtype": "Section Break",
+   "label": "Container Pickup at origin"
+  },
+  {
+   "fieldname": "aes_deadline",
+   "fieldtype": "Section Break",
+   "label": "AES Deadline"
+  },
+  {
+   "fieldname": "shipping_instructions_deadline_for_advance_manifest_cargo",
+   "fieldtype": "Section Break",
+   "label": "Shipping Instructions Deadline for Advance Manifest Cargo"
+  },
+  {
+   "fieldname": "cargo_cutoff_deadline",
+   "fieldtype": "Section Break",
+   "label": "Cargo Cutoff Deadline "
+  },
+  {
+   "fieldname": "column_break_9",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "earliest_time1",
+   "fieldtype": "Datetime",
+   "label": "Earliest Time"
+  },
+  {
+   "fieldname": "earliest_time2",
+   "fieldtype": "Datetime",
+   "label": "Earliest Time"
+  },
+  {
+   "fieldname": "earliest_time3",
+   "fieldtype": "Datetime",
+   "label": "Earliest Time"
+  },
+  {
+   "fieldname": "earliest_time4",
+   "fieldtype": "Datetime",
+   "label": "Earliest Time"
+  },
+  {
+   "fieldname": "earliest_time5",
+   "fieldtype": "Datetime",
+   "label": "Earliest Time"
+  },
+  {
+   "fieldname": "earliest_time6",
+   "fieldtype": "Datetime",
+   "label": "Earliest Time"
+  },
+  {
+   "fieldname": "earliest_time7",
+   "fieldtype": "Datetime",
+   "label": "Earliest Time"
+  },
+  {
+   "fieldname": "column_break_19",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "latest_time1",
+   "fieldtype": "Datetime",
+   "label": "Latest Time"
+  },
+  {
+   "fieldname": "latest_time2",
+   "fieldtype": "Datetime",
+   "label": "Latest Time"
+  },
+  {
+   "fieldname": "latest_time3",
+   "fieldtype": "Datetime",
+   "label": "Latest Time"
+  },
+  {
+   "fieldname": "latest_time4",
+   "fieldtype": "Datetime",
+   "label": "Latest Time"
+  },
+  {
+   "fieldname": "latest_time5",
+   "fieldtype": "Datetime",
+   "label": "Latest Time"
+  },
+  {
+   "fieldname": "latest_time6",
+   "fieldtype": "Datetime",
+   "label": "Latest Time"
+  },
+  {
+   "fieldname": "latest_time7",
+   "fieldtype": "Datetime",
+   "label": "Latest Time"
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer"
+  },
+  {
+   "fieldname": "handling_agent",
+   "fieldtype": "Link",
+   "label": "Handling Agent",
+   "options": "Supplier"
+  },
+  {
+   "fieldname": "contact_person",
+   "fieldtype": "Data",
+   "label": "Contact Person"
+  },
+  {
+   "fieldname": "awb_number",
+   "fieldtype": "Data",
+   "label": "BL/AWB Number"
+  },
+  {
+   "fieldname": "shipper",
+   "fieldtype": "Link",
+   "label": "Shipper",
+   "options": "Shipper"
+  },
+  {
+   "fieldname": "column_break_7",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "consignee",
+   "fieldtype": "Link",
+   "label": "Consignee",
+   "options": "Consignee"
+  },
+  {
+   "fieldname": "document_status",
+   "fieldtype": "Select",
+   "label": "Document Status",
+   "options": "Working\nCompleted"
+  },
+  {
+   "fieldname": "container_details_section",
+   "fieldtype": "Section Break",
+   "label": "Container Details"
+  },
+  {
+   "fieldname": "transport_details",
+   "fieldtype": "Section Break",
+   "label": "Transport Details"
+  },
+  {
+   "fieldname": "empty_container_depot",
+   "fieldtype": "Date",
+   "label": "Empty Container Depot"
+  },
+  {
+   "fieldname": "empty_container_release_date",
+   "fieldtype": "Data",
+   "label": "Empty Container Release Date"
+  },
+  {
+   "fieldname": "return_container_depot",
+   "fieldtype": "Data",
+   "label": "Return Container Depot"
+  },
+  {
+   "fieldname": "return_container_return_date",
+   "fieldtype": "Date",
+   "label": "Return Container Return Date"
+  },
+  {
+   "fieldname": "origin_pick_up_location",
+   "fieldtype": "Data",
+   "label": "Origin Pick up Location"
+  },
+  {
+   "fieldname": "column_break_47",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "t_delivery_location",
+   "fieldtype": "Data",
+   "label": "Delivery Location"
+  },
+  {
+   "fieldname": "mode",
+   "fieldtype": "Data",
+   "label": "Mode"
+  },
+  {
+   "fieldname": "vessel",
+   "fieldtype": "Data",
+   "label": "Vessel"
+  },
+  {
+   "fieldname": "etd",
+   "fieldtype": "Date",
+   "label": "ETD"
+  },
+  {
+   "fieldname": "eta",
+   "fieldtype": "Data",
+   "label": "ETA"
+  },
+  {
+   "fieldname": "container",
+   "fieldtype": "Table",
+   "label": "Container",
+   "options": "Container Details"
+  },
+  {
+   "fieldname": "column_break_16",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_20",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_24",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_28",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_32",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_55",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "document_table",
+   "fieldtype": "Table",
+   "label": "Document Table",
+   "options": "Document Table"
+  },
+  {
+   "fieldname": "section_break_57",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "activity_template",
+   "fieldtype": "Link",
+   "label": "Activity Template",
+   "options": "Activity Template"
+  },
+  {
+   "fieldname": "activity_template_table",
+   "fieldtype": "Table",
+   "label": "Activity Template Table",
+   "options": "Activity Template Table"
+  },
+  {
+   "fieldname": "section_break_56",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "cost_table",
+   "fieldtype": "Table",
+   "label": "Cost Table",
+   "options": "Cost Table"
+  },
+  {
+   "fieldname": "location_section",
+   "fieldtype": "Section Break",
+   "label": "Location"
+  },
+  {
+   "fieldname": "loading_country",
+   "fieldtype": "Link",
+   "label": "Loading Country",
+   "options": "Territory"
+  },
+  {
+   "fieldname": "port_of_loading",
+   "fieldtype": "Link",
+   "label": " Port Of Loading",
+   "options": "Port"
+  },
+  {
+   "fieldname": "column_break_15",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "destination_country",
+   "fieldtype": "Link",
+   "label": "Destination Country",
+   "options": "Territory"
+  },
+  {
+   "fieldname": "port_of_destination",
+   "fieldtype": "Link",
+   "label": "Port Of Destination",
+   "options": "Port"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [
+  {
+   "link_doctype": "Operations",
+   "link_fieldname": "freight"
+  }
+ ],
+ "modified": "2021-03-27 14:39:34.757972",
+ "modified_by": "Administrator",
+ "module": "Forwarding",
+ "name": "Freight",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "quick_entry": 1,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

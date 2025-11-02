@@ -1,0 +1,75 @@
+<head>
+  <base href="/">
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script>document.getElementsByTagName("html")[0].className += " js";</script>
+    <link rel="stylesheet" href="assets/forwarding/css/style.css" type="text/css">
+    <link rel="stylesheet" href="assets/forwarding/css/style.scss">
+  </head>
+  <body>
+    <section class="cd-h-timeline js-cd-h-timeline margin-bottom-md">
+ 
+      <div class="cd-h-timeline__container container">
+        <div class="cd-h-timeline__dates">
+          <div class="cd-h-timeline__line">
+            {% for d in data %}
+            <ol>
+              {% if d.idx==1 %}
+                <li><a  data-date="16/01/2020" class="cd-h-timeline__date  cd-h-timeline__date--selected">
+              {% else %}
+              <li><a  data-date="16/01/2020" class="cd-h-timeline__date ">
+                {% endif %}
+              {% if d.date %}
+                {{d.date}}
+              {% else %}
+                {{d.status}}
+                {% endif %}
+              </a></li>
+              {% endfor %}
+            </ol>
+  
+            <span class="cd-h-timeline__filling-line" aria-hidden="true"></span>
+          </div> <!-- .cd-h-timeline__line -->
+        </div> <!-- .cd-h-timeline__dates -->
+          
+        <ul>
+          <li><a  class="text-replace cd-h-timeline__navigation cd-h-timeline__navigation--prev cd-h-timeline__navigation--inactive">Prev</a></li>
+          <li><a  class="text-replace cd-h-timeline__navigation cd-h-timeline__navigation--next">Next</a></li>
+        </ul>
+      </div> <!-- .cd-h-timeline__container -->
+  
+      <div class="cd-h-timeline__events">
+        <ol>
+          {% for d in data%}
+          {% if d.idx==1 %}
+          <li class="cd-h-timeline__event cd-h-timeline__event--selected text-component">
+            <div class="cd-h-timeline__event-content container">
+              <h2 class="cd-h-timeline__event-title">{{d.activity}}</h2>
+              <em class="cd-h-timeline__event-date">{{d.status}}</em>
+              {% if d.remark %}
+              <em class="cd-h-timeline__event-date">{{d.remark}}</em>
+              {% endif %}
+            </div>
+          </li>
+          {% else %}
+          <li class="cd-h-timeline__event  text-component">
+            <div class="cd-h-timeline__event-content container">
+              <h2 class="cd-h-timeline__event-title">{{d.activity}}</h2>
+              <em class="cd-h-timeline__event-date">{{d.status}}</em>
+              {% if d.remark %}
+              <em class="cd-h-timeline__event-date">{{d.remark}}</em>
+              {% endif %}
+            </div>
+          </li>
+          {% endif %}
+          {% endfor %}
+         
+        </ol>
+      </div> <!-- .cd-h-timeline__events -->
+    </section>
+    <script src="assets/forwarding/js/util.js"></script> <!-- util functions included in the CodyHouse framework -->
+    <script src="assets/forwarding/js/swipe-content.js"></script> <!-- A Vanilla JavaScript plugin to detect touch interactions -->
+    <script src="assets/forwarding/js/main.js"></script>
+  </body>
+  

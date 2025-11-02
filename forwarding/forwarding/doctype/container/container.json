@@ -1,0 +1,121 @@
+{
+ "actions": [],
+ "autoname": "field:container_no",
+ "creation": "2021-02-20 14:01:02.803440",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "container_no",
+  "container_size",
+  "shipping_line",
+  "goods",
+  "seal_number",
+  "net_weight",
+  "gross_weight",
+  "marks_and_number",
+  "packagesunits",
+  "column_break_10",
+  "empty_pick_up",
+  "placing_to_supplier",
+  "full_received",
+  "gate_in"
+ ],
+ "fields": [
+  {
+   "fieldname": "container_no",
+   "fieldtype": "Data",
+   "label": "Container No",
+   "unique": 1
+  },
+  {
+   "fieldname": "container_size",
+   "fieldtype": "Data",
+   "label": "Container Size"
+  },
+  {
+   "fieldname": "goods",
+   "fieldtype": "Data",
+   "label": "Goods"
+  },
+  {
+   "fieldname": "seal_number",
+   "fieldtype": "Data",
+   "label": "Seal Number"
+  },
+  {
+   "fieldname": "gross_weight",
+   "fieldtype": "Float",
+   "label": "Gross weight"
+  },
+  {
+   "fieldname": "marks_and_number",
+   "fieldtype": "Data",
+   "label": "Marks and Number"
+  },
+  {
+   "fieldname": "shipping_line",
+   "fieldtype": "Data",
+   "label": "Shipping Line"
+  },
+  {
+   "fieldname": "net_weight",
+   "fieldtype": "Float",
+   "label": "Net Weight"
+  },
+  {
+   "fieldname": "packagesunits",
+   "fieldtype": "Data",
+   "label": "Packages/Units"
+  },
+  {
+   "fieldname": "column_break_10",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "empty_pick_up",
+   "fieldtype": "Date",
+   "label": " Empty Pick up Date"
+  },
+  {
+   "fieldname": "placing_to_supplier",
+   "fieldtype": "Date",
+   "label": "Place to Supplier Date"
+  },
+  {
+   "fieldname": "full_received",
+   "fieldtype": "Date",
+   "label": "Full Received Date"
+  },
+  {
+   "fieldname": "gate_in",
+   "fieldtype": "Date",
+   "label": "Gate In Date"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2021-09-18 09:11:46.323641",
+ "modified_by": "Administrator",
+ "module": "Forwarding",
+ "name": "Container",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "quick_entry": 1,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

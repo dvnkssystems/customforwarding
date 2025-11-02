@@ -1,0 +1,210 @@
+# Copyright (c) 2013, FirstERP and contributors
+# For license information, please see license.txt
+
+from __future__ import unicode_literals
+import frappe
+from frappe import _
+import pandas as pd
+from frappe.utils import flt
+
+def execute(filters=None):
+	columns, data = [], []
+	columns = get_columns()
+	row = {}
+	items = get_data(filters)
+	
+	for item in items:
+		cost_table_details_ = get_cost_table_details(item.operations)
+		cost_table_details = [dict(ct_dict_) for ct_dict_ in cost_table_details_]
+		df = pd.DataFrame(cost_table_details)
+		if not df.empty:
+			total = df.sum()
+			item.update({
+							"item":'',
+							"account":"Total",
+							"cost":total['cost'],
+							"rate":total['rate'],
+							"paid_amount":total['paid_amount'],
+							'pending_amount': total['pending_amount'],
+							'received_amount': total['received_amount'],
+							'pending_amount_to_receive': total['pending_amount_to_receive'],
+							})
+			pnl = flt(total['received_amount']) - flt(total['paid_amount'])
+			epnl = flt(total['rate']) - flt(total['cost'])
+			item.update({'pnl':pnl,'epnl':epnl})
+		else:
+			item.update({
+							"item":'',
+							"account":"Total",
+							"cost":0.0,
+							"rate":0.0,
+							"paid_amount":0.0,
+							'pending_amount': 0.0,
+							'received_amount': 0.0,
+							'pending_amount_to_receive': 0.0,
+							})
+		item.update({"indent":0})
+		data.append(item)
+		
+		if cost_table_details:
+			for ct in cost_table_details:
+				row = {"indent":1}
+				row.update(ct)
+				row.update({"pnl":flt(flt(ct['received_amount']) - flt(ct['paid_amount'])),"epnl":flt(flt(ct['rate']) - flt(ct['cost']))})
+				data.append(row)
+
+		add_total(data)
+
+	return columns, data
+
+def add_total(data):
+	if not data:
+		return
+	else:
+		total_row = {
+			"customer": _(frappe.bold("Total"))
+		}
+		data_ = [dict(ct_dict_) for ct_dict_ in data]
+		df = pd.DataFrame(data_)
+		data_df = df[df['date'].notna()]
+		data_df = data_df.fillna(0)
+		final_totals = data_df.sum()
+		if 'cost' in data_df.columns:
+			total_row.update({
+						"date":_(frappe.bold("Total")),
+						"cost":final_totals.get('cost', default=0),
+						"rate":final_totals.get('rate', default=0),
+						"paid_amount":final_totals.get('paid_amount', default=0),
+						'pending_amount': final_totals.get('pending_amount', default=0),
+						'received_amount': final_totals.get('received_amount', default=0),
+						'pending_amount_to_receive': final_totals.get('pending_amount_to_receive', default=0),
+						})
+			pnl = flt(total_row['received_amount']) - flt(total_row['paid_amount'])
+			epnl = flt(total_row['rate']) - flt(total_row['cost'])
+			total_row.update({'pnl':pnl,'epnl':epnl})
+			data.append(total_row)
+
+def get_conditions(filters):
+	conditions = ""
+	if filters.get('operations'):
+		conditions += "and name = %(operations)s"# %filters.get('operations')
+
+	if filters.get('job_type'):
+		conditions += "and job_type = %(job_type)s"# %filters.get('operations')
+
+	if filters.get('branch'):
+		conditions += "and branch = %(branch)s"# %filters.get('operations')
+
+	if filters.get('from_date'):
+		conditions += "AND date >= %(from_date)s"# %filters.get('from_date')
+	if filters.get('to_date'):
+		conditions += "AND date <= %(to_date)s"# %filters.get('to_date')
+
+	return conditions
+
+def get_data(filters):
+	conditions = get_conditions(filters)
+	# from_date = filters.get("from_date")
+	# to_date = filters.get("to_date")
+	items =  frappe.db.sql(''' 
+			select
+				date,
+				name as operations  ,
+				mode_of_shipment ,
+				branch ,
+				cost_center ,
+				scope_of_work ,
+				job_type ,
+				customer ,
+				consignee
+			from
+				`tabOperations` 
+			where
+				docstatus != 2
+					%s
+			
+		''' %conditions,filters,as_dict=1)
+	
+	return items
+
+def get_cost_table_details(operations):
+	return frappe.db.get_all("Cost Table",
+							filters={"parent":operations},
+							fields=['item','item_name','account','cost','rate','paid_amount',
+									'pending_amount',
+									'received_amount',
+									'pending_amount_to_receive'
+									])
+
+def get_columns():
+	columns = [
+		{
+			'label': _("Date"),
+			'fieldname': 'date',
+			'fieldtype': 'Date',
+			'width': 120
+		},
+		{
+			'label': _("Operations"),
+			'fieldname': 'operations',
+			'fieldtype': 'Link',
+			'options': 'Operations',
+			'width': 220
+		},
+		{
+			'label': _("Customer"),
+			'fieldname': 'customer',
+			'fieldtype': 'Link',
+			"options":"Customer",
+			'width': 220
+		},
+		{
+			'label': _("Item"),
+			'fieldname': 'item_name',
+			'fieldtype': 'Data',
+			'width': 200
+		},
+		{
+			'label': _("Estimated Income"),
+			'fieldname': 'rate',
+			'fieldtype': 'Currency',
+			"options":"Currency",
+			'width': 160
+		},
+		{
+			'label': _("Estimated Cost"),
+			'fieldname': 'cost',
+			'fieldtype': 'Currency',
+			"options":"Currency",
+			'width': 160
+		},
+		{
+			'label': _("Estimated Profit/Loss"),
+			'fieldname': 'epnl',
+			'fieldtype': 'Currency',
+			"options":"Currency",
+			'width': 160
+		},
+		{
+			'label': _("Actual Income" ),
+			'fieldname': 'received_amount',
+			'fieldtype': 'Currency',
+			"options":"Currency",
+			'width': 160
+		},				
+		{
+			'label': _("Actual Cost"),
+			'fieldname': 'paid_amount',
+			'fieldtype': 'Currency',
+			"options":"Currency",
+			'width': 160
+		},
+		{
+			'label': _("Actual Profit/Loss"),
+			'fieldname': 'pnl',
+			'fieldtype': 'Currency',
+			"options":"Currency",
+			'width': 160
+		}
+		]
+	return columns
