@@ -10,6 +10,11 @@
   "naming_series",
   "operation_id",
   "operations_status",
+  "lifecycle_section",
+  "billing_status",
+  "col_break_lifecycle",
+  "is_favorite",
+  "is_trashed",
   "date",
   "country",
   "country_abb",
@@ -636,6 +641,37 @@
    "fieldtype": "Link",
    "label": "Operations Status",
    "options": "Operations Status"
+  },
+  {
+   "fieldname": "lifecycle_section",
+   "fieldtype": "Section Break",
+   "label": "Status & Billing"
+  },
+  {
+   "fieldname": "billing_status",
+   "fieldtype": "Select",
+   "label": "Billing Status",
+   "options": "No Invoice\nCost Sheet Pending\nPending Billing\nBilled",
+   "default": "No Invoice",
+   "read_only": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "col_break_lifecycle",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "is_favorite",
+   "fieldtype": "Check",
+   "label": "Is Favorite",
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "is_trashed",
+   "fieldtype": "Check",
+   "label": "Is Trashed",
+   "in_standard_filter": 1
   }
  ],
  "is_submittable": 1,

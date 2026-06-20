@@ -59,6 +59,21 @@
    "translatable": 1,
    "unique": 0,
    "width": null
+  },
+  {
+   "dt": "Branch",
+   "fieldname": "cost_center",
+   "fieldtype": "Link",
+   "label": "Cost Center",
+   "options": "Cost Center",
+   "insert_after": "abbreviation",
+   "name": "Branch-cost_center",
+   "module": "Forwarding",
+   "owner": "Administrator",
+   "docstatus": 0,
+   "creation": "2026-06-15 00:00:00.000000",
+   "modified": "2026-06-15 00:00:00.000000",
+   "modified_by": "Administrator"
   }
  ],
  "custom_perms": [],

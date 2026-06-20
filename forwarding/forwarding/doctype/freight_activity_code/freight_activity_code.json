@@ -1,0 +1,111 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-06-15 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "activity_name",
+  "activity_name_arabic",
+  "cb1",
+  "mode",
+  "service_type",
+  "sb1",
+  "description",
+  "description_local",
+  "is_hidden"
+ ],
+ "fields": [
+  {
+   "fieldname": "activity_name",
+   "fieldtype": "Data",
+   "label": "Activity Name",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "activity_name_arabic",
+   "fieldtype": "Data",
+   "label": "Activity Name (Arabic)"
+  },
+  {
+   "fieldname": "cb1",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "mode",
+   "fieldtype": "Select",
+   "label": "Mode",
+   "options": "\nSea\nAir\nLand\nOther",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "service_type",
+   "fieldtype": "Select",
+   "label": "Service Type",
+   "options": "\nFreight Forwarding\nCustoms Clearance\nValue Added Services\nTransportation\nTrading\nOther",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "sb1",
+   "fieldtype": "Section Break",
+   "label": ""
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  },
+  {
+   "fieldname": "description_local",
+   "fieldtype": "Small Text",
+   "label": "Description (Local)"
+  },
+  {
+   "fieldname": "is_hidden",
+   "fieldtype": "Check",
+   "label": "Is Hidden"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-06-15 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Forwarding",
+ "name": "Freight Activity Code",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "share": 1,
+   "write": 1,
+   "role": "System Manager"
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "share": 1,
+   "write": 1,
+   "role": "Sales User"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "autoname": "field:activity_name",
+ "search_fields": "mode,service_type"
+}

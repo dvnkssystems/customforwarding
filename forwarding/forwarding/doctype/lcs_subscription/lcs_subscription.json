@@ -1,0 +1,191 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-06-15 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "sb_plan",
+  "company",
+  "plan",
+  "status",
+  "cb_plan",
+  "billing_cycle",
+  "start_date",
+  "end_date",
+  "price_usd",
+  "sb_limits",
+  "max_contacts",
+  "max_jobs",
+  "max_invoices",
+  "cb_limits",
+  "max_vouchers",
+  "max_awb_tracking",
+  "sb_usage",
+  "used_contacts",
+  "used_jobs",
+  "used_invoices",
+  "cb_usage",
+  "used_vouchers",
+  "used_awb_tracking"
+ ],
+ "fields": [
+  {
+   "fieldname": "sb_plan",
+   "fieldtype": "Section Break",
+   "label": "Plan"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "plan",
+   "fieldtype": "Select",
+   "label": "Plan",
+   "options": "Bridge Lite\nBridge Growth\nEnterprise\nEnterprise Plus",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Active\nExpired\nSuspended",
+   "default": "Active",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "cb_plan",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "billing_cycle",
+   "fieldtype": "Select",
+   "label": "Billing Cycle",
+   "options": "Monthly\nAnnual"
+  },
+  {
+   "fieldname": "start_date",
+   "fieldtype": "Date",
+   "label": "Start Date"
+  },
+  {
+   "fieldname": "end_date",
+   "fieldtype": "Date",
+   "label": "End Date"
+  },
+  {
+   "fieldname": "price_usd",
+   "fieldtype": "Currency",
+   "label": "Price (USD)"
+  },
+  {
+   "fieldname": "sb_limits",
+   "fieldtype": "Section Break",
+   "label": "Limits"
+  },
+  {
+   "fieldname": "max_contacts",
+   "fieldtype": "Int",
+   "label": "Max Contacts"
+  },
+  {
+   "fieldname": "max_jobs",
+   "fieldtype": "Int",
+   "label": "Max Jobs"
+  },
+  {
+   "fieldname": "max_invoices",
+   "fieldtype": "Int",
+   "label": "Max Invoices"
+  },
+  {
+   "fieldname": "cb_limits",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "max_vouchers",
+   "fieldtype": "Int",
+   "label": "Max Vouchers"
+  },
+  {
+   "fieldname": "max_awb_tracking",
+   "fieldtype": "Int",
+   "label": "Max AWB Tracking"
+  },
+  {
+   "fieldname": "sb_usage",
+   "fieldtype": "Section Break",
+   "label": "Usage"
+  },
+  {
+   "fieldname": "used_contacts",
+   "fieldtype": "Int",
+   "label": "Used Contacts",
+   "read_only": 1
+  },
+  {
+   "fieldname": "used_jobs",
+   "fieldtype": "Int",
+   "label": "Used Jobs",
+   "read_only": 1
+  },
+  {
+   "fieldname": "used_invoices",
+   "fieldtype": "Int",
+   "label": "Used Invoices",
+   "read_only": 1
+  },
+  {
+   "fieldname": "cb_usage",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "used_vouchers",
+   "fieldtype": "Int",
+   "label": "Used Vouchers",
+   "read_only": 1
+  },
+  {
+   "fieldname": "used_awb_tracking",
+   "fieldtype": "Int",
+   "label": "Used AWB Tracking",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-06-15 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Forwarding",
+ "name": "LCS Subscription",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "share": 1,
+   "write": 1,
+   "role": "System Manager"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "autoname": "LCS-SUB-.####",
+ "search_fields": "company,plan,status"
+}

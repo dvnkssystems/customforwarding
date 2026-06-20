@@ -1,0 +1,108 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-06-15 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "freight_job",
+  "stage",
+  "assigned_to",
+  "status",
+  "cb1",
+  "started_on",
+  "completed_on",
+  "remarks"
+ ],
+ "fields": [
+  {
+   "fieldname": "freight_job",
+   "fieldtype": "Link",
+   "label": "Freight Job",
+   "options": "Operations",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "stage",
+   "fieldtype": "Link",
+   "label": "Stage",
+   "options": "Freight Job Stage",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "assigned_to",
+   "fieldtype": "Link",
+   "label": "Assigned To",
+   "options": "User",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Pending\nIn Progress\nCompleted\nSkipped",
+   "default": "Pending",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "cb1",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "started_on",
+   "fieldtype": "Datetime",
+   "label": "Started On"
+  },
+  {
+   "fieldname": "completed_on",
+   "fieldtype": "Datetime",
+   "label": "Completed On"
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-06-15 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Forwarding",
+ "name": "Freight Job Stage Assignment",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "share": 1,
+   "write": 1,
+   "role": "System Manager"
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "share": 1,
+   "write": 1,
+   "role": "Sales User"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "search_fields": "freight_job,stage,status"
+}

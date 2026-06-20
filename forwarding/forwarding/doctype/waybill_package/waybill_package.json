@@ -1,0 +1,57 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-06-15 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "description",
+  "package_type",
+  "quantity",
+  "weight",
+  "dimensions"
+ ],
+ "fields": [
+  {
+   "fieldname": "description",
+   "fieldtype": "Data",
+   "label": "Description",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "package_type",
+   "fieldtype": "Data",
+   "label": "Package Type",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "quantity",
+   "fieldtype": "Int",
+   "label": "Quantity",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "weight",
+   "fieldtype": "Float",
+   "label": "Weight"
+  },
+  {
+   "fieldname": "dimensions",
+   "fieldtype": "Data",
+   "label": "Dimensions"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-06-15 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Forwarding",
+ "name": "Waybill Package",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "istable": 1
+}

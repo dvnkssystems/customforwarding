@@ -1,0 +1,281 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "creation": "2026-06-15 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "sb_main",
+  "voucher_type",
+  "sub_voucher_type",
+  "reference_no",
+  "reference_date",
+  "cb_main",
+  "company",
+  "posting_date",
+  "freight_job",
+  "truck_no",
+  "sb_party",
+  "party_type",
+  "party",
+  "customer",
+  "supplier",
+  "cb_party",
+  "amount",
+  "currency",
+  "exchange_rate",
+  "local_amount",
+  "sb_accounts",
+  "bank_cash_account",
+  "contra_account",
+  "cb_accounts",
+  "text",
+  "sb_internal",
+  "internal_voucher_type",
+  "internal_voucher",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "sb_main",
+   "fieldtype": "Section Break",
+   "label": "Voucher"
+  },
+  {
+   "fieldname": "voucher_type",
+   "fieldtype": "Select",
+   "label": "Voucher Type",
+   "options": "BCV\nCCV\nBPV\nCPV\nN\nTV\nIV",
+   "reqd": 1,
+   "in_list_view": 1,
+   "description": "BCV=Bank Collection, CCV=Cash Collection, BPV=Bank Payment, CPV=Cash Payment, N=Netting, TV=Transfer, IV=Internal"
+  },
+  {
+   "fieldname": "sub_voucher_type",
+   "fieldtype": "Link",
+   "label": "Sub Voucher Type",
+   "options": "Sub Voucher Code"
+  },
+  {
+   "fieldname": "reference_no",
+   "fieldtype": "Data",
+   "label": "Reference No"
+  },
+  {
+   "fieldname": "reference_date",
+   "fieldtype": "Date",
+   "label": "Reference Date"
+  },
+  {
+   "fieldname": "cb_main",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "posting_date",
+   "fieldtype": "Date",
+   "label": "Posting Date",
+   "reqd": 1,
+   "default": "Today"
+  },
+  {
+   "fieldname": "freight_job",
+   "fieldtype": "Link",
+   "label": "Freight Job",
+   "options": "Operations"
+  },
+  {
+   "fieldname": "truck_no",
+   "fieldtype": "Link",
+   "label": "Truck No",
+   "options": "Freight Truck"
+  },
+  {
+   "fieldname": "sb_party",
+   "fieldtype": "Section Break",
+   "label": "Party & Amount"
+  },
+  {
+   "fieldname": "party_type",
+   "fieldtype": "Select",
+   "label": "Party Type",
+   "options": "\nCustomer\nSupplier"
+  },
+  {
+   "fieldname": "party",
+   "fieldtype": "Dynamic Link",
+   "label": "Party",
+   "options": "party_type"
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer",
+   "depends_on": "eval:doc.party_type=='Customer'"
+  },
+  {
+   "fieldname": "supplier",
+   "fieldtype": "Link",
+   "label": "Supplier",
+   "options": "Supplier",
+   "depends_on": "eval:doc.party_type=='Supplier'"
+  },
+  {
+   "fieldname": "cb_party",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "amount",
+   "fieldtype": "Currency",
+   "label": "Amount",
+   "reqd": 1
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency"
+  },
+  {
+   "fieldname": "exchange_rate",
+   "fieldtype": "Float",
+   "label": "Exchange Rate",
+   "default": "1"
+  },
+  {
+   "fieldname": "local_amount",
+   "fieldtype": "Currency",
+   "label": "Local Amount",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sb_accounts",
+   "fieldtype": "Section Break",
+   "label": "Accounts"
+  },
+  {
+   "fieldname": "bank_cash_account",
+   "fieldtype": "Link",
+   "label": "Bank/Cash Account",
+   "options": "Account",
+   "description": "The bank or cash ledger involved in this voucher"
+  },
+  {
+   "fieldname": "contra_account",
+   "fieldtype": "Link",
+   "label": "Contra Account",
+   "options": "Account",
+   "depends_on": "eval:['N','TV','IV'].includes(doc.voucher_type)",
+   "description": "The other side for Netting/Transfer/Internal vouchers"
+  },
+  {
+   "fieldname": "cb_accounts",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "text",
+   "fieldtype": "Small Text",
+   "label": "Narration"
+  },
+  {
+   "fieldname": "sb_internal",
+   "fieldtype": "Section Break",
+   "label": "Internal"
+  },
+  {
+   "fieldname": "internal_voucher_type",
+   "fieldtype": "Data",
+   "label": "Internal Voucher Type",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "internal_voucher",
+   "fieldtype": "Data",
+   "label": "Internal Voucher",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "options": "Freight Voucher",
+   "read_only": 1,
+   "no_copy": 1,
+   "print_hide": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-06-15 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Forwarding",
+ "name": "Freight Voucher",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "share": 1,
+   "write": 1,
+   "submit": 1,
+   "cancel": 1,
+   "amend": 1,
+   "role": "System Manager"
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "share": 1,
+   "write": 1,
+   "submit": 1,
+   "cancel": 1,
+   "amend": 1,
+   "role": "Accounts User"
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "share": 1,
+   "write": 1,
+   "submit": 1,
+   "cancel": 1,
+   "amend": 1,
+   "role": "Accounts Manager"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "is_submittable": 1,
+ "autoname": "FV-.YY.MM.-.####",
+ "search_fields": "freight_job,party,voucher_type"
+}

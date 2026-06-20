@@ -1,0 +1,522 @@
+{
+ "charts": [],
+ "content": "[{\"id\": \"flcs0\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>Forwarding</b></span>\", \"col\": 12}}, {\"id\": \"flcs1\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Freight Jobs\", \"col\": 3}}, {\"id\": \"flcs2\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Waybills\", \"col\": 3}}, {\"id\": \"flcs3\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Vouchers\", \"col\": 3}}, {\"id\": \"flcs4\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Freight Dashboard\", \"col\": 3}}, {\"id\": \"flcs5\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Finance Dashboard\", \"col\": 3}}, {\"id\": \"flcs6\", \"type\": \"spacer\", \"data\": {\"col\": 12}}, {\"id\": \"flcs7\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h5\\\"><b>Modules</b></span>\", \"col\": 12}}, {\"id\": \"flcs8\", \"type\": \"card\", \"data\": {\"card_name\": \"Operations\", \"col\": 4}}, {\"id\": \"flcs9\", \"type\": \"card\", \"data\": {\"card_name\": \"Finance\", \"col\": 4}}, {\"id\": \"flcs10\", \"type\": \"card\", \"data\": {\"card_name\": \"Reports\", \"col\": 4}}, {\"id\": \"flcs11\", \"type\": \"card\", \"data\": {\"card_name\": \"Masters\", \"col\": 4}}, {\"id\": \"flcs12\", \"type\": \"card\", \"data\": {\"card_name\": \"Stage & Documents\", \"col\": 4}}, {\"id\": \"flcs13\", \"type\": \"card\", \"data\": {\"card_name\": \"Settings\", \"col\": 4}}]",
+ "creation": "2026-06-15 00:00:00.000000",
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 0,
+ "icon": "service",
+ "idx": 0,
+ "is_hidden": 0,
+ "label": "Forwarding",
+ "links": [
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Operations",
+   "link_count": 9,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Operations",
+   "link_count": 0,
+   "link_to": "Operations",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Freight",
+   "link_count": 0,
+   "link_to": "Freight",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Custom Clearance",
+   "link_count": 0,
+   "link_to": "Custom Clearance",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Transportation",
+   "link_count": 0,
+   "link_to": "Transportation",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Container Booking Request",
+   "link_count": 0,
+   "link_to": "Container Booking Request",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Freight Waybill",
+   "link_count": 0,
+   "link_to": "Freight Waybill",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Freight Job Status",
+   "link_count": 0,
+   "link_to": "Freight Job Status",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Freight Tracking",
+   "link_count": 0,
+   "link_to": "Freight Tracking",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Freight Job Request",
+   "link_count": 0,
+   "link_to": "Freight Job Request",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Finance",
+   "link_count": 5,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Freight Voucher",
+   "link_count": 0,
+   "link_to": "Freight Voucher",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Sub Voucher Code",
+   "link_count": 0,
+   "link_to": "Sub Voucher Code",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Direct Payment",
+   "link_count": 0,
+   "link_to": "Direct Payment",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Shipment Payment Request",
+   "link_count": 0,
+   "link_to": "Shipment Payment Request",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Internal Payment Request",
+   "link_count": 0,
+   "link_to": "Internal Payment Request",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Reports",
+   "link_count": 6,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Freight Job Statement",
+   "link_count": 0,
+   "link_to": "Freight Job Statement",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Operations Summary",
+   "link_count": 0,
+   "link_to": "Operations Summary",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Detailed Job Report",
+   "link_count": 0,
+   "link_to": "Detailed Job Report",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "Estimated Job Report Summary",
+   "link_count": 0,
+   "link_to": "Estimated Job Report Summary",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Masters",
+   "link_count": 16,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Freight Activity Code",
+   "link_count": 0,
+   "link_to": "Freight Activity Code",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Freight Airport",
+   "link_count": 0,
+   "link_to": "Freight Airport",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Freight Seaport",
+   "link_count": 0,
+   "link_to": "Freight Seaport",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Freight Airline",
+   "link_count": 0,
+   "link_to": "Freight Airline",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Freight Truck",
+   "link_count": 0,
+   "link_to": "Freight Truck",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Freight Driver",
+   "link_count": 0,
+   "link_to": "Freight Driver",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Freight Terminal",
+   "link_count": 0,
+   "link_to": "Freight Terminal",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "HS Tariff Code",
+   "link_count": 0,
+   "link_to": "HS Tariff Code",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Port",
+   "link_count": 0,
+   "link_to": "Port",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Shipping Line",
+   "link_count": 0,
+   "link_to": "Shipping Line",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Carrier",
+   "link_count": 0,
+   "link_to": "Carrier",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Commodity",
+   "link_count": 0,
+   "link_to": "Commodity",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Container Type",
+   "link_count": 0,
+   "link_to": "Container Type",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Job Type",
+   "link_count": 0,
+   "link_to": "Job Type",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Mode Of Shipment",
+   "link_count": 0,
+   "link_to": "Mode Of Shipment",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Scope Of Work",
+   "link_count": 0,
+   "link_to": "Scope Of Work",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Stage & Documents",
+   "link_count": 5,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Freight Job Stage",
+   "link_count": 0,
+   "link_to": "Freight Job Stage",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Freight Job Stage Assignment",
+   "link_count": 0,
+   "link_to": "Freight Job Stage Assignment",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Waybill Terms",
+   "link_count": 0,
+   "link_to": "Waybill Terms",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Document List",
+   "link_count": 0,
+   "link_to": "Document List",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Activity Template",
+   "link_count": 0,
+   "link_to": "Activity Template",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Settings",
+   "link_count": 1,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "LCS Subscription",
+   "link_count": 0,
+   "link_to": "LCS Subscription",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  }
+ ],
+ "modified": "2026-06-15 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Forwarding",
+ "name": "Forwarding",
+ "number_cards": [],
+ "owner": "Administrator",
+ "parent_page": "",
+ "public": 1,
+ "quick_lists": [],
+ "roles": [],
+ "sequence_id": 1.0,
+ "shortcuts": [
+  {
+   "color": "Blue",
+   "doc_view": "",
+   "format": "",
+   "label": "Freight Jobs",
+   "link_to": "Operations",
+   "stats_filter": "",
+   "type": "DocType"
+  },
+  {
+   "color": "Green",
+   "doc_view": "",
+   "format": "",
+   "label": "Waybills",
+   "link_to": "Freight Waybill",
+   "stats_filter": "",
+   "type": "DocType"
+  },
+  {
+   "color": "Orange",
+   "doc_view": "",
+   "format": "",
+   "label": "Vouchers",
+   "link_to": "Freight Voucher",
+   "stats_filter": "",
+   "type": "DocType"
+  },
+  {
+   "color": "Purple",
+   "doc_view": "",
+   "format": "",
+   "label": "Freight Dashboard",
+   "link_to": "freight-dashboard",
+   "stats_filter": "",
+   "type": "Page"
+  },
+  {
+   "color": "Cyan",
+   "doc_view": "",
+   "format": "",
+   "label": "Finance Dashboard",
+   "link_to": "finance-dashboard",
+   "stats_filter": "",
+   "type": "Page"
+  }
+ ],
+ "title": "Forwarding"
+}

@@ -1,0 +1,122 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-06-15 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "freight_job",
+  "customer",
+  "awb_bl_no",
+  "cb1",
+  "bayan_no",
+  "status_text",
+  "status_date",
+  "is_muted",
+  "sb_hist",
+  "status_history"
+ ],
+ "fields": [
+  {
+   "fieldname": "freight_job",
+   "fieldtype": "Link",
+   "label": "Freight Job",
+   "options": "Operations",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer",
+   "read_only": 1,
+   "fetch_from": "freight_job.customer",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "awb_bl_no",
+   "fieldtype": "Data",
+   "label": "AWB/BL No",
+   "read_only": 1,
+   "fetch_from": "freight_job.awb_number"
+  },
+  {
+   "fieldname": "cb1",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "bayan_no",
+   "fieldtype": "Data",
+   "label": "Bayan No",
+   "description": "Saudi customs Bayan number"
+  },
+  {
+   "fieldname": "status_text",
+   "fieldtype": "Data",
+   "label": "Latest Status",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "status_date",
+   "fieldtype": "Datetime",
+   "label": "Status Date"
+  },
+  {
+   "fieldname": "is_muted",
+   "fieldtype": "Check",
+   "label": "Is Muted"
+  },
+  {
+   "fieldname": "sb_hist",
+   "fieldtype": "Section Break",
+   "label": "History"
+  },
+  {
+   "fieldname": "status_history",
+   "fieldtype": "Table",
+   "label": "Status History",
+   "options": "Job Status History"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-06-15 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Forwarding",
+ "name": "Freight Job Status",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "share": 1,
+   "write": 1,
+   "role": "System Manager"
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "share": 1,
+   "write": 1,
+   "role": "Sales User"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "search_fields": "freight_job,customer"
+}

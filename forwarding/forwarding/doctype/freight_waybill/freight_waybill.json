@@ -1,0 +1,275 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "creation": "2026-06-15 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "sb_header",
+  "freight_job",
+  "customer",
+  "supplier",
+  "cb_header",
+  "waybill_type",
+  "status",
+  "sb_parties",
+  "shipper",
+  "consignee",
+  "notify_party",
+  "sb_routing",
+  "vessel_name",
+  "bl_no",
+  "pol",
+  "cb_routing",
+  "pod",
+  "loading_date",
+  "sb_cargo",
+  "container_items",
+  "package_items",
+  "sb_issuance",
+  "issued_date",
+  "is_approved",
+  "approved_by",
+  "cb_issuance",
+  "is_public",
+  "public_token",
+  "sb_terms",
+  "terms_and_conditions",
+  "terms_text",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "sb_header",
+   "fieldtype": "Section Break",
+   "label": "Header"
+  },
+  {
+   "fieldname": "freight_job",
+   "fieldtype": "Link",
+   "label": "Freight Job",
+   "options": "Operations",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "supplier",
+   "fieldtype": "Link",
+   "label": "Supplier",
+   "options": "Supplier"
+  },
+  {
+   "fieldname": "cb_header",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "waybill_type",
+   "fieldtype": "Select",
+   "label": "Waybill Type",
+   "options": "Import\nExport\nLocal Freight",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Incomplete\nCompleted",
+   "default": "Incomplete"
+  },
+  {
+   "fieldname": "sb_parties",
+   "fieldtype": "Section Break",
+   "label": "Parties"
+  },
+  {
+   "fieldname": "shipper",
+   "fieldtype": "Data",
+   "label": "Shipper"
+  },
+  {
+   "fieldname": "consignee",
+   "fieldtype": "Data",
+   "label": "Consignee"
+  },
+  {
+   "fieldname": "notify_party",
+   "fieldtype": "Data",
+   "label": "Notify Party"
+  },
+  {
+   "fieldname": "sb_routing",
+   "fieldtype": "Section Break",
+   "label": "Routing"
+  },
+  {
+   "fieldname": "vessel_name",
+   "fieldtype": "Data",
+   "label": "Vessel Name"
+  },
+  {
+   "fieldname": "bl_no",
+   "fieldtype": "Data",
+   "label": "BL No",
+   "description": "Master BL from carrier"
+  },
+  {
+   "fieldname": "pol",
+   "fieldtype": "Link",
+   "label": "Port of Loading",
+   "options": "Freight Seaport"
+  },
+  {
+   "fieldname": "cb_routing",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "pod",
+   "fieldtype": "Link",
+   "label": "Port of Discharge",
+   "options": "Freight Seaport"
+  },
+  {
+   "fieldname": "loading_date",
+   "fieldtype": "Date",
+   "label": "Loading Date"
+  },
+  {
+   "fieldname": "sb_cargo",
+   "fieldtype": "Section Break",
+   "label": "Cargo"
+  },
+  {
+   "fieldname": "container_items",
+   "fieldtype": "Table",
+   "label": "Containers",
+   "options": "Waybill Container"
+  },
+  {
+   "fieldname": "package_items",
+   "fieldtype": "Table",
+   "label": "Packages",
+   "options": "Waybill Package"
+  },
+  {
+   "fieldname": "sb_issuance",
+   "fieldtype": "Section Break",
+   "label": "Issuance"
+  },
+  {
+   "fieldname": "issued_date",
+   "fieldtype": "Date",
+   "label": "Issued Date"
+  },
+  {
+   "fieldname": "is_approved",
+   "fieldtype": "Check",
+   "label": "Is Approved",
+   "read_only": 1
+  },
+  {
+   "fieldname": "approved_by",
+   "fieldtype": "Link",
+   "label": "Approved By",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "cb_issuance",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "is_public",
+   "fieldtype": "Check",
+   "label": "Is Public",
+   "read_only": 1
+  },
+  {
+   "fieldname": "public_token",
+   "fieldtype": "Data",
+   "label": "Public Token",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "sb_terms",
+   "fieldtype": "Section Break",
+   "label": "Terms"
+  },
+  {
+   "fieldname": "terms_and_conditions",
+   "fieldtype": "Link",
+   "label": "Terms Template",
+   "options": "Waybill Terms"
+  },
+  {
+   "fieldname": "terms_text",
+   "fieldtype": "Text Editor",
+   "label": "Terms Text"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "options": "Freight Waybill",
+   "read_only": 1,
+   "no_copy": 1,
+   "print_hide": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-06-15 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Forwarding",
+ "name": "Freight Waybill",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "share": 1,
+   "write": 1,
+   "submit": 1,
+   "cancel": 1,
+   "amend": 1,
+   "role": "System Manager"
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "share": 1,
+   "write": 1,
+   "submit": 1,
+   "cancel": 1,
+   "amend": 1,
+   "role": "Sales User"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "is_submittable": 1,
+ "autoname": "WB-.YY.MM.-.####",
+ "search_fields": "freight_job,customer,bl_no"
+}

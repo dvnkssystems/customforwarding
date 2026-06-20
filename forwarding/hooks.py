@@ -87,19 +87,49 @@ app_license = "MIT"
 # 	"ToDo": "custom_app.overrides.CustomToDo"
 # }
 
+# Fixtures
+# --------
+fixtures = [
+	"Freight Activity Code",
+	{
+		"dt": "Role",
+		"filters": [["name", "in", [
+			"Freight Admin", "Freight Manager", "Freight Operator",
+			"Freight Finance", "Freight Sales", "Freight Viewer",
+		]]],
+	},
+]
+
 # Document Events
 # ---------------
 # Hook on document methods and events
 
 doc_events = {
 	"Sales Invoice": {
+		"validate": "forwarding.subscription.enforce_limit",
 		"on_update": "forwarding.custom_methods.update_cost_table_in_operations",
 		"on_cancel": "forwarding.custom_methods.update_cost_table_in_operations_on_cancle",
 	},
     "Purchase Invoice": {
+		"validate": "forwarding.subscription.enforce_limit",
 		"on_update": "forwarding.custom_methods.update_cost_table_in_operations",
 		"on_cancel": "forwarding.custom_methods.update_cost_table_in_operations_on_cancle",
-	}
+	},
+	"Operations": {
+		"validate": "forwarding.subscription.enforce_limit",
+	},
+	"Freight Voucher": {
+		"validate": "forwarding.subscription.enforce_limit",
+	},
+	"Freight Tracking": {
+		"validate": "forwarding.subscription.enforce_limit",
+	},
+	"Customer": {
+		"before_insert": "forwarding.naming.set_customer_code",
+	},
+	"Supplier": {
+		"before_insert": "forwarding.naming.set_supplier_code",
+	},
 }
 
 # Scheduled Tasks

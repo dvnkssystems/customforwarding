@@ -1,0 +1,156 @@
+[
+ {
+  "doctype": "Freight Activity Code",
+  "name": "Sea Freight Export",
+  "activity_name": "Sea Freight Export",
+  "mode": "Sea",
+  "service_type": "Freight Forwarding"
+ },
+ {
+  "doctype": "Freight Activity Code",
+  "name": "Sea Freight Import",
+  "activity_name": "Sea Freight Import",
+  "mode": "Sea",
+  "service_type": "Freight Forwarding"
+ },
+ {
+  "doctype": "Freight Activity Code",
+  "name": "Air Freight Export",
+  "activity_name": "Air Freight Export",
+  "mode": "Air",
+  "service_type": "Freight Forwarding"
+ },
+ {
+  "doctype": "Freight Activity Code",
+  "name": "Air Freight Import",
+  "activity_name": "Air Freight Import",
+  "mode": "Air",
+  "service_type": "Freight Forwarding"
+ },
+ {
+  "doctype": "Freight Activity Code",
+  "name": "Land Freight Export",
+  "activity_name": "Land Freight Export",
+  "mode": "Land",
+  "service_type": "Freight Forwarding"
+ },
+ {
+  "doctype": "Freight Activity Code",
+  "name": "Land Freight Import",
+  "activity_name": "Land Freight Import",
+  "mode": "Land",
+  "service_type": "Freight Forwarding"
+ },
+ {
+  "doctype": "Freight Activity Code",
+  "name": "Sea Export Clearance",
+  "activity_name": "Sea Export Clearance",
+  "mode": "Sea",
+  "service_type": "Customs Clearance"
+ },
+ {
+  "doctype": "Freight Activity Code",
+  "name": "Air Export Clearance",
+  "activity_name": "Air Export Clearance",
+  "mode": "Air",
+  "service_type": "Customs Clearance"
+ },
+ {
+  "doctype": "Freight Activity Code",
+  "name": "Land Export Clearance",
+  "activity_name": "Land Export Clearance",
+  "mode": "Land",
+  "service_type": "Customs Clearance"
+ },
+ {
+  "doctype": "Freight Activity Code",
+  "name": "Sea Import Clearance",
+  "activity_name": "Sea Import Clearance",
+  "mode": "Sea",
+  "service_type": "Customs Clearance"
+ },
+ {
+  "doctype": "Freight Activity Code",
+  "name": "Air Import Clearance",
+  "activity_name": "Air Import Clearance",
+  "mode": "Air",
+  "service_type": "Customs Clearance"
+ },
+ {
+  "doctype": "Freight Activity Code",
+  "name": "Land Import Clearance",
+  "activity_name": "Land Import Clearance",
+  "mode": "Land",
+  "service_type": "Customs Clearance"
+ },
+ {
+  "doctype": "Freight Activity Code",
+  "name": "Air Import Freehand",
+  "activity_name": "Air Import Freehand",
+  "mode": "Air",
+  "service_type": "Freight Forwarding"
+ },
+ {
+  "doctype": "Freight Activity Code",
+  "name": "Sea Import Freehand",
+  "activity_name": "Sea Import Freehand",
+  "mode": "Sea",
+  "service_type": "Freight Forwarding"
+ },
+ {
+  "doctype": "Freight Activity Code",
+  "name": "Sea Import Console",
+  "activity_name": "Sea Import Console",
+  "mode": "Sea",
+  "service_type": "Freight Forwarding"
+ },
+ {
+  "doctype": "Freight Activity Code",
+  "name": "Air Export Handling",
+  "activity_name": "Air Export Handling",
+  "mode": "Air",
+  "service_type": "Value Added Services"
+ },
+ {
+  "doctype": "Freight Activity Code",
+  "name": "Air Foreign Freight",
+  "activity_name": "Air Foreign Freight",
+  "mode": "Air",
+  "service_type": "Freight Forwarding"
+ },
+ {
+  "doctype": "Freight Activity Code",
+  "name": "Air Domestic Freight",
+  "activity_name": "Air Domestic Freight",
+  "mode": "Air",
+  "service_type": "Freight Forwarding"
+ },
+ {
+  "doctype": "Freight Activity Code",
+  "name": "Land Local Freight",
+  "activity_name": "Land Local Freight",
+  "mode": "Land",
+  "service_type": "Transportation"
+ },
+ {
+  "doctype": "Freight Activity Code",
+  "name": "Land Other Transportation",
+  "activity_name": "Land Other Transportation",
+  "mode": "Land",
+  "service_type": "Transportation"
+ },
+ {
+  "doctype": "Freight Activity Code",
+  "name": "Other Value Added",
+  "activity_name": "Other Value Added",
+  "mode": "Other",
+  "service_type": "Value Added Services"
+ },
+ {
+  "doctype": "Freight Activity Code",
+  "name": "Trading Goods & Services",
+  "activity_name": "Trading Goods & Services",
+  "mode": "Other",
+  "service_type": "Trading"
+ }
+]

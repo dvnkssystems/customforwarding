@@ -1,0 +1,107 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-06-15 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "tracking_ref",
+  "tracking_type",
+  "freight_job",
+  "cb1",
+  "last_status",
+  "last_updated",
+  "sb_events",
+  "tracking_events"
+ ],
+ "fields": [
+  {
+   "fieldname": "tracking_ref",
+   "fieldtype": "Data",
+   "label": "Tracking Ref",
+   "reqd": 1,
+   "in_list_view": 1,
+   "description": "AWB or BL number"
+  },
+  {
+   "fieldname": "tracking_type",
+   "fieldtype": "Select",
+   "label": "Tracking Type",
+   "options": "AWB\nBL",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "freight_job",
+   "fieldtype": "Link",
+   "label": "Freight Job",
+   "options": "Operations",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "cb1",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "last_status",
+   "fieldtype": "Data",
+   "label": "Last Status"
+  },
+  {
+   "fieldname": "last_updated",
+   "fieldtype": "Datetime",
+   "label": "Last Updated"
+  },
+  {
+   "fieldname": "sb_events",
+   "fieldtype": "Section Break",
+   "label": "Events"
+  },
+  {
+   "fieldname": "tracking_events",
+   "fieldtype": "Table",
+   "label": "Tracking Events",
+   "options": "Tracking Event"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-06-15 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Forwarding",
+ "name": "Freight Tracking",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "share": 1,
+   "write": 1,
+   "role": "System Manager"
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "share": 1,
+   "write": 1,
+   "role": "Sales User"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "autoname": "field:tracking_ref",
+ "search_fields": "freight_job,tracking_type"
+}

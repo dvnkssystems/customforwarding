@@ -1,0 +1,46 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-06-15 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "status_text",
+  "status_date",
+  "updated_by"
+ ],
+ "fields": [
+  {
+   "fieldname": "status_text",
+   "fieldtype": "Data",
+   "label": "Status",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "status_date",
+   "fieldtype": "Datetime",
+   "label": "Status Date",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "updated_by",
+   "fieldtype": "Link",
+   "label": "Updated By",
+   "options": "User",
+   "in_list_view": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-06-15 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Forwarding",
+ "name": "Job Status History",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "istable": 1
+}

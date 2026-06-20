@@ -1,0 +1,64 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-06-15 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "container_no",
+  "seal_no",
+  "container_type",
+  "package_count",
+  "weight",
+  "volume"
+ ],
+ "fields": [
+  {
+   "fieldname": "container_no",
+   "fieldtype": "Data",
+   "label": "Container No",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "seal_no",
+   "fieldtype": "Data",
+   "label": "Seal No",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "container_type",
+   "fieldtype": "Link",
+   "label": "Container Type",
+   "options": "Container Type",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "package_count",
+   "fieldtype": "Int",
+   "label": "Package Count"
+  },
+  {
+   "fieldname": "weight",
+   "fieldtype": "Float",
+   "label": "Weight"
+  },
+  {
+   "fieldname": "volume",
+   "fieldtype": "Float",
+   "label": "Volume"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-06-15 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Forwarding",
+ "name": "Waybill Container",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "istable": 1
+}

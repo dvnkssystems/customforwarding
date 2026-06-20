@@ -1,0 +1,130 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-06-15 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "truck_no",
+  "plate_no",
+  "truck_type",
+  "capacity_tons",
+  "cb1",
+  "driver",
+  "supplier",
+  "is_owned",
+  "sb_compliance",
+  "insurance_expiry",
+  "cb2",
+  "license_expiry"
+ ],
+ "fields": [
+  {
+   "fieldname": "truck_no",
+   "fieldtype": "Data",
+   "label": "Truck No",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "plate_no",
+   "fieldtype": "Data",
+   "label": "Plate No",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "truck_type",
+   "fieldtype": "Select",
+   "label": "Truck Type",
+   "options": "\nTrailer\nVan\nPickup\nFlatbed\nReefer"
+  },
+  {
+   "fieldname": "capacity_tons",
+   "fieldtype": "Float",
+   "label": "Capacity (Tons)"
+  },
+  {
+   "fieldname": "cb1",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "driver",
+   "fieldtype": "Link",
+   "label": "Driver",
+   "options": "Freight Driver"
+  },
+  {
+   "fieldname": "supplier",
+   "fieldtype": "Link",
+   "label": "Supplier",
+   "options": "Supplier"
+  },
+  {
+   "fieldname": "is_owned",
+   "fieldtype": "Check",
+   "label": "Is Owned",
+   "default": "1"
+  },
+  {
+   "fieldname": "sb_compliance",
+   "fieldtype": "Section Break",
+   "label": "Compliance"
+  },
+  {
+   "fieldname": "insurance_expiry",
+   "fieldtype": "Date",
+   "label": "Insurance Expiry"
+  },
+  {
+   "fieldname": "cb2",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "license_expiry",
+   "fieldtype": "Date",
+   "label": "License Expiry"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-06-15 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Forwarding",
+ "name": "Freight Truck",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "share": 1,
+   "write": 1,
+   "role": "System Manager"
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "share": 1,
+   "write": 1,
+   "role": "Sales User"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "autoname": "field:truck_no",
+ "search_fields": "plate_no,driver"
+}

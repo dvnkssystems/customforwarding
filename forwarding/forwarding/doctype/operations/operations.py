@@ -14,6 +14,32 @@ from erpnext.setup.doctype.item_group.item_group import get_item_group_defaults
 
 
 class Operations(Document):
+	def validate(self):
+		self.set_billing_status()
+
+	def set_billing_status(self):
+		"""Derive billing_status from linked Sales / Purchase Invoices.
+		Sales Invoice / Purchase Invoice carry an `operations` link == this job's name.
+		"""
+		if not self.name or self.is_new():
+			self.billing_status = "No Invoice"
+			return
+
+		si = frappe.get_all("Sales Invoice",
+			filters={"operations": self.name, "docstatus": ["<", 2]},
+			fields=["docstatus"])
+		pi_exists = frappe.db.exists("Purchase Invoice",
+			{"operations": self.name, "docstatus": ["<", 2]})
+
+		if any(d.docstatus == 1 for d in si):
+			self.billing_status = "Billed"
+		elif si:
+			self.billing_status = "Pending Billing"
+		elif pi_exists:
+			self.billing_status = "Cost Sheet Pending"
+		else:
+			self.billing_status = "No Invoice"
+
 	def on_update(self):
 		fields_to_transfer = ['awb_number']
 		fields_to_transfer_project = ['cost_center']

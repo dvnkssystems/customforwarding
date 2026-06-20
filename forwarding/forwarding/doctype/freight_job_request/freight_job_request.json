@@ -1,0 +1,167 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-06-15 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "sb_partner",
+  "partner_company",
+  "partner_contact",
+  "partner_email",
+  "cb_partner",
+  "status",
+  "linked_job",
+  "sb_ship",
+  "job_type",
+  "activity_code",
+  "awb_bl_no",
+  "origin",
+  "destination",
+  "cb_ship",
+  "cargo_description",
+  "weight",
+  "pieces",
+  "special_instructions"
+ ],
+ "fields": [
+  {
+   "fieldname": "sb_partner",
+   "fieldtype": "Section Break",
+   "label": "Partner"
+  },
+  {
+   "fieldname": "partner_company",
+   "fieldtype": "Data",
+   "label": "Partner Company",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "partner_contact",
+   "fieldtype": "Data",
+   "label": "Partner Contact"
+  },
+  {
+   "fieldname": "partner_email",
+   "fieldtype": "Data",
+   "label": "Partner Email",
+   "options": "Email"
+  },
+  {
+   "fieldname": "cb_partner",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Pending\nLinked\nRejected",
+   "default": "Pending",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "linked_job",
+   "fieldtype": "Link",
+   "label": "Linked Job",
+   "options": "Operations"
+  },
+  {
+   "fieldname": "sb_ship",
+   "fieldtype": "Section Break",
+   "label": "Shipment"
+  },
+  {
+   "fieldname": "job_type",
+   "fieldtype": "Select",
+   "label": "Job Type",
+   "options": "Import\nExport\nLocal",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "activity_code",
+   "fieldtype": "Data",
+   "label": "Activity Code"
+  },
+  {
+   "fieldname": "awb_bl_no",
+   "fieldtype": "Data",
+   "label": "AWB/BL No"
+  },
+  {
+   "fieldname": "origin",
+   "fieldtype": "Data",
+   "label": "Origin"
+  },
+  {
+   "fieldname": "destination",
+   "fieldtype": "Data",
+   "label": "Destination"
+  },
+  {
+   "fieldname": "cb_ship",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "cargo_description",
+   "fieldtype": "Small Text",
+   "label": "Cargo Description"
+  },
+  {
+   "fieldname": "weight",
+   "fieldtype": "Float",
+   "label": "Weight"
+  },
+  {
+   "fieldname": "pieces",
+   "fieldtype": "Int",
+   "label": "Pieces"
+  },
+  {
+   "fieldname": "special_instructions",
+   "fieldtype": "Text",
+   "label": "Special Instructions"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-06-15 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Forwarding",
+ "name": "Freight Job Request",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "share": 1,
+   "write": 1,
+   "role": "System Manager"
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "share": 1,
+   "write": 1,
+   "role": "Sales User"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "autoname": "JR-.YY.MM.-.####",
+ "search_fields": "partner_company,status"
+}

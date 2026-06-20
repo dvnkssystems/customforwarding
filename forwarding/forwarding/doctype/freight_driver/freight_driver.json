@@ -1,0 +1,116 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-06-15 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "driver_name",
+  "mobile_no",
+  "nationality",
+  "cb1",
+  "license_no",
+  "license_expiry",
+  "iqama_no",
+  "iqama_expiry",
+  "sb_link",
+  "linked_employee"
+ ],
+ "fields": [
+  {
+   "fieldname": "driver_name",
+   "fieldtype": "Data",
+   "label": "Driver Name",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "mobile_no",
+   "fieldtype": "Data",
+   "label": "Mobile No",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "nationality",
+   "fieldtype": "Link",
+   "label": "Nationality",
+   "options": "Country"
+  },
+  {
+   "fieldname": "cb1",
+   "fieldtype": "Column Break",
+   "label": ""
+  },
+  {
+   "fieldname": "license_no",
+   "fieldtype": "Data",
+   "label": "License No"
+  },
+  {
+   "fieldname": "license_expiry",
+   "fieldtype": "Date",
+   "label": "License Expiry"
+  },
+  {
+   "fieldname": "iqama_no",
+   "fieldtype": "Data",
+   "label": "Iqama No"
+  },
+  {
+   "fieldname": "iqama_expiry",
+   "fieldtype": "Date",
+   "label": "Iqama Expiry"
+  },
+  {
+   "fieldname": "sb_link",
+   "fieldtype": "Section Break",
+   "label": "Linked Records"
+  },
+  {
+   "fieldname": "linked_employee",
+   "fieldtype": "Link",
+   "label": "Linked Employee",
+   "options": "Employee"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-06-15 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Forwarding",
+ "name": "Freight Driver",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "share": 1,
+   "write": 1,
+   "role": "System Manager"
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "share": 1,
+   "write": 1,
+   "role": "Sales User"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "autoname": "field:driver_name",
+ "search_fields": "mobile_no,license_no"
+}

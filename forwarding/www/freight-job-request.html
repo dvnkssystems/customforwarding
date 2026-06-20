@@ -1,0 +1,54 @@
+{% extends "templates/web.html" %}
+
+{% block title %}{{ _("Submit a Freight Job Request") }}{% endblock %}
+
+{% block page_content %}
+<div class="container" style="max-width: 720px; margin: 2rem auto;">
+	<h3>{{ _("Freight Job Request") }}</h3>
+	<p class="text-muted">{{ _("Partners can submit shipment requests here. Our team will review and link them to a job.") }}</p>
+
+	<div id="flcs-alert"></div>
+	<form id="flcs-job-request">
+		<div class="row">
+			<div class="form-group col-md-6"><label>{{ _("Your Company") }}*</label><input class="form-control" name="partner_company" required></div>
+			<div class="form-group col-md-6"><label>{{ _("Contact Person") }}</label><input class="form-control" name="partner_contact"></div>
+			<div class="form-group col-md-6"><label>{{ _("Email") }}</label><input type="email" class="form-control" name="partner_email"></div>
+			<div class="form-group col-md-6"><label>{{ _("Job Type") }}</label>
+				<select class="form-control" name="job_type">{% for j in job_types %}<option>{{ j }}</option>{% endfor %}</select></div>
+			<div class="form-group col-md-6"><label>{{ _("AWB / BL No") }}</label><input class="form-control" name="awb_bl_no"></div>
+			<div class="form-group col-md-6"><label>{{ _("Activity Code") }}</label><input class="form-control" name="activity_code"></div>
+			<div class="form-group col-md-6"><label>{{ _("Origin") }}</label><input class="form-control" name="origin"></div>
+			<div class="form-group col-md-6"><label>{{ _("Destination") }}</label><input class="form-control" name="destination"></div>
+			<div class="form-group col-md-6"><label>{{ _("Weight") }}</label><input type="number" step="any" class="form-control" name="weight"></div>
+			<div class="form-group col-md-6"><label>{{ _("Pieces") }}</label><input type="number" class="form-control" name="pieces"></div>
+			<div class="form-group col-md-12"><label>{{ _("Cargo Description") }}</label><textarea class="form-control" name="cargo_description"></textarea></div>
+			<div class="form-group col-md-12"><label>{{ _("Special Instructions") }}</label><textarea class="form-control" name="special_instructions"></textarea></div>
+		</div>
+		<button type="submit" class="btn btn-primary">{{ _("Submit Request") }}</button>
+	</form>
+</div>
+
+<script>
+frappe.ready(function () {
+	document.getElementById("flcs-job-request").addEventListener("submit", function (e) {
+		e.preventDefault();
+		const data = {};
+		new FormData(e.target).forEach((v, k) => (data[k] = v));
+		frappe.call({
+			method: "forwarding.api.submit_job_request",
+			args: { payload: JSON.stringify(data) },
+			callback: function (r) {
+				const a = document.getElementById("flcs-alert");
+				if (r.message && r.message.name) {
+					a.innerHTML = '<div class="alert alert-success">' +
+						__("Request submitted: ") + r.message.name + '</div>';
+					e.target.reset();
+				} else {
+					a.innerHTML = '<div class="alert alert-danger">' + __("Submission failed.") + '</div>';
+				}
+			},
+		});
+	});
+});
+</script>
+{% endblock %}

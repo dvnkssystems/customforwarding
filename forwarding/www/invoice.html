@@ -1,0 +1,28 @@
+{% extends "templates/web.html" %}
+
+{% block title %}{{ _("Invoice") }}{% endblock %}
+
+{% block page_content %}
+<div class="container" style="max-width: 900px; margin: 2rem auto;">
+	{% if error %}
+		<div class="alert alert-warning">{{ error }}</div>
+	{% else %}
+		<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+			<h3>{{ _("Invoice") }} {{ invoice.name }}</h3>
+			<span class="indicator-pill {{ 'green' if invoice.status == 'Paid' else 'blue' }}">{{ invoice.status }}</span>
+		</div>
+		{% if print_html %}
+			<div class="invoice-print-wrap" style="border:1px solid var(--border-color);border-radius:8px;padding:1rem;background:#fff;">
+				{{ print_html }}
+			</div>
+		{% else %}
+			<table class="table table-bordered">
+				<tr><td>{{ _("Customer") }}</td><td>{{ invoice.customer_name }}</td></tr>
+				<tr><td>{{ _("Date") }}</td><td>{{ invoice.posting_date }}</td></tr>
+				<tr><td>{{ _("Grand Total") }}</td><td>{{ invoice.get_formatted("grand_total") }}</td></tr>
+				<tr><td>{{ _("Outstanding") }}</td><td>{{ invoice.get_formatted("outstanding_amount") }}</td></tr>
+			</table>
+		{% endif %}
+	{% endif %}
+</div>
+{% endblock %}

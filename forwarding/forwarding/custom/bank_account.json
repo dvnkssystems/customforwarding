@@ -1,0 +1,36 @@
+{
+ "custom_fields": [
+  {
+   "dt": "Bank Account",
+   "fieldname": "swift_code",
+   "fieldtype": "Data",
+   "label": "SWIFT Code",
+   "insert_after": "iban",
+   "module": "Forwarding",
+   "name": "Bank Account-swift_code",
+   "owner": "Administrator",
+   "creation": "2026-06-15 00:00:00.000000",
+   "modified": "2026-06-15 00:00:00.000000",
+   "modified_by": "Administrator",
+   "docstatus": 0
+  },
+  {
+   "dt": "Bank Account",
+   "fieldname": "is_hidden",
+   "fieldtype": "Check",
+   "label": "Is Hidden",
+   "insert_after": "swift_code",
+   "module": "Forwarding",
+   "name": "Bank Account-is_hidden",
+   "owner": "Administrator",
+   "creation": "2026-06-15 00:00:00.000000",
+   "modified": "2026-06-15 00:00:00.000000",
+   "modified_by": "Administrator",
+   "docstatus": 0
+  }
+ ],
+ "custom_perms": [],
+ "doctype": "Bank Account",
+ "property_setters": [],
+ "sync_on_migrate": 1
+}

@@ -1,0 +1,38 @@
+[
+ {
+  "doctype": "Role",
+  "name": "Freight Admin",
+  "role_name": "Freight Admin",
+  "desk_access": 1
+ },
+ {
+  "doctype": "Role",
+  "name": "Freight Manager",
+  "role_name": "Freight Manager",
+  "desk_access": 1
+ },
+ {
+  "doctype": "Role",
+  "name": "Freight Operator",
+  "role_name": "Freight Operator",
+  "desk_access": 1
+ },
+ {
+  "doctype": "Role",
+  "name": "Freight Finance",
+  "role_name": "Freight Finance",
+  "desk_access": 1
+ },
+ {
+  "doctype": "Role",
+  "name": "Freight Sales",
+  "role_name": "Freight Sales",
+  "desk_access": 1
+ },
+ {
+  "doctype": "Role",
+  "name": "Freight Viewer",
+  "role_name": "Freight Viewer",
+  "desk_access": 1
+ }
+]
