@@ -4,8 +4,10 @@
 from __future__ import unicode_literals
 import frappe
 from frappe import _
-import pandas as pd
 from frappe.utils import flt
+
+AMOUNT_FIELDS = ('cost', 'rate', 'paid_amount', 'pending_amount',
+				'received_amount', 'pending_amount_to_receive')
 
 def execute(filters=None):
 	columns, data = [], []
@@ -15,10 +17,9 @@ def execute(filters=None):
 	for item in items:
 		cost_table_details_ = get_cost_table_details(item.operations)
 		cost_table_details = [dict(ct_dict_) for ct_dict_ in cost_table_details_]
-		df = pd.DataFrame(cost_table_details)
-		if not df.empty:
-			total = df.sum()
-			item.update({	
+		if cost_table_details:
+			total = get_totals(cost_table_details)
+			item.update({
 							"item":'',
 							"account":"Total",
 							"cost":total['cost'],
@@ -30,6 +31,7 @@ def execute(filters=None):
 							})
 			pnl = flt(total['received_amount']) - flt(total['paid_amount'])
 			item.update({'pnl':pnl})
+			item.update({'estimated_pnl': flt(total['rate']) - flt(total['cost'])})
 
 		item.update({"indent":0})
 		data.append(item)
@@ -39,9 +41,16 @@ def execute(filters=None):
 				row = {"indent":1}
 				row.update(ct)
 				row.update({"pnl":flt(flt(ct['received_amount']) - flt(ct['paid_amount']))})
+				row.update({"estimated_pnl": flt(ct['rate']) - flt(ct['cost'])})
 				data.append(row)
 
 	return columns, data
+
+def get_totals(cost_table_details):
+	return {
+		field: sum(flt(ct.get(field)) for ct in cost_table_details)
+		for field in AMOUNT_FIELDS
+	}
 
 def get_conditions(filters):
 	conditions = ""
@@ -179,7 +188,7 @@ def get_columns():
 		},
 		{
 			'label': _("Estimated Profit/Loss"),
-			'fieldname': 'cost',
+			'fieldname': 'estimated_pnl',
 			'fieldtype': 'Currency',
 			"options":"Currency",
 			'width': 80
