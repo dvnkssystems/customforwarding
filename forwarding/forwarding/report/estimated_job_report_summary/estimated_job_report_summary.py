@@ -18,7 +18,10 @@ def execute(filters=None):
 		cost_table_details = [dict(ct_dict_) for ct_dict_ in cost_table_details_]
 		df = pd.DataFrame(cost_table_details)
 		if not df.empty:
-			total = df.sum()
+			# numeric_only: the frame carries text columns too (item, account,
+			# ref ids). Older pandas skipped them here; current pandas tries to
+			# add str to int and raises — which is why this report stopped running.
+			total = df.sum(numeric_only=True)
 			item.update({
 							"item":'',
 							"account":"Total",
@@ -68,7 +71,10 @@ def add_total(data):
 		df = pd.DataFrame(data_)
 		data_df = df[df['date'].notna()]
 		data_df = data_df.fillna(0)
-		final_totals = data_df.sum()
+		# numeric_only: the frame carries text columns too (item, account,
+		# ref ids). Older pandas skipped them here; current pandas tries to
+		# add str to int and raises — which is why this report stopped running.
+		final_totals = data_df.sum(numeric_only=True)
 		if 'cost' in data_df.columns:
 			total_row.update({
 						"date":_(frappe.bold("Total")),

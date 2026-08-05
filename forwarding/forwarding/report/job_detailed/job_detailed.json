@@ -2,29 +2,32 @@
  "add_total_row": 0,
  "add_translate_data": 0,
  "columns": [],
- "creation": "2021-05-11 12:32:34.039616",
- "disabled": 0,
+ "creation": "2022-02-22 17:02:35.600336",
+ "disabled": 1,
  "docstatus": 0,
  "doctype": "Report",
  "filters": [],
  "idx": 0,
  "is_standard": "Yes",
  "letter_head": null,
- "modified": "2026-08-05 15:54:42.031639",
+ "modified": "2026-08-05 15:56:41.221472",
  "modified_by": "Administrator",
  "module": "Forwarding",
- "name": "Estimated Job Report Summary",
+ "name": "Job Detailed",
  "owner": "Administrator",
  "prepared_report": 0,
  "ref_doctype": "Operations",
- "report_name": "Estimated Job Report Summary",
+ "report_name": "Job Detailed",
  "report_type": "Script Report",
  "roles": [
+  {
+   "role": "Sales Manager"
+  },
   {
    "role": "System Manager"
   },
   {
-   "role": "Sales Manager"
+   "role": "Terminal"
   }
  ],
  "timeout": 0

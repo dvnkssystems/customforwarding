@@ -6,10 +6,15 @@
  "engine": "InnoDB",
  "field_order": [
   "document",
+  "stage",
   "received",
   "date",
   "attach",
-  "remark"
+  "remark",
+  "ocr_status",
+  "extracted_data",
+  "uploaded_on",
+  "uploaded_by"
  ],
  "fields": [
   {
@@ -43,19 +48,56 @@
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Remark"
+  },
+  {
+   "description": "Which job milestone this document belongs to.",
+   "fieldname": "stage",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Stage",
+   "options": "\nBooking\nDocumentation\nDeparture\nIn Transit\nArrival\nCustoms Clearance\nDelivery\nClosed"
+  },
+  {
+   "default": "Not Started",
+   "description": "Set by the OCR run; drives the timeline's OCR chip.",
+   "fieldname": "ocr_status",
+   "fieldtype": "Select",
+   "label": "OCR Status",
+   "options": "\nNot Started\nReading\nExtracted\nFailed"
+  },
+  {
+   "description": "Raw values OCR read back from the attachment.",
+   "fieldname": "extracted_data",
+   "fieldtype": "Small Text",
+   "label": "Extracted Data",
+   "read_only": 1
+  },
+  {
+   "description": "When the attachment landed. `date` is the document's own date.",
+   "fieldname": "uploaded_on",
+   "fieldtype": "Datetime",
+   "label": "Uploaded On"
+  },
+  {
+   "fieldname": "uploaded_by",
+   "fieldtype": "Link",
+   "label": "Uploaded By",
+   "options": "User"
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2021-02-01 21:32:37.287475",
+ "modified": "2026-08-05 13:09:30.950017",
  "modified_by": "Administrator",
  "module": "Forwarding",
  "name": "Document Table",
  "owner": "Administrator",
  "permissions": [],
  "quick_entry": 1,
+ "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
+ "states": [],
  "track_changes": 1
 }
