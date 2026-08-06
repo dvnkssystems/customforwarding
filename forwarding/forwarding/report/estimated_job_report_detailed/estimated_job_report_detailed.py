@@ -86,7 +86,7 @@ def get_conditions(filters):
 		conditions += "and job_type = %(job_type)s"# %filters.get('operations')
 
 	if filters.get('company'):
-		conditions += "and company = %(job_type)s"# %filters.get('operations')
+		conditions += "and company = %(company)s"# %filters.get('operations')
 
 	if filters.get('branch'):
 		conditions += "and branch = %(branch)s"# %filters.get('operations')
