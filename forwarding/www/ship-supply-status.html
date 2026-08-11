@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Ship Supply — Delivery Status</title>
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+	<style>
+		:root {
+			--bg: #05070d;
+			--panel: #0a1730;
+			--panel-2: #0d1f3d;
+			--border: #16305c;
+			--head: #10305e;
+			--txt: #e8eefc;
+			--muted: #9fb0cc;
+		}
+		* { box-sizing: border-box; margin: 0; padding: 0; }
+		html, body {
+			background: var(--bg);
+			color: var(--txt);
+			font-family: "Segoe UI", Roboto, Arial, sans-serif;
+			-webkit-font-smoothing: antialiased;
+		}
+		.board {
+			max-width: 1700px;
+			margin: 0 auto;
+			padding: 12px 16px 0;
+		}
+
+		/* ---- Header ---- */
+		.hdr {
+			display: flex; align-items: center; justify-content: space-between;
+			padding: 6px 10px 12px;
+		}
+		.hdr .title {
+			font-size: 30px; font-weight: 800; letter-spacing: 4px;
+			color: #d9a521; text-shadow: 0 0 12px rgba(217,165,33,.25);
+		}
+		.hdr .clock { text-align: right; line-height: 1; }
+		.hdr .clock .time { font-size: 34px; font-weight: 800; color: #d9a521; }
+		.hdr .clock .date { font-size: 14px; font-weight: 700; color: var(--muted); letter-spacing: 2px; margin-top: 4px; }
+
+		/* ---- Counter cards ---- */
+		.counters {
+			display: grid;
+			grid-template-columns: repeat(10, 1fr);
+			gap: 10px;
+			margin-bottom: 14px;
+		}
+		.counter {
+			border-radius: 10px;
+			padding: 10px 8px 8px;
+			border: 1px solid rgba(255,255,255,.08);
+			background: linear-gradient(160deg, rgba(255,255,255,.06), rgba(0,0,0,.25));
+			min-height: 118px;
+			display: flex; flex-direction: column; justify-content: space-between;
+		}
+		.counter .top { display: flex; align-items: center; gap: 8px; }
+		.counter .top i { font-size: 18px; opacity: .9; }
+		.counter .lbl { font-size: 11px; font-weight: 700; letter-spacing: .5px; line-height: 1.15; text-transform: uppercase; }
+		.counter .val { font-size: 40px; font-weight: 800; align-self: flex-start; }
+
+		/* ---- Table ---- */
+		.grid { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+		table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+		thead th {
+			background: var(--head);
+			color: var(--txt);
+			font-size: 13px; font-weight: 700; letter-spacing: .5px;
+			padding: 12px 8px; text-transform: uppercase;
+			border-right: 1px solid var(--border);
+		}
+		tbody td {
+			padding: 12px 8px; text-align: center; font-size: 14px; font-weight: 600;
+			border-right: 1px solid rgba(255,255,255,.05);
+			border-top: 1px solid rgba(255,255,255,.05);
+		}
+		tbody tr:nth-child(odd) { background: #04060c; }
+		tbody tr:nth-child(even) { background: #070c16; }
+		td.order-no { font-weight: 700; }
+		.badge-status {
+			display: inline-block; min-width: 150px; padding: 8px 10px;
+			border-radius: 6px; color: #fff; font-weight: 700; font-size: 13px;
+			letter-spacing: .3px; text-transform: uppercase;
+		}
+
+		/* ---- Bottom panels ---- */
+		.bottom {
+			display: grid;
+			grid-template-columns: 1.6fr 1fr 1fr;
+			gap: 14px;
+			margin: 14px 0;
+		}
+		.panel { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: #04060c; }
+		.panel .p-head { padding: 8px; text-align: center; font-weight: 800; letter-spacing: 2px; font-size: 16px; }
+		.panel.legend .p-head { background: #10305e; }
+		.panel.pallet .p-head { background: #10305e; }
+		.panel.retn .p-head { background: #5a1414; }
+		.panel .p-body { padding: 14px 16px; }
+
+		.legend-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px 18px; }
+		.legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: #d6def0; }
+		.dot { width: 12px; height: 12px; border-radius: 50%; flex: 0 0 auto; }
+
+		.summary { display: flex; justify-content: space-around; text-align: center; }
+		.summary .cell i { font-size: 30px; color: #2f8fed; }
+		.summary .cell .s-lbl { font-size: 12px; font-weight: 700; color: var(--muted); margin: 8px 0 4px; letter-spacing: .5px; }
+		.summary .cell .s-val { font-size: 34px; font-weight: 800; }
+		.panel.retn .summary .cell i { color: #d63030; }
+		.panel.retn .summary .cell:last-child i { color: #2fa32f; }
+
+		/* ---- Footer ---- */
+		.footer {
+			border-top: 2px solid #16305c;
+			background: #071227;
+			padding: 12px; text-align: center;
+			color: #d9a521; font-weight: 800; font-size: 20px; letter-spacing: 2px;
+			display: flex; align-items: center; justify-content: center; gap: 24px;
+		}
+		.footer .sep { color: #16305c; }
+		.footer i.warn { color: #d9a521; }
+		.footer i.ship { color: #6f8bbf; }
+
+		@media (max-width: 1200px) {
+			.counters { grid-template-columns: repeat(5, 1fr); }
+			.bottom { grid-template-columns: 1fr; }
+			.legend-grid { grid-template-columns: repeat(2, 1fr); }
+		}
+	</style>
+</head>
+<body>
+	<div class="board">
+		<!-- Header -->
+		<div class="hdr">
+			<div class="title">SHIP SUPPLY — DELIVERY STATUS</div>
+			<div class="clock">
+				<div class="time" id="clock-time">10:30 AM</div>
+				<div class="date" id="clock-date">WED, 28 MAY 2025</div>
+			</div>
+		</div>
+
+		<!-- Counter cards -->
+		<div class="counters">
+			{% set icons = {
+				"clipboard": "fa-clipboard-list", "box": "fa-box", "forklift": "fa-dolly",
+				"truck-clock": "fa-truck", "truck": "fa-truck-moving", "loader": "fa-truck-ramp-box",
+				"truck-fast": "fa-truck-fast", "check": "fa-circle-check", "return": "fa-rotate-left",
+				"clipboard-check": "fa-clipboard-check"
+			} %}
+			{% for c in counters %}
+			<div class="counter" style="background: linear-gradient(160deg, {{ c.color }}, rgba(0,0,0,.35));">
+				<div class="top">
+					<i class="fa-solid {{ icons.get(c.icon, 'fa-circle') }}"></i>
+					<span class="lbl">{{ c.label }}</span>
+				</div>
+				<div class="val">{{ c.value }}</div>
+			</div>
+			{% endfor %}
+		</div>
+
+		<!-- Orders table -->
+		<div class="grid">
+			<table>
+				<thead>
+					<tr>
+						<th style="width:9%">Order No.</th>
+						<th style="width:11%">Ship Name</th>
+						<th style="width:8%">Catering Group</th>
+						<th style="width:9%">Supervisor</th>
+						<th style="width:9%">Pallet No.</th>
+						<th style="width:6%">Pallets</th>
+						<th style="width:13%">Status</th>
+						<th style="width:8%">Vehicle No.</th>
+						<th style="width:7%">Driver</th>
+						<th style="width:7%">Ready Time</th>
+						<th style="width:7%">ETA / Delivery</th>
+						<th style="width:10%">Remarks</th>
+					</tr>
+				</thead>
+				<tbody>
+					{% for o in orders %}
+					{% set st = statuses[o.status] %}
+					<tr>
+						<td class="order-no" style="color: {{ st.color }}">{{ o.order_no }}</td>
+						<td>{{ o.ship }}</td>
+						<td>{{ o.group }}</td>
+						<td>{{ o.supervisor }}</td>
+						<td>{{ o.pallet_range }}</td>
+						<td>{{ o.pallets }}</td>
+						<td><span class="badge-status" style="background: {{ st.color }}">{{ st.label }}</span></td>
+						<td>{{ o.vehicle }}</td>
+						<td>{{ o.driver }}</td>
+						<td>{{ o.ready_time }}</td>
+						<td>{{ o.eta }}</td>
+						<td style="font-weight:500; color: var(--muted)">{{ o.remarks }}</td>
+					</tr>
+					{% endfor %}
+				</tbody>
+			</table>
+		</div>
+
+		<!-- Bottom panels -->
+		<div class="bottom">
+			<div class="panel legend">
+				<div class="p-head">STATUS LEGEND</div>
+				<div class="p-body">
+					<div class="legend-grid">
+						{% for key, st in statuses.items() %}
+						<div class="legend-item">
+							<span class="dot" style="background: {{ st.color }}"></span>{{ st.label }}
+						</div>
+						{% endfor %}
+					</div>
+				</div>
+			</div>
+
+			<div class="panel pallet">
+				<div class="p-head">PALLET SUMMARY</div>
+				<div class="p-body">
+					<div class="summary">
+						<div class="cell"><i class="fa-solid fa-pallet"></i><div class="s-lbl">TOTAL PALLETS</div><div class="s-val">{{ pallet_summary.total }}</div></div>
+						<div class="cell"><i class="fa-solid fa-truck-fast"></i><div class="s-lbl">DISPATCHED</div><div class="s-val">{{ pallet_summary.dispatched }}</div></div>
+						<div class="cell"><i class="fa-solid fa-boxes-stacked"></i><div class="s-lbl">REMAINING</div><div class="s-val">{{ pallet_summary.remaining }}</div></div>
+					</div>
+				</div>
+			</div>
+
+			<div class="panel retn">
+				<div class="p-head">RETURN SUMMARY</div>
+				<div class="p-body">
+					<div class="summary">
+						<div class="cell"><i class="fa-solid fa-rotate-left"></i><div class="s-lbl">RETURNED TODAY</div><div class="s-val">{{ return_summary.returned_today }}</div></div>
+						<div class="cell"><i class="fa-solid fa-clipboard-list"></i><div class="s-lbl">PENDING ACTION</div><div class="s-val">{{ return_summary.pending_action }}</div></div>
+						<div class="cell"><i class="fa-solid fa-circle-check"></i><div class="s-lbl">CLOSED</div><div class="s-val">{{ return_summary.closed }}</div></div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Footer -->
+		<div class="footer">
+			<i class="fa-solid fa-triangle-exclamation warn"></i>
+			<span>** SAFETY FIRST</span><span class="sep">|</span>
+			<span>QUALITY ALWAYS</span><span class="sep">|</span>
+			<span>ON TIME EVERY TIME **</span>
+			<i class="fa-solid fa-ship ship"></i>
+		</div>
+	</div>
+
+	<script>
+		(function () {
+			function pad(n) { return n < 10 ? "0" + n : n; }
+			var days = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+			var months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+			function tick() {
+				var d = new Date();
+				var h = d.getHours(), m = d.getMinutes();
+				var ampm = h >= 12 ? "PM" : "AM";
+				var h12 = h % 12; if (h12 === 0) h12 = 12;
+				document.getElementById("clock-time").textContent = h12 + ":" + pad(m) + " " + ampm;
+				document.getElementById("clock-date").textContent =
+					days[d.getDay()] + ", " + pad(d.getDate()) + " " + months[d.getMonth()] + " " + d.getFullYear();
+			}
+			tick();
+			setInterval(tick, 1000 * 30);
+		})();
+	</script>
+</body>
+</html>

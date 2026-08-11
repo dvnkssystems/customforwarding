@@ -1,0 +1,88 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-08-10 09:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "reference_no",
+  "from_location",
+  "to_location",
+  "contact_person",
+  "contact_no",
+  "pull_out",
+  "trans_delivery_date",
+  "empty_return"
+ ],
+ "fields": [
+  {
+   "columns": 2,
+   "fieldname": "reference_no",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Container / Package No"
+  },
+  {
+   "columns": 2,
+   "fieldname": "from_location",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "From Location"
+  },
+  {
+   "columns": 2,
+   "fieldname": "to_location",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "To Location"
+  },
+  {
+   "columns": 1,
+   "fieldname": "contact_person",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Contact Person"
+  },
+  {
+   "columns": 1,
+   "fieldname": "contact_no",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Contact No"
+  },
+  {
+   "columns": 1,
+   "fieldname": "pull_out",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Pull Out"
+  },
+  {
+   "columns": 1,
+   "fieldname": "trans_delivery_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Delivery Date"
+  },
+  {
+   "columns": 1,
+   "fieldname": "empty_return",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Empty Return"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-08-10 09:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Forwarding",
+ "name": "Operations Transport Leg",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

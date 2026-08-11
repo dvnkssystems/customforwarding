@@ -1,0 +1,148 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:SSO-{YY}{MM}{##}",
+ "creation": "2026-07-02 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "order_date",
+  "ship_name",
+  "catering_group",
+  "supervisor",
+  "column_break_main",
+  "status",
+  "pallet_range",
+  "pallets",
+  "logistics_section",
+  "vehicle_no",
+  "driver",
+  "column_break_logi",
+  "ready_time",
+  "eta",
+  "remarks_section",
+  "remarks"
+ ],
+ "fields": [
+  {
+   "default": "Today",
+   "fieldname": "order_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Order Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "ship_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Ship Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "catering_group",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Catering Group"
+  },
+  {
+   "fieldname": "supervisor",
+   "fieldtype": "Data",
+   "label": "Supervisor"
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Order Received",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Order Received\nOrder Confirmed\nAllocated to Supervisor\nPicking in Progress\nQuality Check Completed\nReady for Dispatch\nWaiting for Vehicle\nVehicle Assigned\nLoading in Progress\nOn the Way\nDelivered\nReturned from Ship\nClosed",
+   "reqd": 1
+  },
+  {
+   "description": "e.g. P-001 ~ P-012",
+   "fieldname": "pallet_range",
+   "fieldtype": "Data",
+   "label": "Pallet No."
+  },
+  {
+   "default": "0",
+   "fieldname": "pallets",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Pallets"
+  },
+  {
+   "fieldname": "logistics_section",
+   "fieldtype": "Section Break",
+   "label": "Logistics"
+  },
+  {
+   "fieldname": "vehicle_no",
+   "fieldtype": "Data",
+   "label": "Vehicle No."
+  },
+  {
+   "fieldname": "driver",
+   "fieldtype": "Data",
+   "label": "Driver"
+  },
+  {
+   "fieldname": "column_break_logi",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "ready_time",
+   "fieldtype": "Datetime",
+   "label": "Ready Time"
+  },
+  {
+   "fieldname": "eta",
+   "fieldtype": "Datetime",
+   "label": "ETA / Delivery"
+  },
+  {
+   "fieldname": "remarks_section",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-07-02 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Forwarding",
+ "name": "Ship Supply Order",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "order_date",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "ship_name",
+ "track_changes": 1
+}

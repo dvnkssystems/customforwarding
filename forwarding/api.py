@@ -78,7 +78,7 @@ def get_billing_status_counts():
 	rows = frappe.get_all(
 		"Operations",
 		filters={"is_trashed": 0},
-		fields=["billing_status", "count(name) as cnt"],
+		fields=["billing_status", {"COUNT": "name", "as": "cnt"}],
 		group_by="billing_status",
 	)
 	counts = {
@@ -116,8 +116,8 @@ def get_dashboard_stats():
 def get_finance_stats():
 	"""Finance Dashboard KPIs."""
 	def _sum(dt, field, filters):
-		v = frappe.db.get_value(dt, filters, f"sum({field})")
-		return v or 0
+		row = frappe.get_all(dt, filters=filters, fields=[{"SUM": field, "as": "total"}])
+		return (row[0].total if row else 0) or 0
 	return {
 		"receivable": _sum("Sales Invoice", "outstanding_amount", {"docstatus": 1}),
 		"payable": _sum("Purchase Invoice", "outstanding_amount", {"docstatus": 1}),
@@ -603,3 +603,122 @@ def seed_reports_demo():
 
 	frappe.db.commit()
 	return " | ".join(log)
+
+
+# ---------------------------------------------------------------------------
+# Ship Supply — Delivery Status board
+# Shared by the web page (/ship-supply-status) and the desk page
+# (Ship Supply Status). Every value is computed live from `Ship Supply Order`.
+# ---------------------------------------------------------------------------
+
+# Status label (matches the DocType Select) -> badge/legend colour.
+# Order here also drives the Status Legend order on the board.
+SHIP_SUPPLY_STATUS_COLORS = [
+	("Order Received", "#2f6fed"),
+	("Order Confirmed", "#5b6470"),
+	("Allocated to Supervisor", "#a234c9"),
+	("Picking in Progress", "#e07b1a"),
+	("Quality Check Completed", "#c9c020"),
+	("Ready for Dispatch", "#2fa32f"),
+	("Waiting for Vehicle", "#e0b400"),
+	("Vehicle Assigned", "#2f8fed"),
+	("Loading in Progress", "#a2521a"),
+	("On the Way", "#2fb0b0"),
+	("Delivered", "#2fa32f"),
+	("Returned from Ship", "#d63030"),
+	("Closed", "#9aa0a6"),
+]
+
+# Pallets counted as "dispatched" (have left the dock).
+SHIP_SUPPLY_DISPATCHED = {"On the Way", "Delivered", "Returned from Ship", "Closed"}
+
+
+def _ss_fmt_time(value):
+	"""12-hour clock like the board (08:30 AM); dash when unset."""
+	if not value:
+		return "-"
+	return frappe.utils.get_datetime(value).strftime("%I:%M %p")
+
+
+def build_ship_supply_board(day=None):
+	"""Compute the whole board (counters, rows, summaries) for one day.
+
+	Returns a plain dict so it can serve both a Jinja web page and a
+	frappe.call() from the desk page. `day` defaults to today.
+	"""
+	day = day or frappe.utils.today()
+	colors = dict(SHIP_SUPPLY_STATUS_COLORS)
+
+	records = frappe.get_all(
+		"Ship Supply Order",
+		filters={"order_date": day},
+		fields=[
+			"name", "ship_name", "catering_group", "supervisor",
+			"pallet_range", "pallets", "status", "vehicle_no",
+			"driver", "ready_time", "eta", "remarks",
+		],
+		order_by="name asc",
+	)
+
+	orders = []
+	for r in records:
+		orders.append({
+			"order_no": r.name,
+			"ship": r.ship_name or "-",
+			"group": r.catering_group or "-",
+			"supervisor": r.supervisor or "-",
+			"pallet_range": r.pallet_range or "-",
+			"pallets": r.pallets or 0,
+			"status": r.status or "Order Received",
+			"vehicle": r.vehicle_no or "-",
+			"driver": r.driver or "-",
+			"ready_time": _ss_fmt_time(r.ready_time),
+			"eta": _ss_fmt_time(r.eta),
+			"remarks": r.remarks or "-",
+		})
+
+	counts = {}
+	for r in records:
+		counts[r.status] = counts.get(r.status, 0) + 1
+
+	def n(status):
+		return counts.get(status, 0)
+
+	counters = [
+		{"label": "TODAY'S ORDERS", "value": len(records), "icon": "clipboard", "color": "#123a63"},
+		{"label": "PICKING", "value": n("Picking in Progress"), "icon": "box", "color": "#5a3a12"},
+		{"label": "READY FOR DISPATCH", "value": n("Ready for Dispatch"), "icon": "forklift", "color": "#4a4a12"},
+		{"label": "WAITING FOR VEHICLE", "value": n("Waiting for Vehicle"), "icon": "truck-clock", "color": "#5a4a12"},
+		{"label": "VEHICLE ASSIGNED", "value": n("Vehicle Assigned"), "icon": "truck", "color": "#123a63"},
+		{"label": "LOADING", "value": n("Loading in Progress"), "icon": "loader", "color": "#5a2a12"},
+		{"label": "ON THE WAY", "value": n("On the Way"), "icon": "truck-fast", "color": "#124a52"},
+		{"label": "DELIVERED", "value": n("Delivered"), "icon": "check", "color": "#123a1a"},
+		{"label": "RETURNED", "value": n("Returned from Ship"), "icon": "return", "color": "#5a1212"},
+		{"label": "CLOSED", "value": n("Closed"), "icon": "clipboard-check", "color": "#2a2a2a"},
+	]
+
+	total_pallets = sum((r.pallets or 0) for r in records)
+	dispatched = sum((r.pallets or 0) for r in records if r.status in SHIP_SUPPLY_DISPATCHED)
+	returned = n("Returned from Ship")
+
+	return {
+		"statuses": [{"label": label, "color": color} for label, color in SHIP_SUPPLY_STATUS_COLORS],
+		"orders": orders,
+		"counters": counters,
+		"pallet_summary": {
+			"total": total_pallets,
+			"dispatched": dispatched,
+			"remaining": total_pallets - dispatched,
+		},
+		"return_summary": {
+			"returned_today": returned,
+			"pending_action": returned,
+			"closed": n("Closed"),
+		},
+	}
+
+
+@frappe.whitelist()
+def get_ship_supply_board(day=None):
+	"""Desk-page data source for the Ship Supply Status board."""
+	return build_ship_supply_board(day)

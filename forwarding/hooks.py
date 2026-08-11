@@ -91,6 +91,7 @@ app_license = "MIT"
 # --------
 fixtures = [
 	"Freight Activity Code",
+	"Permit Type",
 	{
 		"dt": "Role",
 		"filters": [["name", "in", [

@@ -7,15 +7,83 @@ import frappe
 from frappe import _
 from frappe.model.document import Document
 from frappe.model.mapper import get_mapped_doc
+# Used by make_sales_invoice / make_purchase_invoice below; was referenced
+# without being imported, so those raised NameError at runtime.
+from frappe.model.utils import get_fetch_values
 from frappe.utils import cstr, flt, getdate, cint, nowdate, add_days, get_link_to_form, strip_html
 from frappe.contacts.doctype.address.address import get_company_address
 from erpnext.stock.doctype.item.item import get_item_defaults
 from erpnext.setup.doctype.item_group.item_group import get_item_group_defaults
 
 
+# Freight Activity Code.service_type -> the service checkbox it switches on.
+# Mirrors how Bridge LCS derives a job's Services from its Activity Code.
+SERVICE_TYPE_FIELD = {
+	"Freight Forwarding": "svc_freight_forwarding",
+	"Customs Clearance": "svc_customs_clearance",
+	"Transportation": "svc_transportation",
+	"Trading": "svc_trading",
+	"Value Added Services": "svc_packing_relocation",
+}
+
+SERVICE_FIELDS = (
+	"svc_freight_forwarding",
+	"svc_customs_clearance",
+	"svc_transportation",
+	"svc_packing_relocation",
+	"svc_trading",
+	"svc_warehousing",
+)
+
+
 class Operations(Document):
 	def validate(self):
+		self.set_services_from_activity_code()
+		self.calculate_package_totals()
 		self.set_billing_status()
+
+	def set_services_from_activity_code(self):
+		"""Default the service checkboxes from the chosen Activity Code.
+
+		Only applied when the activity code actually changes, so an operator can
+		still tick extra services (or untick a default) and have it stick.
+		"""
+		if not self.activity_code:
+			return
+
+		previous = None if self.is_new() else frappe.db.get_value(
+			"Operations", self.name, "activity_code")
+		if previous == self.activity_code:
+			return
+
+		service_type = frappe.db.get_value(
+			"Freight Activity Code", self.activity_code, "service_type")
+		field = SERVICE_TYPE_FIELD.get(service_type)
+		if field:
+			self.set(field, 1)
+
+	def calculate_package_totals(self):
+		"""Roll the package grid up into the Package tab totals.
+
+		Volume and total weight are derived per row the same way the Bridge LCS
+		package grid does: volume = qty * (L*W*H) / 1e6, total = qty * weight.
+		"""
+		qty = volume = weight = chargeable = 0.0
+
+		for row in self.get("package_details") or []:
+			row.volume = flt(row.quantity) * (
+				flt(row.length) * flt(row.width) * flt(row.height)) / 1000000.0
+			row.total_weight = flt(row.quantity) * flt(row.weight)
+
+			qty += flt(row.quantity)
+			volume += flt(row.volume)
+			weight += flt(row.total_weight)
+			chargeable += flt(row.chargeable_weight)
+
+		self.total_package_qty = qty
+		self.total_package_volume = volume
+		self.total_package_weight = weight
+		self.total_chargeable_weight = chargeable
 
 	def set_billing_status(self):
 		"""Derive billing_status from linked Sales / Purchase Invoices.

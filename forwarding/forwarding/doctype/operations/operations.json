@@ -7,23 +7,26 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
+  "tab_general",
   "naming_series",
   "operation_id",
+  "column_break_rvpd",
   "operations_status",
   "lifecycle_section",
   "billing_status",
+  "date",
+  "posting_date",
+  "country",
+  "branch",
+  "job_type",
+  "from_quotation",
   "col_break_lifecycle",
   "is_favorite",
   "is_trashed",
-  "date",
-  "country",
   "country_abb",
-  "branch",
   "branch_abb",
-  "job_type",
   "job_type_abb",
   "inco_terms",
-  "from_quotation",
   "column_break_8",
   "mode_of_shipment",
   "mos_abb",
@@ -36,20 +39,50 @@
   "cost_center",
   "project",
   "shipment_type",
+  "job_classification_section",
+  "activity_code",
+  "activity_mode",
+  "activity_service_type",
+  "column_break_services",
+  "svc_freight_forwarding",
+  "svc_customs_clearance",
+  "svc_transportation",
+  "svc_packing_relocation",
+  "svc_trading",
+  "svc_warehousing",
   "customer_details_section",
   "customer",
+  "secondary_customers",
   "to_attention",
   "po_no",
   "po_date",
+  "salesman",
   "column_break_23",
   "company",
   "company_address_name",
   "company_address",
+  "serial_no",
+  "company_ref_no",
+  "cargo_flags_section",
+  "cargo_type",
+  "dg_status",
+  "imco_class",
+  "un_no",
+  "column_break_cargo_flags",
+  "is_saber",
+  "is_citc",
+  "is_moi",
+  "is_sfda",
+  "is_moe",
+  "is_pme",
+  "is_exception",
   "shipping_details_section",
   "port_of_loading",
   "port_of_destination",
+  "transhipment_port",
   "loading_country",
   "destination_country",
+  "place_of_loading",
   "place_of_delivery",
   "vessel_name",
   "consignee",
@@ -76,6 +109,22 @@
   "transit_time",
   "free_time",
   "commodity",
+  "pickup_delivery_section",
+  "pickup_date",
+  "pickup_reason",
+  "pickup_address",
+  "column_break_pickup",
+  "delivery_date",
+  "delivery_address",
+  "shipment_extra_section",
+  "volume",
+  "location_in_port",
+  "edi_rotation_no",
+  "column_break_shipment_extra",
+  "suppliers",
+  "supplier_ref_no",
+  "dimension",
+  "no_of_pieces",
   "parcels_section",
   "shipment_parcel",
   "calculate_weight",
@@ -90,8 +139,61 @@
   "chargable_weight",
   "column_break_55",
   "cargo_description",
+  "tab_clearance",
+  "clearance_docs_section",
+  "type_of_clearance",
+  "docs_copy_received_date",
+  "bl_receive_date",
+  "original_docs_received_date",
+  "column_break_cl1",
+  "saber_certificate_date",
+  "bayan_date",
+  "bayan_no",
+  "do_date",
+  "do_no",
+  "column_break_cl2",
+  "duty_amount_company",
+  "duty_amount_client",
+  "demurrage_date",
+  "clearance_date",
+  "do_remarks",
+  "lab_section",
+  "commercial_invoice_no",
+  "lab_submission_date",
+  "lab_undertaking_start_date",
+  "column_break_lab",
+  "lab_cleared_status",
+  "lab_cleared_date",
+  "permits",
+  "clearance_remarks",
+  "clearance_documents_section",
+  "clearance_documents",
+  "tab_warehousing",
+  "wh_reference_no",
+  "wh_delivery_date",
+  "wh_shipment_received",
+  "wh_storage_period",
+  "column_break_wh",
+  "wh_storage_type",
+  "wh_eir_no",
+  "wh_temperature",
+  "tab_package",
+  "package_details",
+  "package_totals_section",
+  "total_package_qty",
+  "total_package_volume",
+  "column_break_pkg_tot",
+  "total_package_weight",
+  "total_chargeable_weight",
+  "tab_container",
   "section_break_75",
   "container_details",
+  "tab_transportation",
+  "transport_container_section",
+  "transport_container_legs",
+  "transport_package_section",
+  "transport_package_legs",
+  "tab_costing",
   "freight_forwarding_details_section",
   "freight",
   "custom_clearance_details_section",
@@ -100,6 +202,8 @@
   "transportation",
   "section_break_76",
   "cost_table",
+  "section_break_capx",
+  "document_table",
   "amended_from"
  ],
  "fields": [
@@ -517,15 +621,6 @@
    "read_only": 1
   },
   {
-   "fieldname": "amended_from",
-   "fieldtype": "Link",
-   "label": "Amended From",
-   "no_copy": 1,
-   "options": "Operations",
-   "print_hide": 1,
-   "read_only": 1
-  },
-  {
    "default": "Freight World Alofi Co.",
    "fieldname": "company",
    "fieldtype": "Link",
@@ -648,30 +743,581 @@
    "label": "Status & Billing"
   },
   {
+   "default": "No Invoice",
    "fieldname": "billing_status",
    "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
    "label": "Billing Status",
    "options": "No Invoice\nCost Sheet Pending\nPending Billing\nBilled",
-   "default": "No Invoice",
-   "read_only": 1,
-   "in_list_view": 1,
-   "in_standard_filter": 1
+   "read_only": 1
   },
   {
    "fieldname": "col_break_lifecycle",
    "fieldtype": "Column Break"
   },
   {
+   "default": "0",
    "fieldname": "is_favorite",
    "fieldtype": "Check",
-   "label": "Is Favorite",
-   "in_standard_filter": 1
+   "in_standard_filter": 1,
+   "label": "Is Favorite"
   },
   {
+   "default": "0",
    "fieldname": "is_trashed",
    "fieldtype": "Check",
-   "label": "Is Trashed",
-   "in_standard_filter": 1
+   "in_standard_filter": 1,
+   "label": "Is Trashed"
+  },
+  {
+   "fieldname": "column_break_rvpd",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_capx",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "document_table",
+   "fieldtype": "Table",
+   "label": "Document Table",
+   "options": "Document Table"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Operations",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "tab_general",
+   "fieldtype": "Tab Break",
+   "label": "General"
+  },
+  {
+   "fieldname": "job_classification_section",
+   "fieldtype": "Section Break",
+   "label": "Activity & Services"
+  },
+  {
+   "description": "Sets the default services for this job.",
+   "fieldname": "activity_code",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Activity Code",
+   "options": "Freight Activity Code"
+  },
+  {
+   "fetch_from": "activity_code.mode",
+   "fieldname": "activity_mode",
+   "fieldtype": "Data",
+   "label": "Mode",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "activity_code.service_type",
+   "fieldname": "activity_service_type",
+   "fieldtype": "Data",
+   "label": "Primary Service",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_services",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "svc_freight_forwarding",
+   "fieldtype": "Check",
+   "label": "Freight Forwarding"
+  },
+  {
+   "fieldname": "svc_customs_clearance",
+   "fieldtype": "Check",
+   "label": "Customs Clearance"
+  },
+  {
+   "fieldname": "svc_transportation",
+   "fieldtype": "Check",
+   "label": "Transportation"
+  },
+  {
+   "fieldname": "svc_packing_relocation",
+   "fieldtype": "Check",
+   "label": "Packing & Relocation"
+  },
+  {
+   "fieldname": "svc_trading",
+   "fieldtype": "Check",
+   "label": "Trading"
+  },
+  {
+   "fieldname": "svc_warehousing",
+   "fieldtype": "Check",
+   "label": "Warehousing"
+  },
+  {
+   "fieldname": "secondary_customers",
+   "fieldtype": "Table MultiSelect",
+   "label": "Secondary Customers",
+   "options": "Operations Secondary Customer"
+  },
+  {
+   "fieldname": "salesman",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Salesman",
+   "options": "Sales Person"
+  },
+  {
+   "default": "Today",
+   "fieldname": "posting_date",
+   "fieldtype": "Date",
+   "label": "Posting Date"
+  },
+  {
+   "fieldname": "serial_no",
+   "fieldtype": "Data",
+   "label": "Serial No"
+  },
+  {
+   "fieldname": "company_ref_no",
+   "fieldtype": "Data",
+   "label": "Company Ref No"
+  },
+  {
+   "fieldname": "cargo_flags_section",
+   "fieldtype": "Section Break",
+   "label": "Cargo Type & Compliance"
+  },
+  {
+   "fieldname": "cargo_type",
+   "fieldtype": "Select",
+   "label": "Cargo Type",
+   "options": "\nAOG\nROU"
+  },
+  {
+   "fieldname": "dg_status",
+   "fieldtype": "Check",
+   "label": "Dangerous Goods (DG)"
+  },
+  {
+   "depends_on": "eval:doc.dg_status",
+   "fieldname": "imco_class",
+   "fieldtype": "Data",
+   "label": "IMCO Class"
+  },
+  {
+   "depends_on": "eval:doc.dg_status",
+   "fieldname": "un_no",
+   "fieldtype": "Data",
+   "label": "UN No"
+  },
+  {
+   "fieldname": "column_break_cargo_flags",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "is_saber",
+   "fieldtype": "Check",
+   "label": "SABER"
+  },
+  {
+   "fieldname": "is_citc",
+   "fieldtype": "Check",
+   "label": "CITC"
+  },
+  {
+   "fieldname": "is_moi",
+   "fieldtype": "Check",
+   "label": "MOI"
+  },
+  {
+   "fieldname": "is_sfda",
+   "fieldtype": "Check",
+   "label": "SFDA"
+  },
+  {
+   "fieldname": "is_moe",
+   "fieldtype": "Check",
+   "label": "MOE"
+  },
+  {
+   "fieldname": "is_pme",
+   "fieldtype": "Check",
+   "label": "PME"
+  },
+  {
+   "fieldname": "is_exception",
+   "fieldtype": "Check",
+   "label": "Exception"
+  },
+  {
+   "fieldname": "transhipment_port",
+   "fieldtype": "Data",
+   "label": "Transhipment Port"
+  },
+  {
+   "fieldname": "place_of_loading",
+   "fieldtype": "Data",
+   "label": "Place of Loading"
+  },
+  {
+   "fieldname": "pickup_delivery_section",
+   "fieldtype": "Section Break",
+   "label": "Pickup & Delivery"
+  },
+  {
+   "fieldname": "pickup_date",
+   "fieldtype": "Date",
+   "label": "Pickup Date"
+  },
+  {
+   "fieldname": "pickup_reason",
+   "fieldtype": "Data",
+   "label": "Reason for Pickup Change"
+  },
+  {
+   "fieldname": "pickup_address",
+   "fieldtype": "Small Text",
+   "label": "Pickup Address"
+  },
+  {
+   "fieldname": "column_break_pickup",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "delivery_date",
+   "fieldtype": "Date",
+   "label": "Delivery Date"
+  },
+  {
+   "fieldname": "delivery_address",
+   "fieldtype": "Small Text",
+   "label": "Delivery Address"
+  },
+  {
+   "fieldname": "shipment_extra_section",
+   "fieldtype": "Section Break",
+   "label": "Shipment"
+  },
+  {
+   "fieldname": "volume",
+   "fieldtype": "Float",
+   "label": "Volume (m3)"
+  },
+  {
+   "fieldname": "location_in_port",
+   "fieldtype": "Data",
+   "label": "Location In Port"
+  },
+  {
+   "fieldname": "edi_rotation_no",
+   "fieldtype": "Data",
+   "label": "EDI Rotation No"
+  },
+  {
+   "fieldname": "column_break_shipment_extra",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "suppliers",
+   "fieldtype": "Table MultiSelect",
+   "label": "Suppliers",
+   "options": "Operations Supplier"
+  },
+  {
+   "fieldname": "supplier_ref_no",
+   "fieldtype": "Data",
+   "label": "Supplier Ref No"
+  },
+  {
+   "fieldname": "dimension",
+   "fieldtype": "Data",
+   "label": "Dimension"
+  },
+  {
+   "fieldname": "no_of_pieces",
+   "fieldtype": "Int",
+   "label": "No. of Pieces"
+  },
+  {
+   "depends_on": "eval:doc.svc_customs_clearance",
+   "fieldname": "tab_clearance",
+   "fieldtype": "Tab Break",
+   "label": "Clearance"
+  },
+  {
+   "fieldname": "clearance_docs_section",
+   "fieldtype": "Section Break",
+   "label": "Documents & D.O"
+  },
+  {
+   "fieldname": "type_of_clearance",
+   "fieldtype": "Data",
+   "label": "Type of Clearance"
+  },
+  {
+   "fieldname": "docs_copy_received_date",
+   "fieldtype": "Date",
+   "label": "Docs Copy Received Date"
+  },
+  {
+   "fieldname": "bl_receive_date",
+   "fieldtype": "Date",
+   "label": "BL Receive Date"
+  },
+  {
+   "fieldname": "original_docs_received_date",
+   "fieldtype": "Date",
+   "label": "Original Docs Received Date"
+  },
+  {
+   "fieldname": "column_break_cl1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "saber_certificate_date",
+   "fieldtype": "Date",
+   "label": "Saber Certificate Date"
+  },
+  {
+   "fieldname": "bayan_date",
+   "fieldtype": "Date",
+   "label": "Custom Declaration (Bayan) Date"
+  },
+  {
+   "fieldname": "bayan_no",
+   "fieldtype": "Data",
+   "label": "Custom Declaration (Bayan) No"
+  },
+  {
+   "fieldname": "do_date",
+   "fieldtype": "Date",
+   "label": "DO Date"
+  },
+  {
+   "fieldname": "do_no",
+   "fieldtype": "Data",
+   "label": "D.O No"
+  },
+  {
+   "fieldname": "column_break_cl2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "duty_amount_company",
+   "fieldtype": "Currency",
+   "label": "Duty Amount - Company"
+  },
+  {
+   "fieldname": "duty_amount_client",
+   "fieldtype": "Currency",
+   "label": "Duty Amount - Client"
+  },
+  {
+   "fieldname": "demurrage_date",
+   "fieldtype": "Date",
+   "label": "Demurrage Date"
+  },
+  {
+   "fieldname": "clearance_date",
+   "fieldtype": "Date",
+   "label": "Clearance Date"
+  },
+  {
+   "fieldname": "do_remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks"
+  },
+  {
+   "fieldname": "lab_section",
+   "fieldtype": "Section Break",
+   "label": "Lab & Undertaking"
+  },
+  {
+   "fieldname": "commercial_invoice_no",
+   "fieldtype": "Data",
+   "label": "Commercial Invoice No"
+  },
+  {
+   "fieldname": "lab_submission_date",
+   "fieldtype": "Date",
+   "label": "Lab Submission Date"
+  },
+  {
+   "fieldname": "lab_undertaking_start_date",
+   "fieldtype": "Date",
+   "label": "Lab Undertaking Start Date"
+  },
+  {
+   "fieldname": "column_break_lab",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "lab_cleared_status",
+   "fieldtype": "Select",
+   "label": "Lab Cleared Status",
+   "options": "\nCleared\nRejected"
+  },
+  {
+   "fieldname": "lab_cleared_date",
+   "fieldtype": "Date",
+   "label": "Lab Cleared Date"
+  },
+  {
+   "fieldname": "permits",
+   "fieldtype": "Table MultiSelect",
+   "label": "Types of Permit",
+   "options": "Operations Permit"
+  },
+  {
+   "fieldname": "clearance_remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks"
+  },
+  {
+   "fieldname": "clearance_documents_section",
+   "fieldtype": "Section Break",
+   "label": "Clearance Documents"
+  },
+  {
+   "fieldname": "clearance_documents",
+   "fieldtype": "Table",
+   "label": "Clearance Documents",
+   "options": "Operations Clearance Document"
+  },
+  {
+   "depends_on": "eval:doc.svc_warehousing",
+   "fieldname": "tab_warehousing",
+   "fieldtype": "Tab Break",
+   "label": "Warehousing"
+  },
+  {
+   "fieldname": "wh_reference_no",
+   "fieldtype": "Data",
+   "label": "Reference No"
+  },
+  {
+   "fieldname": "wh_delivery_date",
+   "fieldtype": "Date",
+   "label": "Delivery Date"
+  },
+  {
+   "fieldname": "wh_shipment_received",
+   "fieldtype": "Date",
+   "label": "Shipment Received"
+  },
+  {
+   "fieldname": "wh_storage_period",
+   "fieldtype": "Data",
+   "label": "Storage Period"
+  },
+  {
+   "fieldname": "column_break_wh",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "wh_storage_type",
+   "fieldtype": "Data",
+   "label": "Storage Type"
+  },
+  {
+   "fieldname": "wh_eir_no",
+   "fieldtype": "Data",
+   "label": "EIR No"
+  },
+  {
+   "fieldname": "wh_temperature",
+   "fieldtype": "Data",
+   "label": "Temperature"
+  },
+  {
+   "fieldname": "tab_package",
+   "fieldtype": "Tab Break",
+   "label": "Package"
+  },
+  {
+   "fieldname": "package_details",
+   "fieldtype": "Table",
+   "label": "Packages",
+   "options": "Package"
+  },
+  {
+   "fieldname": "package_totals_section",
+   "fieldtype": "Section Break",
+   "label": "Package Totals"
+  },
+  {
+   "fieldname": "total_package_qty",
+   "fieldtype": "Float",
+   "label": "Total Quantity",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_package_volume",
+   "fieldtype": "Float",
+   "label": "Total Volume (m3)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_pkg_tot",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "total_package_weight",
+   "fieldtype": "Float",
+   "label": "Total Weight (Kg)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_chargeable_weight",
+   "fieldtype": "Float",
+   "label": "Total Chargeable Weight (Kg)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "tab_container",
+   "fieldtype": "Tab Break",
+   "label": "Container"
+  },
+  {
+   "depends_on": "eval:doc.svc_transportation",
+   "fieldname": "tab_transportation",
+   "fieldtype": "Tab Break",
+   "label": "Transportation"
+  },
+  {
+   "fieldname": "transport_container_section",
+   "fieldtype": "Section Break",
+   "label": "Container Movements"
+  },
+  {
+   "fieldname": "transport_container_legs",
+   "fieldtype": "Table",
+   "label": "Container Movements",
+   "options": "Operations Transport Leg"
+  },
+  {
+   "fieldname": "transport_package_section",
+   "fieldtype": "Section Break",
+   "label": "Package Movements"
+  },
+  {
+   "fieldname": "transport_package_legs",
+   "fieldtype": "Table",
+   "label": "Package Movements",
+   "options": "Operations Transport Leg"
+  },
+  {
+   "fieldname": "tab_costing",
+   "fieldtype": "Tab Break",
+   "label": "Costing & Documents"
   }
  ],
  "is_submittable": 1,
@@ -689,10 +1335,11 @@
    "link_fieldname": "operations"
   }
  ],
- "modified": "2021-11-07 12:03:08.202177",
+ "modified": "2026-08-10 09:00:00.000000",
  "modified_by": "Administrator",
  "module": "Forwarding",
  "name": "Operations",
+ "naming_rule": "Expression (old style)",
  "owner": "Administrator",
  "permissions": [
   {
@@ -720,8 +1367,10 @@
    "write": 1
   }
  ],
+ "row_format": "Dynamic",
  "show_preview_popup": 1,
  "sort_field": "modified",
  "sort_order": "DESC",
+ "states": [],
  "track_changes": 1
 }

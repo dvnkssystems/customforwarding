@@ -1,0 +1,20 @@
+[
+ {
+  "description": "Ministry of Commerce and Industry permit",
+  "doctype": "Permit Type",
+  "name": "MCI",
+  "permit_name": "MCI"
+ },
+ {
+  "description": "Ministry of Interior permit",
+  "doctype": "Permit Type",
+  "name": "MOI",
+  "permit_name": "MOI"
+ },
+ {
+  "description": "Saudi Food and Drug Authority permit",
+  "doctype": "Permit Type",
+  "name": "SFDA",
+  "permit_name": "SFDA"
+ }
+]
