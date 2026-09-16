@@ -1,5 +1,6 @@
-import frappe 
+import frappe
 from frappe.model.mapper import get_mapped_doc
+from frappe.utils import flt
 
 @frappe.whitelist()
 def get_cost_table_details(project):
