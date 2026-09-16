@@ -107,7 +107,10 @@ fixtures = [
 
 doc_events = {
 	"Sales Invoice": {
-		"validate": "forwarding.subscription.enforce_limit",
+		"validate": [
+			"forwarding.subscription.enforce_limit",
+			"forwarding.sales_invoice.enforce_overseas_zero_rating",
+		],
 		"on_update": "forwarding.custom_methods.update_cost_table_in_operations",
 		"on_cancel": "forwarding.custom_methods.update_cost_table_in_operations_on_cancle",
 	},
@@ -153,6 +156,12 @@ doc_events = {
 # 		"forwarding.tasks.monthly"
 # 	]
 # }
+
+scheduler_events = {
+	"daily": [
+		"forwarding.tasks.send_shipment_reminders",
+	],
+}
 
 # Testing
 # -------

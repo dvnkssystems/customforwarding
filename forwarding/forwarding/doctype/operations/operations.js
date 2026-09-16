@@ -17,6 +17,17 @@ frappe.ui.form.on('Operations', {
 	},
 	onload: function(frm){
 
+	},
+
+	// Shipment Type options depend on the mode, so a type picked for the old
+	// mode is cleared rather than left behind to fail validation on save.
+	mode_of_shipment: async function(frm) {
+		if (!frm.doc.shipment_type) return;
+		const r = await frappe.db.get_value("Shipment Type", frm.doc.shipment_type, "mode_of_shipment");
+		const mode = r && r.message && r.message.mode_of_shipment;
+		if (mode && mode !== frm.doc.mode_of_shipment) {
+			frm.set_value("shipment_type", "");
+		}
 	}
 
 	// 	validate: function (frm) {
@@ -85,12 +96,8 @@ frappe.ui.form.on('Operations', {
 			frm: cur_frm,
 		})
 	}, __("Create"));
-	frm.add_custom_button(__('Container Booking Request'), function(){
-        frappe.model.open_mapped_doc({
-			method: "forwarding.forwarding.doctype.operations.operations.make_booking",
-			frm: cur_frm,
-		})
-    }, __("Create"));
+	// Container Booking Request is kept (make_booking still works) but its
+	// button is hidden until operations start using it again.
 	
 	hide_name_column: true
   }
@@ -229,6 +236,66 @@ function import_containers(frm) {
 			frm.refresh_field("container_details");
 			dialog.hide();
 			frappe.show_alert({ message: __("Imported {0} containers", [lines.length]), indicator: "green" });
+		},
+	});
+	dialog.show();
+}
+
+// ---------------------------------------------------------------------------
+// Prints: a delivery note for chosen containers, and the arrival notice.
+// ---------------------------------------------------------------------------
+
+frappe.ui.form.on("Operations", {
+	refresh(frm) {
+		if (frm.is_new()) return;
+		frm.add_custom_button(__("Delivery Note"), () => print_delivery_note(frm), __("Print"));
+		frm.add_custom_button(__("Arrival Notice"), () => open_job_print(frm, "Arrival Notice"), __("Print"));
+	},
+});
+
+function open_job_print(frm, format, extra) {
+	if (frm.is_dirty()) {
+		frappe.msgprint(__("Save the job before printing."));
+		return;
+	}
+	const params = new URLSearchParams({ doctype: frm.doctype, name: frm.doc.name, format, ...(extra || {}) });
+	window.open(`/printview?${params.toString()}`, "_blank");
+}
+
+// With several containers, ask which ones this delivery note covers.
+function print_delivery_note(frm) {
+	const rows = frm.doc.container_details || [];
+	if (rows.length < 2) {
+		open_job_print(frm, "Job Delivery Note");
+		return;
+	}
+
+	const dialog = new frappe.ui.Dialog({
+		title: __("Delivery Note"),
+		fields: [
+			{
+				fieldname: "containers",
+				fieldtype: "MultiCheck",
+				label: __("Containers on this delivery"),
+				columns: 2,
+				options: rows.map((row) => ({
+					label: [row.container_no || __("Row {0}", [row.idx]), row.size && `${row.size}'`, row.container_type]
+						.filter(Boolean)
+						.join(" · "),
+					value: row.name,
+					checked: 1,
+				})),
+			},
+		],
+		primary_action_label: __("Print"),
+		primary_action(values) {
+			const picked = values.containers || [];
+			if (!picked.length) {
+				frappe.msgprint(__("Select at least one container."));
+				return;
+			}
+			dialog.hide();
+			open_job_print(frm, "Job Delivery Note", { containers: picked.join(",") });
 		},
 	});
 	dialog.show();

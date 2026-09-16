@@ -1,0 +1,66 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-09-15 16:34:25.110961",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "container_no",
+  "container_type",
+  "clearance_status",
+  "release_date",
+  "remarks"
+ ],
+ "fields": [
+  {
+   "columns": 2,
+   "fieldname": "container_no",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Container No"
+  },
+  {
+   "columns": 2,
+   "fieldname": "container_type",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Size / Type"
+  },
+  {
+   "columns": 2,
+   "default": "Pending",
+   "fieldname": "clearance_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Pending\nUnder Inspection\nOn Hold\nReleased"
+  },
+  {
+   "columns": 2,
+   "fieldname": "release_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Release Date"
+  },
+  {
+   "columns": 2,
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "in_list_view": 1,
+   "label": "Remarks"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-09-15 16:34:25.110961",
+ "modified_by": "Administrator",
+ "module": "Forwarding",
+ "name": "Operations Clearance Container",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

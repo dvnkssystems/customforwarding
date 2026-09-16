@@ -39,6 +39,7 @@
   "cost_center",
   "project",
   "shipment_type",
+  "cargo_layout",
   "job_classification_section",
   "activity_code",
   "activity_mode",
@@ -108,6 +109,8 @@
   "ata_delay_reason",
   "transit_time",
   "free_time",
+  "free_time_days",
+  "free_time_expiry",
   "commodity",
   "pickup_delivery_section",
   "pickup_date",
@@ -157,6 +160,8 @@
   "demurrage_date",
   "clearance_date",
   "do_remarks",
+  "clearance_containers_section",
+  "clearance_containers",
   "lab_section",
   "commercial_invoice_no",
   "lab_submission_date",
@@ -211,6 +216,7 @@
    "default": "Saudi Arabia",
    "fieldname": "country",
    "fieldtype": "Link",
+   "hidden": 1,
    "in_list_view": 1,
    "label": "Country",
    "options": "Territory",
@@ -428,7 +434,16 @@
    "fieldname": "shipment_type",
    "fieldtype": "Link",
    "label": "Shipment Type",
+   "link_filters": "[[\"Shipment Type\", \"mode_of_shipment\", \"=\", \"eval:doc.mode_of_shipment\"], [\"Shipment Type\", \"disabled\", \"=\", 0]]",
    "options": "Shipment Type"
+  },
+  {
+   "fetch_from": "shipment_type.cargo_layout",
+   "fieldname": "cargo_layout",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Cargo Layout",
+   "read_only": 1
   },
   {
    "fieldname": "vessel_name",
@@ -503,11 +518,13 @@
   {
    "fieldname": "ata_date",
    "fieldtype": "Date",
+   "hidden": 1,
    "label": "ATA Date"
   },
   {
    "fieldname": "ata_delay_reason",
    "fieldtype": "Data",
+   "hidden": 1,
    "label": "ATA Delay Reason"
   },
   {
@@ -517,37 +534,44 @@
    "options": "Inco Terms"
   },
   {
+   "depends_on": "eval:doc.cargo_layout!=\"Containers\" || doc.net_weight || doc.gross_weight || doc.cbm || doc.packages || doc.chargable_weight || doc.cargo_description",
    "fieldname": "cargo_details_section",
    "fieldtype": "Section Break",
    "label": "Cargo Details"
   },
   {
+   "depends_on": "eval:doc.cargo_layout!=\"Containers\" || doc.net_weight",
    "fieldname": "net_weight",
    "fieldtype": "Float",
    "label": " Net Weight"
   },
   {
+   "depends_on": "eval:doc.cargo_layout!=\"Containers\" || doc.gross_weight",
    "fieldname": "gross_weight",
    "fieldtype": "Float",
    "label": "Gross weight"
   },
   {
+   "depends_on": "eval:doc.cargo_layout!=\"Containers\" || doc.gross_weight || doc.net_weight",
    "fieldname": "weight_uom",
    "fieldtype": "Link",
    "label": "Weight UOM",
    "options": "UOM"
   },
   {
+   "depends_on": "eval:doc.cargo_layout!=\"Containers\" || doc.cbm",
    "fieldname": "cbm",
    "fieldtype": "Int",
    "label": "CBM"
   },
   {
+   "depends_on": "eval:doc.cargo_layout!=\"Containers\" || doc.packages",
    "fieldname": "packages",
    "fieldtype": "Data",
    "label": "Packages"
   },
   {
+   "depends_on": "eval:doc.cargo_layout!=\"Containers\" || doc.chargable_weight",
    "fieldname": "chargable_weight",
    "fieldtype": "Float",
    "label": "Chargable Weight"
@@ -557,28 +581,33 @@
    "fieldtype": "Column Break"
   },
   {
+   "depends_on": "eval:doc.cargo_layout!=\"Containers\" || doc.cargo_description",
    "fieldname": "cargo_description",
    "fieldtype": "Small Text",
    "label": "Cargo Description"
   },
   {
+   "depends_on": "eval:!doc.cargo_layout || doc.cargo_layout==\"Loose Cargo\" || (doc.shipment_parcel||[]).length",
    "fieldname": "parcels_section",
    "fieldtype": "Section Break",
    "label": "Package"
   },
   {
+   "depends_on": "eval:!doc.cargo_layout || doc.cargo_layout==\"Loose Cargo\" || (doc.shipment_parcel||[]).length",
    "fieldname": "shipment_parcel",
    "fieldtype": "Table",
    "label": "Shipment Parcel",
    "options": "Shipment Parcel"
   },
   {
+   "depends_on": "eval:!doc.cargo_layout || doc.cargo_layout==\"Loose Cargo\" || (doc.shipment_parcel||[]).length",
    "fieldname": "parcel_template",
    "fieldtype": "Link",
    "label": "Parcel Template",
    "options": "Shipment Parcel Template"
   },
   {
+   "depends_on": "eval:!doc.cargo_layout || doc.cargo_layout==\"Loose Cargo\" || (doc.shipment_parcel||[]).length",
    "fieldname": "add_template",
    "fieldtype": "Button",
    "label": "Add Template"
@@ -666,6 +695,7 @@
   {
    "fieldname": "movement_type",
    "fieldtype": "Link",
+   "hidden": 1,
    "label": "Movement Type",
    "options": "Movement Type"
   },
@@ -693,11 +723,13 @@
    "read_only": 1
   },
   {
+   "depends_on": "eval:!doc.cargo_layout || doc.cargo_layout==\"Containers\" || (doc.container_details||[]).length",
    "fieldname": "section_break_75",
    "fieldtype": "Section Break"
   },
   {
    "default": "Container Details",
+   "depends_on": "eval:!doc.cargo_layout || doc.cargo_layout==\"Containers\" || (doc.container_details||[]).length",
    "fieldname": "container_details",
    "fieldtype": "Table",
    "label": "Container Details",
@@ -707,6 +739,7 @@
    "fieldname": "operation_id",
    "fieldtype": "Data",
    "label": "Operation Id",
+   "read_only": 1,
    "unique": 1
   },
   {
@@ -718,9 +751,24 @@
   {
    "fieldname": "free_time",
    "fieldtype": "Data",
+   "hidden": 1,
    "label": "Free Time"
   },
   {
+   "description": "Container return grace period, counted from ETA",
+   "fieldname": "free_time_days",
+   "fieldtype": "Int",
+   "label": "Free Time (Days)",
+   "non_negative": 1
+  },
+  {
+   "fieldname": "free_time_expiry",
+   "fieldtype": "Date",
+   "label": "Free Time Expires",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:!doc.cargo_layout || doc.cargo_layout==\"Loose Cargo\" || (doc.shipment_parcel||[]).length",
    "fieldname": "calculate_weight",
    "fieldtype": "Button",
    "label": "Calculate Weight"
@@ -1047,7 +1095,7 @@
    "label": "No. of Pieces"
   },
   {
-   "depends_on": "eval:doc.svc_customs_clearance",
+   "depends_on": "eval:doc.svc_customs_clearance || doc.custom_clearance==1",
    "fieldname": "tab_clearance",
    "fieldtype": "Tab Break",
    "label": "Clearance"
@@ -1136,6 +1184,18 @@
    "label": "Remarks"
   },
   {
+   "fieldname": "clearance_containers_section",
+   "fieldtype": "Section Break",
+   "label": "Containers"
+  },
+  {
+   "fieldname": "clearance_containers",
+   "fieldtype": "Table",
+   "label": "Container Clearance",
+   "options": "Operations Clearance Container"
+  },
+  {
+   "collapsible": 1,
    "fieldname": "lab_section",
    "fieldtype": "Section Break",
    "label": "Lab & Undertaking"
@@ -1182,6 +1242,7 @@
    "label": "Remarks"
   },
   {
+   "collapsible": 1,
    "fieldname": "clearance_documents_section",
    "fieldtype": "Section Break",
    "label": "Clearance Documents"
@@ -1238,28 +1299,33 @@
    "label": "Temperature"
   },
   {
+   "depends_on": "eval:!doc.cargo_layout || doc.cargo_layout==\"Loose Cargo\" || (doc.package_details||[]).length",
    "fieldname": "tab_package",
    "fieldtype": "Tab Break",
    "label": "Package"
   },
   {
+   "depends_on": "eval:!doc.cargo_layout || doc.cargo_layout==\"Loose Cargo\" || (doc.package_details||[]).length",
    "fieldname": "package_details",
    "fieldtype": "Table",
    "label": "Packages",
    "options": "Package"
   },
   {
+   "depends_on": "eval:(doc.package_details||[]).length",
    "fieldname": "package_totals_section",
    "fieldtype": "Section Break",
    "label": "Package Totals"
   },
   {
+   "depends_on": "eval:(doc.package_details||[]).length",
    "fieldname": "total_package_qty",
    "fieldtype": "Float",
    "label": "Total Quantity",
    "read_only": 1
   },
   {
+   "depends_on": "eval:(doc.package_details||[]).length",
    "fieldname": "total_package_volume",
    "fieldtype": "Float",
    "label": "Total Volume (m3)",
@@ -1270,24 +1336,27 @@
    "fieldtype": "Column Break"
   },
   {
+   "depends_on": "eval:(doc.package_details||[]).length",
    "fieldname": "total_package_weight",
    "fieldtype": "Float",
    "label": "Total Weight (Kg)",
    "read_only": 1
   },
   {
+   "depends_on": "eval:(doc.package_details||[]).length",
    "fieldname": "total_chargeable_weight",
    "fieldtype": "Float",
    "label": "Total Chargeable Weight (Kg)",
    "read_only": 1
   },
   {
+   "depends_on": "eval:!doc.cargo_layout || doc.cargo_layout==\"Containers\" || (doc.container_details||[]).length",
    "fieldname": "tab_container",
    "fieldtype": "Tab Break",
    "label": "Container"
   },
   {
-   "depends_on": "eval:doc.svc_transportation",
+   "depends_on": "eval:doc.svc_transportation || doc.transport==1",
    "fieldname": "tab_transportation",
    "fieldtype": "Tab Break",
    "label": "Transportation"
@@ -1335,7 +1404,7 @@
    "link_fieldname": "operations"
   }
  ],
- "modified": "2026-08-10 09:00:00.000000",
+ "modified": "2026-09-15 16:34:25.110961",
  "modified_by": "Administrator",
  "module": "Forwarding",
  "name": "Operations",

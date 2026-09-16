@@ -38,9 +38,36 @@ SERVICE_FIELDS = (
 
 class Operations(Document):
 	def validate(self):
+		self.set_operation_id()
+		self.validate_shipment_type()
 		self.set_services_from_activity_code()
 		self.calculate_package_totals()
+		self.set_free_time_expiry()
+		self.sync_container_rows()
 		self.set_billing_status()
+
+	def set_operation_id(self):
+		"""Operation ID is the job number, not something typed in."""
+		self.operation_id = self.name
+
+	def validate_shipment_type(self):
+		"""Shipment Type must be one offered for the job's Mode of Shipment.
+
+		Only checked when either field changes, so jobs saved before the list was
+		tied to modes can still be edited without being forced to fix it.
+		"""
+		if not self.shipment_type or not self.mode_of_shipment:
+			return
+		if not (self.has_value_changed("shipment_type") or self.has_value_changed("mode_of_shipment")):
+			return
+
+		mode, disabled = frappe.db.get_value(
+			"Shipment Type", self.shipment_type, ["mode_of_shipment", "disabled"]) or (None, 0)
+		if disabled:
+			frappe.throw(_("Shipment Type {0} is no longer in use.").format(frappe.bold(self.shipment_type)))
+		if mode and mode != self.mode_of_shipment:
+			frappe.throw(_("Shipment Type {0} is for {1} shipments, not {2}.").format(
+				frappe.bold(self.shipment_type), frappe.bold(mode), frappe.bold(self.mode_of_shipment)))
 
 	def set_services_from_activity_code(self):
 		"""Default the service checkboxes from the chosen Activity Code.
@@ -84,6 +111,48 @@ class Operations(Document):
 		self.total_package_volume = volume
 		self.total_package_weight = weight
 		self.total_chargeable_weight = chargeable
+
+	def set_free_time_expiry(self):
+		"""Free time runs from the ETA; its expiry date drives the reminder."""
+		days = cint(self.free_time_days)
+		self.free_time_expiry = add_days(self.eta_date, days) if self.eta_date and days > 0 else None
+
+	def sync_container_rows(self):
+		"""Carry the job's containers into the Clearance and Transportation tabs.
+
+		A container is added once it has a number, and rows are never removed
+		here: a container can run several transport legs with different
+		transporters. To drop a container from both tabs, remove it from the
+		Container tab. Submitted jobs are left alone, since their tables are locked.
+		"""
+		if self.docstatus != 0:
+			return
+
+		containers = []
+		for row in self.get("container_details") or []:
+			number = cstr(row.container_no).strip()
+			if number:
+				size = f"{row.size}'" if row.size else ""
+				containers.append((number, " ".join(part for part in (size, cstr(row.container_type)) if part)))
+		if not containers:
+			return
+
+		if cint(self.svc_customs_clearance) or cstr(self.custom_clearance) == "1":
+			have = {cstr(r.container_no).strip().upper() for r in self.get("clearance_containers") or []}
+			for number, size_type in containers:
+				if number.upper() not in have:
+					self.append(
+						"clearance_containers",
+						{"container_no": number, "container_type": size_type, "clearance_status": "Pending"},
+					)
+					have.add(number.upper())
+
+		if cint(self.svc_transportation) or cstr(self.transport) == "1":
+			have = {cstr(r.reference_no).strip().upper() for r in self.get("transport_container_legs") or []}
+			for number, size_type in containers:
+				if number.upper() not in have:
+					self.append("transport_container_legs", {"reference_no": number, "status": "Pending"})
+					have.add(number.upper())
 
 	def set_billing_status(self):
 		"""Derive billing_status from linked Sales / Purchase Invoices.

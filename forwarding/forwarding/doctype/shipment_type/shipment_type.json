@@ -7,6 +7,9 @@
  "engine": "InnoDB",
  "field_order": [
   "shipment_type",
+  "mode_of_shipment",
+  "cargo_layout",
+  "disabled",
   "container",
   "part_delivery",
   "document_table"
@@ -19,6 +22,28 @@
    "label": "Shipment Type",
    "reqd": 1,
    "unique": 1
+  },
+  {
+   "fieldname": "mode_of_shipment",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Mode Of Shipment",
+   "options": "Mode Of Shipment"
+  },
+  {
+   "description": "Containers: FCL container rows. Loose Cargo: cargo details and packages. Weight Only: no containers or packages.",
+   "fieldname": "cargo_layout",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Cargo Layout",
+   "options": "\nContainers\nLoose Cargo\nWeight Only"
+  },
+  {
+   "default": "0",
+   "fieldname": "disabled",
+   "fieldtype": "Check",
+   "label": "Disabled"
   },
   {
    "default": "0",
@@ -41,7 +66,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2021-02-01 22:16:42.234005",
+ "modified": "2026-09-15 16:34:25.110961",
  "modified_by": "Administrator",
  "module": "Forwarding",
  "name": "Shipment Type",
