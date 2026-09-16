@@ -99,6 +99,12 @@ fixtures = [
 			"Freight Finance", "Freight Sales", "Freight Viewer",
 		]]],
 	},
+	# Quote is a custom DocType — it lives in the database, not on disk, so
+	# without this its fields never reach another site.
+	{
+		"dt": "DocType",
+		"filters": [["name", "in", ["Quote"]]],
+	},
 ]
 
 # Document Events

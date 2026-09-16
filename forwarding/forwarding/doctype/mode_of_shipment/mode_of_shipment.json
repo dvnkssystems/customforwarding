@@ -7,7 +7,8 @@
  "engine": "InnoDB",
  "field_order": [
   "mode_of_shipment",
-  "abbreviation"
+  "abbreviation",
+  "disabled"
  ],
  "fields": [
   {
@@ -24,11 +25,18 @@
    "in_list_view": 1,
    "label": "Abbreviation",
    "reqd": 1
+  },
+  {
+   "default": "0",
+   "description": "A disabled mode stays readable on old records but is no longer offered on new ones.",
+   "fieldname": "disabled",
+   "fieldtype": "Check",
+   "label": "Disabled"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2021-01-25 16:02:51.643231",
+ "modified": "2026-09-16 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Forwarding",
  "name": "Mode Of Shipment",
