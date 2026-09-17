@@ -45,6 +45,50 @@ class Operations(Document):
 		self.set_free_time_expiry()
 		self.sync_container_rows()
 		self.set_billing_status()
+		self.warn_missing_documents()
+
+	def warn_missing_documents(self):
+		"""Say which documents the job is still waiting on, without blocking it.
+
+		Two things count as outstanding: one the Shipment Type expects that the
+		job does not list at all, and one the job lists but has not marked
+		received.
+
+		Deliberately a warning. A job is opened long before its paperwork
+		arrives, so refusing to save would stop the work rather than help it --
+		and a job that cannot be saved cannot record the document either.
+
+		A Shipment Type with no documents set expects nothing, so a job only
+		hears about rows it already carries. That keeps the jobs filed before
+		this existed quiet until someone configures the type.
+		"""
+		if self.docstatus == 2:
+			return
+
+		listed = {}
+		for row in self.get("document_table") or []:
+			if row.document:
+				listed[row.document] = cstr(row.received).strip()
+
+		expected = []
+		if self.shipment_type:
+			# Read the type's own rows rather than querying the child table
+			# directly: that needs the parent doctype declared, and the keyword
+			# for it has moved between Frappe versions.
+			shipment_type = frappe.get_cached_doc("Shipment Type", self.shipment_type)
+			expected = [row.document for row in shipment_type.get("document_table") or [] if row.document]
+
+		missing = [name for name in expected if name and name not in listed]
+		awaited = [name for name, received in listed.items() if received != "Yes"]
+
+		lines = []
+		if missing:
+			lines.append(_("Not on the job yet: {0}").format(", ".join(frappe.bold(n) for n in missing)))
+		if awaited:
+			lines.append(_("Not marked received: {0}").format(", ".join(frappe.bold(n) for n in awaited)))
+
+		if lines:
+			frappe.msgprint("<br>".join(lines), title=_("Documents outstanding"), indicator="orange")
 
 	def set_operation_id(self):
 		"""Operation ID is the job number, not something typed in."""
