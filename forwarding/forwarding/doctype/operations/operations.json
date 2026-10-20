@@ -655,7 +655,6 @@
    "read_only": 1
   },
   {
-   "default": "Freight World Alofi Co.",
    "fieldname": "company",
    "fieldtype": "Link",
    "label": "Company",

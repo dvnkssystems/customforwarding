@@ -89,6 +89,7 @@ SERVICE_FIELDS = (
 
 class Operations(Document):
 	def validate(self):
+		self.set_company()
 		self.set_operation_id()
 		self.validate_shipment_type()
 		self.set_services_from_activity_code()
@@ -147,6 +148,17 @@ class Operations(Document):
 
 		if lines:
 			frappe.msgprint("<br>".join(lines), title=_("Documents outstanding"), indicator="orange")
+
+	def set_company(self):
+		"""Fill an empty company from the user's default, then the site's.
+
+		The DocType used to default to one client's company by name, which
+		blocked every new job on any site that does not have that company.
+		"""
+		if not self.company:
+			self.company = frappe.defaults.get_user_default("Company") or frappe.db.get_single_value(
+				"Global Defaults", "default_company"
+			)
 
 	def set_operation_id(self):
 		"""Operation ID is the job number, not something typed in."""
