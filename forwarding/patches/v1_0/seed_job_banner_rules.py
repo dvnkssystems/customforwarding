@@ -11,6 +11,7 @@ import frappe
 RULES = [
 	{
 		"rule_code": "B8",
+		"label": "On hold",
 		"priority": 10,
 		"condition_key": "credit_hold",
 		"action": "request_override",
@@ -20,6 +21,7 @@ RULES = [
 	},
 	{
 		"rule_code": "B6",
+		"label": "Invoices overdue",
 		"priority": 20,
 		"condition_key": "invoice_overdue",
 		"action": "view_invoice",
@@ -29,6 +31,7 @@ RULES = [
 	},
 	{
 		"rule_code": "B5",
+		"label": "Not invoiced",
 		"priority": 30,
 		"condition_key": "not_invoiced",
 		"action": "create_sales_invoice",
@@ -38,33 +41,37 @@ RULES = [
 	},
 	{
 		"rule_code": "B4",
+		"label": "Free time expiring",
 		"priority": 40,
 		"condition_key": "free_time_expiring",
 		"action": "view_milestones",
 		"colour": "warning",
 		"show_on_worklist": 1,
-		"message_template": "{% set d = ctx.free_days_left %}{% if d < 0 %}Free time expired {{ -d }} day{{ 's' if d != -1 }} ago{% elif d == 0 %}Free time expires today{% else %}Free time expires in {{ d }} day{{ 's' if d != 1 }}{% endif %} ({{ frappe.utils.formatdate(doc.free_time_expiry) }})",
+		"message_template": "{% set d = ctx.free_days_left %}{% if d < 0 %}Free time expired {{ -d }} day{{ 's' if d != -1 }} ago{% elif d == 0 %}Free time expires today{% else %}Free time expires in {{ d }} day{{ 's' if d != 1 }}{% endif %} ({{ format_date(doc.free_time_expiry) }})",
 	},
 	{
 		"rule_code": "B2",
+		"label": "ATD missing",
 		"priority": 50,
 		"condition_key": "atd_missing",
 		"action": "record_atd",
 		"colour": "warning",
 		"show_on_worklist": 1,
-		"message_template": "ETD was {{ frappe.utils.formatdate(doc.etd_date) }} but no ATD has been recorded",
+		"message_template": "ETD was {{ format_date(doc.etd_date) }} but no ATD has been recorded",
 	},
 	{
 		"rule_code": "B3",
+		"label": "ATA missing",
 		"priority": 60,
 		"condition_key": "ata_missing",
 		"action": "record_ata",
 		"colour": "warning",
 		"show_on_worklist": 1,
-		"message_template": "ETA was {{ frappe.utils.formatdate(doc.eta_date) }} but no ATA has been recorded",
+		"message_template": "ETA was {{ format_date(doc.eta_date) }} but no ATA has been recorded",
 	},
 	{
 		"rule_code": "B1",
+		"label": "Documents pending",
 		"priority": 70,
 		"condition_key": "docs_pending",
 		"action": "upload_documents",
@@ -74,6 +81,7 @@ RULES = [
 	},
 	{
 		"rule_code": "B7",
+		"label": "Customs not started",
 		"priority": 80,
 		"condition_key": "customs_missing",
 		"action": "create_custom_clearance",

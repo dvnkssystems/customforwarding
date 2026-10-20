@@ -10,6 +10,7 @@
   "account",
   "cost",
   "rate",
+  "amount",
   "paid_amount",
   "pending_amount",
   "received_amount",
@@ -27,6 +28,13 @@
    "options": "Item"
   },
   {
+   "fetch_from": "item.item_name",
+   "fetch_if_empty": 1,
+   "fieldname": "item_name",
+   "fieldtype": "Data",
+   "label": "Item Name"
+  },
+  {
    "fetch_from": "item.expense_account",
    "fetch_if_empty": 1,
    "fieldname": "account",
@@ -34,6 +42,14 @@
    "in_list_view": 1,
    "label": "Account",
    "options": "Account"
+  },
+  {
+   "fetch_from": "item.last_purchase_rate",
+   "fetch_if_empty": 1,
+   "fieldname": "cost",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Cost"
   },
   {
    "fetch_from": "item.standard_rate",
@@ -44,12 +60,12 @@
    "label": "Rate"
   },
   {
-   "fetch_from": "item.last_purchase_rate",
-   "fetch_if_empty": 1,
-   "fieldname": "cost",
+   "description": "Equals Cost: the buying amount of the row.",
+   "fieldname": "amount",
    "fieldtype": "Currency",
    "in_list_view": 1,
-   "label": "Cost"
+   "label": "Amount",
+   "read_only": 1
   },
   {
    "fieldname": "paid_amount",
@@ -86,19 +102,12 @@
    "fieldname": "ref_docname",
    "fieldtype": "Data",
    "label": "ref docname"
-  },
-  {
-   "fetch_from": "item.item_name",
-   "fetch_if_empty": 1,
-   "fieldname": "item_name",
-   "fieldtype": "Data",
-   "label": "Item Name"
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2021-04-02 12:12:52.005838",
+ "modified": "2026-10-20 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Forwarding",
  "name": "Cost Table",

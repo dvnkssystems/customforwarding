@@ -6,6 +6,8 @@
  "engine": "InnoDB",
  "field_order": [
   "rule_code",
+  "applies_to",
+  "label",
   "enabled",
   "priority",
   "column_break_rule",
@@ -18,13 +20,31 @@
  ],
  "fields": [
   {
+   "description": "Short code, e.g. B1",
    "fieldname": "rule_code",
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Rule Code",
    "reqd": 1,
-   "unique": 1,
-   "description": "Short code, e.g. B1"
+   "unique": 1
+  },
+  {
+   "default": "Operations",
+   "description": "Which 360 page shows this banner",
+   "fieldname": "applies_to",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Applies To",
+   "options": "Operations\nCustomer\nSupplier",
+   "reqd": 1
+  },
+  {
+   "description": "Short title for the worklist counter, e.g. Documents pending",
+   "fieldname": "label",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Label"
   },
   {
    "default": "1",
@@ -34,30 +54,30 @@
    "label": "Enabled"
   },
   {
+   "description": "Lower numbers are shown first",
    "fieldname": "priority",
    "fieldtype": "Int",
    "in_list_view": 1,
-   "label": "Priority",
-   "description": "Lower numbers are shown first"
+   "label": "Priority"
   },
   {
    "fieldname": "column_break_rule",
    "fieldtype": "Column Break"
   },
   {
+   "description": "A condition defined for the Applies To page: forwarding/banners.py (Operations), customer_banners.py (Customer) or supplier_banners.py (Supplier)",
    "fieldname": "condition_key",
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Condition",
-   "reqd": 1,
-   "options": "docs_pending\natd_missing\nata_missing\nfree_time_expiring\nnot_invoiced\ninvoice_overdue\ncustoms_missing\ncredit_hold",
-   "description": "A condition defined in forwarding/banners.py"
+   "options": "docs_pending\natd_missing\nata_missing\nfree_time_expiring\nnot_invoiced\ninvoice_overdue\ncustoms_missing\ncredit_hold\nover_credit_limit\noverdue_invoices\nquote_expiring\noverdue_payables\nunbilled_services\non_hold_or_blocked",
+   "reqd": 1
   },
   {
    "fieldname": "action",
    "fieldtype": "Select",
    "label": "Action",
-   "options": "\nupload_documents\nrecord_atd\nrecord_ata\ncreate_sales_invoice\ncreate_custom_clearance\nview_invoice\nview_milestones\nrequest_override"
+   "options": "\nupload_documents\nrecord_atd\nrecord_ata\ncreate_sales_invoice\ncreate_custom_clearance\nview_invoice\nview_milestones\nrequest_override\nview_invoices\nview_quotes\nview_services\nedit"
   },
   {
    "default": "info",
@@ -70,7 +90,9 @@
    "default": "0",
    "fieldname": "show_on_worklist",
    "fieldtype": "Check",
-   "label": "Show on Worklist"
+   "label": "Show on Worklist",
+   "description": "Operations rules only: count the jobs this banner shows on in the Home worklist",
+   "depends_on": "eval:doc.applies_to==\"Operations\""
   },
   {
    "fieldname": "section_message",
@@ -78,15 +100,15 @@
    "label": "Message"
   },
   {
+   "description": "Jinja. Gets ctx and format_date(), which writes a date as 19 Oct 2026. Operations rules also get doc (the job); Customer and Supplier rules get money(amount), which formats an amount in the company currency, and flt().",
    "fieldname": "message_template",
    "fieldtype": "Small Text",
    "label": "Message Template",
-   "reqd": 1,
-   "description": "Jinja. <code>doc</code> is the job, <code>ctx</code> holds the job's KPIs, e.g. {{ ctx.docs_total - ctx.docs_received }} documents awaiting"
+   "reqd": 1
   }
  ],
  "links": [],
- "modified": "2026-10-20 10:00:00.000000",
+ "modified": "2026-10-20 13:03:22.141014",
  "modified_by": "Administrator",
  "module": "Forwarding",
  "name": "Job Banner Rule",

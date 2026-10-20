@@ -144,6 +144,8 @@ doc_events = {
 		"on_trash": "forwarding.job_events.on_linked_change",
 	},
 	"Payment Entry": {
+		"on_update": "forwarding.job_events.clear_payment_party_cache",
+		"on_trash": "forwarding.job_events.clear_payment_party_cache",
 		"on_submit": "forwarding.job_events.on_payment_change",
 		"on_cancel": "forwarding.job_events.on_payment_change",
 	},
@@ -152,17 +154,22 @@ doc_events = {
 		"on_cancel": "forwarding.job_events.on_payment_change",
 	},
 	"Operations": {
-		"validate": "forwarding.subscription.enforce_limit",
+		"validate": [
+			"forwarding.subscription.enforce_limit",
+			"forwarding.child_tables.apply",
+		],
 		"on_update": "forwarding.job_events.on_job_change",
 		"on_update_after_submit": "forwarding.job_events.on_job_change",
 		"on_cancel": "forwarding.job_events.on_job_change",
 		"on_trash": "forwarding.job_events.on_job_change",
 	},
 	"Transportation": {
+		"validate": "forwarding.child_tables.apply",
 		"on_update": "forwarding.job_events.on_linked_change",
 		"on_trash": "forwarding.job_events.on_linked_change",
 	},
 	"Custom Clearance": {
+		"validate": "forwarding.child_tables.apply",
 		"on_update": "forwarding.job_events.on_linked_change",
 		"on_trash": "forwarding.job_events.on_linked_change",
 	},
@@ -174,9 +181,44 @@ doc_events = {
 	},
 	"Customer": {
 		"before_insert": "forwarding.naming.set_customer_code",
+		"on_update": "forwarding.job_events.on_customer_change",
+		"on_trash": "forwarding.job_events.on_customer_change",
+	},
+	"Quote": {
+		"on_update": "forwarding.job_events.on_quote_change",
+		"on_trash": "forwarding.job_events.on_quote_change",
+	},
+	"Contact": {
+		"on_update": "forwarding.job_events.on_party_detail_change",
+		"on_trash": "forwarding.job_events.on_party_detail_change",
+	},
+	"Address": {
+		"on_update": "forwarding.job_events.on_party_detail_change",
+		"on_trash": "forwarding.job_events.on_party_detail_change",
+	},
+	"File": {
+		"after_insert": "forwarding.job_events.on_file_change",
+		"on_trash": "forwarding.job_events.on_file_change",
 	},
 	"Supplier": {
 		"before_insert": "forwarding.naming.set_supplier_code",
+		"on_update": "forwarding.job_events.on_supplier_change",
+		"on_trash": "forwarding.job_events.on_supplier_change",
+	},
+	# The custom_ui records forwarding.api.ui_config reads. Child rows (tabs,
+	# wizard fields) are saved through their parent, which fires these; the
+	# Dashboard Tab entry covers a row saved on its own.
+	"Custom UI Dashboard": {
+		"on_update": "forwarding.api.ui_config.clear_cache",
+		"on_trash": "forwarding.api.ui_config.clear_cache",
+	},
+	"Custom UI Dashboard Tab": {
+		"on_update": "forwarding.api.ui_config.clear_cache",
+		"on_trash": "forwarding.api.ui_config.clear_cache",
+	},
+	"Custom UI Wizard Layout": {
+		"on_update": "forwarding.api.ui_config.clear_cache",
+		"on_trash": "forwarding.api.ui_config.clear_cache",
 	},
 }
 

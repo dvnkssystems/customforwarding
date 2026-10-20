@@ -2,10 +2,11 @@
 # For license information, please see license.txt
 """Conditions behind the Job 360 banners.
 
-A Job Banner Rule picks one of these by its condition_key and supplies the
-message, action, colour and priority, so the wording and order can change
-without code. Adding a new kind of check means adding a function here and
-its key to the rule's Condition options.
+A Job Banner Rule with Applies To = Operations picks one of these by its
+condition_key and supplies the message, action, colour and priority, so the
+wording and order can change without code. Adding a new kind of check means
+adding a function here and its key to the rule's Condition options. Customer
+and Supplier rules pick theirs from customer_banners / supplier_banners.
 
 Each function takes the job (the Operations document) and ctx, the job's KPI
 dict from forwarding.api.job_360 plus:
@@ -96,6 +97,19 @@ CONDITIONS = {
 }
 
 
+def conditions_for(applies_to):
+	"""The condition registry a rule for applies_to picks its condition_key from."""
+	if applies_to == "Customer":
+		from forwarding.customer_banners import CONDITIONS as customer
+
+		return customer
+	if applies_to == "Supplier":
+		from forwarding.supplier_banners import CONDITIONS as supplier
+
+		return supplier
+	return CONDITIONS
+
+
 def _free_time_colour(job, ctx, default):
 	return "critical" if (ctx.get("free_days_left") or 0) <= 0 else "warning"
 
@@ -107,12 +121,23 @@ COLOURS = {
 }
 
 
-def get_rules():
+def format_date(value):
+	"""19 Oct 2026, whatever the system date format. Offered to message
+	templates as format_date()."""
+	if not value:
+		return ""
+	d = getdate(value)
+	return f"{d.day} {d.strftime('%b %Y')}"
+
+
+def get_rules(applies_to="Operations"):
+	"""Enabled rules for one page, lowest priority first."""
 	return frappe.get_all(
 		"Job Banner Rule",
-		filters={"enabled": 1},
+		filters={"enabled": 1, "applies_to": applies_to},
 		fields=[
 			"rule_code",
+			"label",
 			"priority",
 			"condition_key",
 			"message_template",
@@ -134,7 +159,9 @@ def evaluate(job, ctx, rules=None):
 		try:
 			if not condition(job, ctx):
 				continue
-			message = frappe.render_template(rule.message_template or "", {"doc": job, "ctx": ctx})
+			message = frappe.render_template(
+				rule.message_template or "", {"doc": job, "ctx": ctx, "format_date": format_date}
+			)
 		except Exception:
 			# One bad template must not take the whole job page down.
 			frappe.log_error(

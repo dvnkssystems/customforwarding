@@ -367,3 +367,56 @@ frappe.ui.form.on("Operations", {
 	mode_of_shipment: (frm) => confirm_section_change(frm, "mode_of_shipment"),
 	job_type: (frm) => confirm_section_change(frm, "job_type"),
 });
+
+// ---------------------------------------------------------------------------
+// Cut-offs: an export job with none starts with the milestones for its mode
+// (Sea: all but AES unless bound for the US; Air: SI Deadline + Cargo Cut-off).
+// Latest Time is mandatory, so the rows are added here for the user to date
+// rather than on the server. A job that already has cut-offs is left alone.
+// ---------------------------------------------------------------------------
+
+async function prefill_cutoffs(frm) {
+	if (frm.doc.docstatus !== 0 || frm.doc.job_type !== "Export" || (frm.doc.cutoffs || []).length) return;
+	if (!frm.doc.mode_of_shipment) return;
+
+	const r = await frappe.call({
+		method: "forwarding.api.job_360.default_cutoffs",
+		args: { mode_of_shipment: frm.doc.mode_of_shipment, destination_country: frm.doc.destination_country },
+	});
+	const milestones = (r && r.message) || [];
+	if (!milestones.length || (frm.doc.cutoffs || []).length) return;
+
+	milestones.forEach((milestone) => frm.add_child("cutoffs", { milestone }));
+	frm.refresh_field("cutoffs");
+	frappe.show_alert({ message: __("Cut-offs added for this export job: enter each Latest Time, or remove the rows you do not need."), indicator: "blue" }, 7);
+}
+
+frappe.ui.form.on("Operations", {
+	refresh: (frm) => frm.is_new() && prefill_cutoffs(frm),
+	job_type: prefill_cutoffs,
+	mode_of_shipment: prefill_cutoffs,
+});
+
+// Shared child-table rules (the server applies the same in forwarding.child_tables).
+frappe.ui.form.on("Document Table", {
+	attach(frm, cdt, cdn) {
+		const row = locals[cdt][cdn];
+		if (row.attach && row.received !== "Yes") {
+			frappe.model.set_value(cdt, cdn, "received", "Yes");
+			if (!row.date) frappe.model.set_value(cdt, cdn, "date", frappe.datetime.get_today());
+		}
+	},
+});
+
+frappe.ui.form.on("Activity Template Table", {
+	status(frm, cdt, cdn) {
+		const row = locals[cdt][cdn];
+		if (row.status === "Done" && !row.date) frappe.model.set_value(cdt, cdn, "date", frappe.datetime.get_today());
+	},
+});
+
+frappe.ui.form.on("Cost Table", {
+	cost(frm, cdt, cdn) {
+		frappe.model.set_value(cdt, cdn, "amount", flt(locals[cdt][cdn].cost));
+	},
+});

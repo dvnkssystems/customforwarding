@@ -22,8 +22,8 @@ from frappe import _
 from frappe.utils import cint, cstr, date_diff, flt, getdate, nowdate
 
 from forwarding import banners as job_banners
-from forwarding.forwarding.doctype.operations.operations import get_cutoff_status
-from forwarding.job_events import cache_key, clear_job_cache
+from forwarding.forwarding.doctype.operations.operations import default_cutoff_milestones, get_cutoff_status
+from forwarding.job_events import cache_key, clear_job_cache, worklist_version
 
 CACHE_SECONDS = 60
 LINKED = ("Transportation", "Custom Clearance")
@@ -145,18 +145,11 @@ def _for_user(payload):
 # -- Building the payload -------------------------------------------------------
 
 
-def build(job):
-	doc = frappe.get_doc("Operations", job)
-	today = getdate(nowdate())
+def job_kpis(doc, documents, charges, linked, submitted_si, today):
+	"""The job's KPIs, and the ctx its banner conditions and messages see.
 
-	linked = _linked_records(job)
-	children = _child_rows([(dt, r.name) for dt in LINKED for r in linked[dt]])
-	invoices = _invoices(job)
-
-	documents = _documents(doc, linked, children)
-	charges = _charges(doc, linked, children)
-	submitted_si = [si for si in invoices["sales"] if si.docstatus == 1 and not si.is_return]
-
+	Shared by build() and worklist(), so a job's worklist entries are exactly
+	the banners its Job 360 page shows."""
 	received = sum(1 for d in documents if d["received"])
 	pending = list(dict.fromkeys(d["document"] for d in documents if not d["received"] and d["document"]))
 	cost_total = sum(flt(c["cost"]) for c in charges)
@@ -185,6 +178,21 @@ def build(job):
 		],
 		today=today,
 	)
+	return kpis, ctx
+
+
+def build(job):
+	doc = frappe.get_doc("Operations", job)
+	today = getdate(nowdate())
+
+	linked = _linked_records(job)
+	children = _child_rows([(dt, r.name) for dt in LINKED for r in linked[dt]])
+	invoices = _invoices(job)
+
+	documents = _documents(doc, linked, children)
+	charges = _charges(doc, linked, children)
+	submitted_si = [si for si in invoices["sales"] if si.docstatus == 1 and not si.is_return]
+	kpis, ctx = job_kpis(doc, documents, charges, linked, submitted_si, today)
 
 	cutoffs = [
 		{
@@ -237,9 +245,19 @@ LINKED_FIELDS = {
 		"driver",
 		"departure_location",
 		"destination_location",
+		"transport_status",
 		"modified",
 	],
-	"Custom Clearance": ["name", "docstatus", "bayyan_number", "bayyan_date", "status", "modified"],
+	"Custom Clearance": [
+		"name",
+		"docstatus",
+		"bayyan_number",
+		"bayyan_date",
+		"clearance_status",
+		"broker_name",
+		"transporter_name",
+		"modified",
+	],
 }
 INVOICE_FIELDS = [
 	"name",
@@ -303,6 +321,7 @@ def _child_rows(parents):
 				"item_name",
 				"cost",
 				"rate",
+				"amount",
 				"paid_amount",
 				"received_amount",
 				"ref_id",
@@ -359,6 +378,7 @@ def _charges(doc, linked, children):
 			"item_name": r.item_name,
 			"cost": flt(r.cost),
 			"rate": flt(r.rate),
+			"amount": flt(r.cost),
 			"paid_amount": flt(r.paid_amount),
 			"received_amount": flt(r.received_amount),
 			"source_doctype": source_doctype,
@@ -530,3 +550,226 @@ def _milestones(doc, cutoffs, submitted_si, today):
 		)
 	)
 	return rows
+
+
+# -- Cut-off defaults -------------------------------------------------------------
+
+
+@frappe.whitelist(methods=["GET", "POST"])
+def default_cutoffs(mode_of_shipment=None, destination_country=None):
+	"""Milestone names an export job's cut-offs start with, for its mode:
+	Sea -> every milestone except AES Deadline (included when the destination
+	country is the United States); Air -> SI Deadline and Cargo Cut-off;
+	anything else -> []."""
+	return default_cutoff_milestones(mode_of_shipment, destination_country)
+
+
+# -- Worklist -------------------------------------------------------------------
+
+SCOPES = ("mine", "branch", "all")
+# Roles that may look beyond their own jobs.
+SCOPE_ROLES = {"System Manager", "Freight Admin", "Freight Manager"}
+WORKLIST_LIMIT = 200
+WORKLIST_PREFIX = "job_360_worklist:"
+# Closed and cancelled jobs have nothing left to act on.
+INACTIVE_STATUSES = ["Closed", "Cancelled"]
+
+WORKLIST_JOB_FIELDS = [
+	"name",
+	"docstatus",
+	"operations_status",
+	"billing_status",
+	"hold_reason",
+	"customer",
+	"branch",
+	"job_type",
+	"mode_of_shipment",
+	"salesman",
+	"owner",
+	"_assign",
+	"etd_date",
+	"atd_date",
+	"eta_date",
+	"ata_date",
+	"free_time_expiry",
+]
+
+
+@frappe.whitelist(methods=["GET"])
+def worklist(scope="mine"):
+	"""Jobs needing attention, one item per (job, worklist rule) that holds.
+
+	scope: mine (jobs the user owns, sells as the salesman, or is assigned),
+	branch (jobs of the user's Employee branch; every job if they have none),
+	or all. Only managers may pick branch or all; anyone else gets mine.
+	"""
+	frappe.has_permission("Operations", "read", throw=True)
+
+	can_change_scope = bool(SCOPE_ROLES.intersection(frappe.get_roles()))
+	if scope not in SCOPES:
+		frappe.throw(_("Scope must be one of: {0}").format(", ".join(SCOPES)))
+	if not can_change_scope:
+		scope = "mine"
+
+	key = f"{WORKLIST_PREFIX}{worklist_version()}:{frappe.session.user}:{scope}"
+	payload = frappe.cache.get_value(key)
+	if payload is None:
+		payload = build_worklist(frappe.session.user, scope)
+		frappe.cache.set_value(key, payload, expires_in_sec=CACHE_SECONDS)
+	return dict(payload, can_change_scope=can_change_scope)
+
+
+def build_worklist(user, scope):
+	rules = [r for r in job_banners.get_rules() if cint(r.show_on_worklist)]
+	jobs = _scoped_jobs(user, scope)
+	today = getdate(nowdate())
+
+	counters = {r.rule_code: 0 for r in rules}
+	items = []
+	if jobs and rules:
+		names = [j.name for j in jobs]
+		linked = _linked_by_job(names)
+		parents = [("Operations", n) for n in names] + [
+			(dt, r.name) for dt in LINKED for rows in linked.values() for r in rows[dt]
+		]
+		children = _child_rows(parents)
+		invoices = _submitted_invoices_by_job(names)
+		customer_names = _customer_names({j.customer for j in jobs if j.customer})
+
+		for job in jobs:
+			own = children.get(("Operations", job.name), {})
+			job.document_table = own.get("Document Table", [])
+			job.cost_table = own.get("Cost Table", [])
+			job_linked = linked.get(job.name) or {dt: [] for dt in LINKED}
+
+			documents = _documents(job, job_linked, children)
+			charges = _charges(job, job_linked, children)
+			_kpis, ctx = job_kpis(job, documents, charges, job_linked, invoices.get(job.name, []), today)
+
+			for banner in job_banners.evaluate(job, ctx, rules=rules):
+				counters[banner["rule_code"]] += 1
+				items.append(
+					{
+						"job": job.name,
+						"customer": job.customer,
+						"customer_name": customer_names.get(job.customer),
+						"rule_code": banner["rule_code"],
+						"colour": banner["colour"],
+						"priority": banner["priority"],
+						"message": banner["message"],
+						"action": banner["action"],
+						"eta_date": job.eta_date,
+						"operations_status": job.operations_status,
+						"branch": job.branch,
+					}
+				)
+
+	# Highest priority first; within it the soonest arrival, undated last.
+	items.sort(key=lambda i: (i["priority"], i["eta_date"] is None, i["eta_date"] or today, i["job"]))
+	payload = {
+		"scope": scope,
+		"rules": [
+			{
+				"rule_code": r.rule_code,
+				"label": r.label or r.rule_code,
+				"colour": r.colour,
+				"priority": cint(r.priority),
+			}
+			for r in rules
+		],
+		"counters": counters,
+		"items": items[:WORKLIST_LIMIT],
+	}
+	return json.loads(frappe.as_json(payload))
+
+
+def _scoped_jobs(user, scope):
+	filters = [
+		["docstatus", "<", 2],
+		["operations_status", "not in", INACTIVE_STATUSES],
+	]
+	or_filters = None
+	sales_persons = []
+
+	if scope == "branch":
+		branch = frappe.db.get_value("Employee", {"user_id": user, "status": "Active"}, "branch")
+		if branch:
+			filters.append(["branch", "=", branch])
+	elif scope == "mine":
+		employees = frappe.get_all("Employee", filters={"user_id": user}, pluck="name")
+		if employees:
+			sales_persons = frappe.get_all(
+				"Sales Person", filters={"employee": ["in", employees]}, pluck="name"
+			)
+		or_filters = [["owner", "=", user], ["_assign", "like", f"%{user}%"]]
+		if sales_persons:
+			or_filters.append(["salesman", "in", sales_persons])
+
+	jobs = frappe.get_list(
+		"Operations",
+		filters=filters,
+		or_filters=or_filters,
+		fields=WORKLIST_JOB_FIELDS,
+		order_by="eta_date asc, name asc",
+		limit_page_length=0,
+	)
+	if scope == "mine":
+		# LIKE on _assign is only a pre-filter (an e-mail can contain "_").
+		jobs = [
+			j
+			for j in jobs
+			if j.owner == user or j.salesman in sales_persons or user in _assignees(j._assign)
+		]
+	return jobs
+
+
+def _assignees(value):
+	try:
+		return json.loads(value) if value else []
+	except ValueError:
+		return []
+
+
+def _linked_by_job(names):
+	grouped = {}
+	for dt in LINKED:
+		for row in frappe.get_all(
+			dt,
+			filters={"operations": ["in", names], "docstatus": ["<", 2]},
+			fields=["name", "operations"],
+			order_by="creation asc",
+		):
+			grouped.setdefault(row.operations, {d: [] for d in LINKED})[dt].append(row)
+	return grouped
+
+
+def _submitted_invoices_by_job(names):
+	grouped = {}
+	for si in frappe.get_all(
+		"Sales Invoice",
+		filters={"operations": ["in", names], "docstatus": 1, "is_return": 0},
+		fields=[
+			"name",
+			"operations",
+			"docstatus",
+			"is_return",
+			"grand_total",
+			"base_net_total",
+			"outstanding_amount",
+			"due_date",
+			"posting_date",
+		],
+		order_by="posting_date asc, creation asc",
+	):
+		grouped.setdefault(si.operations, []).append(si)
+	return grouped
+
+
+def _customer_names(customers):
+	if not customers:
+		return {}
+	return dict(
+		frappe.get_all(
+			"Customer", filters={"name": ["in", list(customers)]}, fields=["name", "customer_name"], as_list=True
+		)
+	)
