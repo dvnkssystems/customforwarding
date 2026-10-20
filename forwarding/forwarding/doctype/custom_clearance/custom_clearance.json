@@ -7,30 +7,43 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
+  "declaration_section",
   "operations",
-  "do_number",
-  "start_date",
-  "end_date",
+  "customer",
+  "clearance_status",
   "bayyan_number",
   "bayyan_date",
   "column_break_8",
   "clearance_done_by",
-  "shipping_status",
-  "undertaking_no",
-  "undertaking_date",
-  "due_date",
-  "column_break_13",
-  "document_status",
-  "status",
   "broker_name",
   "employee",
   "transporter_name",
+  "delivery_order_section",
+  "do_number",
+  "start_date",
+  "column_break_do",
+  "end_date",
+  "undertaking_section",
+  "undertaking_no",
+  "undertaking_date",
+  "column_break_ut",
+  "due_date",
   "section_break_18",
   "document_table",
   "section_break_20",
-  "cost_table"
+  "cost_table",
+  "legacy_status_section",
+  "status",
+  "document_status",
+  "column_break_13",
+  "shipping_status"
  ],
  "fields": [
+  {
+   "fieldname": "declaration_section",
+   "fieldtype": "Section Break",
+   "label": "Declaration"
+  },
   {
    "fieldname": "operations",
    "fieldtype": "Link",
@@ -40,64 +53,44 @@
    "reqd": 1
   },
   {
-   "fieldname": "document_table",
-   "fieldtype": "Table",
-   "label": "Document Table",
-   "options": "Document Table"
+   "fetch_from": "operations.customer",
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Customer",
+   "options": "Customer",
+   "read_only": 1
   },
   {
-   "fieldname": "status",
+   "default": "Draft",
+   "fieldname": "clearance_status",
    "fieldtype": "Select",
-   "label": "Status",
-   "options": "\nManifest Submission\nArrived to Port\nSubmitted Declaration\nInspection stage\nReady to Release\nFully Release"
-  },
-  {
-   "fieldname": "do_number",
-   "fieldtype": "Data",
-   "label": "DO Number"
-  },
-  {
-   "fieldname": "start_date",
-   "fieldtype": "Date",
-   "label": "Start Date"
-  },
-  {
-   "fieldname": "end_date",
-   "fieldtype": "Date",
-   "label": "End Date"
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Clearance Status",
+   "options": "Draft\nSubmitted\nUnder Review\nDuty Assessed\nReleased\nRejected"
   },
   {
    "fieldname": "bayyan_number",
    "fieldtype": "Data",
-   "label": "Bayyan Number",
+   "label": "Bayan No.",
    "reqd": 1
   },
   {
    "fieldname": "bayyan_date",
    "fieldtype": "Date",
-   "label": "Bayyan Date",
+   "label": "Bayan Date",
    "reqd": 1
+  },
+  {
+   "fieldname": "column_break_8",
+   "fieldtype": "Column Break"
   },
   {
    "fieldname": "clearance_done_by",
    "fieldtype": "Select",
-   "label": " Clearance Done By",
+   "label": "Clearance Done By",
    "options": "\nIn house\nBroker"
-  },
-  {
-   "fieldname": "undertaking_no",
-   "fieldtype": "Data",
-   "label": "Undertaking No"
-  },
-  {
-   "fieldname": "undertaking_date",
-   "fieldtype": "Date",
-   "label": "Undertaking date"
-  },
-  {
-   "fieldname": "due_date",
-   "fieldtype": "Date",
-   "label": "Due Date"
   },
   {
    "depends_on": "eval:doc.clearance_done_by==\"Broker\"",
@@ -117,29 +110,72 @@
    "fieldname": "transporter_name",
    "fieldtype": "Link",
    "label": "Transporter Name",
+   "link_filters": "[[\"Supplier\",\"supplier_group\",\"=\",\"Transporter\"]]",
    "options": "Supplier"
   },
   {
-   "fieldname": "document_status",
-   "fieldtype": "Select",
-   "label": "Document Status",
-   "options": "Working\nCompleted"
+   "fieldname": "delivery_order_section",
+   "fieldtype": "Section Break",
+   "label": "Delivery Order"
   },
   {
-   "fieldname": "column_break_13",
+   "fieldname": "do_number",
+   "fieldtype": "Data",
+   "label": "DO Number"
+  },
+  {
+   "fieldname": "start_date",
+   "fieldtype": "Date",
+   "label": "Start Date"
+  },
+  {
+   "fieldname": "column_break_do",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "end_date",
+   "fieldtype": "Date",
+   "label": "End Date"
+  },
+  {
+   "fieldname": "undertaking_section",
+   "fieldtype": "Section Break",
+   "label": "Undertaking"
+  },
+  {
+   "fieldname": "undertaking_no",
+   "fieldtype": "Data",
+   "label": "Undertaking No"
+  },
+  {
+   "fieldname": "undertaking_date",
+   "fieldtype": "Date",
+   "label": "Undertaking Date"
+  },
+  {
+   "fieldname": "column_break_ut",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "due_date",
+   "fieldtype": "Date",
+   "label": "Due Date"
   },
   {
    "fieldname": "section_break_18",
-   "fieldtype": "Section Break"
+   "fieldtype": "Section Break",
+   "label": "Clearance Details"
   },
   {
-   "fieldname": "column_break_8",
-   "fieldtype": "Column Break"
+   "fieldname": "document_table",
+   "fieldtype": "Table",
+   "label": "Documents",
+   "options": "Document Table"
   },
   {
    "fieldname": "section_break_20",
-   "fieldtype": "Section Break"
+   "fieldtype": "Section Break",
+   "label": "Charges"
   },
   {
    "fieldname": "cost_table",
@@ -148,8 +184,33 @@
    "options": "Cost Table"
   },
   {
+   "fieldname": "legacy_status_section",
+   "fieldtype": "Section Break",
+   "hidden": 1,
+   "label": "Legacy Status"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Status",
+   "options": "\nManifest Submission\nArrived to Port\nSubmitted Declaration\nInspection stage\nReady to Release\nFully Release"
+  },
+  {
+   "fieldname": "document_status",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Document Status",
+   "options": "Working\nCompleted"
+  },
+  {
+   "fieldname": "column_break_13",
+   "fieldtype": "Column Break"
+  },
+  {
    "fieldname": "shipping_status",
    "fieldtype": "Data",
+   "hidden": 1,
    "label": "Shipping Status"
   }
  ],
@@ -160,7 +221,7 @@
    "link_fieldname": "custom_clearance_id"
   }
  ],
- "modified": "2021-10-27 16:13:26.571243",
+ "modified": "2026-10-20 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Forwarding",
  "name": "Custom Clearance",

@@ -83,36 +83,43 @@
   {
    "fieldname": "pick_up_time_at_place_of_origin",
    "fieldtype": "Section Break",
+   "hidden": 1,
    "label": "Pick up Time at Place of Origin"
   },
   {
    "fieldname": "rail_cut_off_at_origin",
    "fieldtype": "Section Break",
+   "hidden": 1,
    "label": "Rail Cut Off at Origin"
   },
   {
    "fieldname": "inland_cutoff_at_origin",
    "fieldtype": "Section Break",
+   "hidden": 1,
    "label": "Inland Cutoff at Origin"
   },
   {
    "fieldname": "container_pickup_at_origin",
    "fieldtype": "Section Break",
+   "hidden": 1,
    "label": "Container Pickup at origin"
   },
   {
    "fieldname": "aes_deadline",
    "fieldtype": "Section Break",
+   "hidden": 1,
    "label": "AES Deadline"
   },
   {
    "fieldname": "shipping_instructions_deadline_for_advance_manifest_cargo",
    "fieldtype": "Section Break",
+   "hidden": 1,
    "label": "Shipping Instructions Deadline for Advance Manifest Cargo"
   },
   {
    "fieldname": "cargo_cutoff_deadline",
    "fieldtype": "Section Break",
+   "hidden": 1,
    "label": "Cargo Cutoff Deadline "
   },
   {
@@ -122,36 +129,43 @@
   {
    "fieldname": "earliest_time1",
    "fieldtype": "Datetime",
+   "hidden": 1,
    "label": "Earliest Time"
   },
   {
    "fieldname": "earliest_time2",
    "fieldtype": "Datetime",
+   "hidden": 1,
    "label": "Earliest Time"
   },
   {
    "fieldname": "earliest_time3",
    "fieldtype": "Datetime",
+   "hidden": 1,
    "label": "Earliest Time"
   },
   {
    "fieldname": "earliest_time4",
    "fieldtype": "Datetime",
+   "hidden": 1,
    "label": "Earliest Time"
   },
   {
    "fieldname": "earliest_time5",
    "fieldtype": "Datetime",
+   "hidden": 1,
    "label": "Earliest Time"
   },
   {
    "fieldname": "earliest_time6",
    "fieldtype": "Datetime",
+   "hidden": 1,
    "label": "Earliest Time"
   },
   {
    "fieldname": "earliest_time7",
    "fieldtype": "Datetime",
+   "hidden": 1,
    "label": "Earliest Time"
   },
   {
@@ -161,36 +175,43 @@
   {
    "fieldname": "latest_time1",
    "fieldtype": "Datetime",
+   "hidden": 1,
    "label": "Latest Time"
   },
   {
    "fieldname": "latest_time2",
    "fieldtype": "Datetime",
+   "hidden": 1,
    "label": "Latest Time"
   },
   {
    "fieldname": "latest_time3",
    "fieldtype": "Datetime",
+   "hidden": 1,
    "label": "Latest Time"
   },
   {
    "fieldname": "latest_time4",
    "fieldtype": "Datetime",
+   "hidden": 1,
    "label": "Latest Time"
   },
   {
    "fieldname": "latest_time5",
    "fieldtype": "Datetime",
+   "hidden": 1,
    "label": "Latest Time"
   },
   {
    "fieldname": "latest_time6",
    "fieldtype": "Datetime",
+   "hidden": 1,
    "label": "Latest Time"
   },
   {
    "fieldname": "latest_time7",
    "fieldtype": "Datetime",
+   "hidden": 1,
    "label": "Latest Time"
   },
   {
@@ -250,26 +271,31 @@
   {
    "fieldname": "empty_container_depot",
    "fieldtype": "Date",
+   "hidden": 1,
    "label": "Empty Container Depot"
   },
   {
    "fieldname": "empty_container_release_date",
    "fieldtype": "Data",
+   "hidden": 1,
    "label": "Empty Container Release Date"
   },
   {
    "fieldname": "return_container_depot",
    "fieldtype": "Data",
+   "hidden": 1,
    "label": "Return Container Depot"
   },
   {
    "fieldname": "return_container_return_date",
    "fieldtype": "Date",
+   "hidden": 1,
    "label": "Return Container Return Date"
   },
   {
    "fieldname": "origin_pick_up_location",
    "fieldtype": "Data",
+   "hidden": 1,
    "label": "Origin Pick up Location"
   },
   {
@@ -279,11 +305,13 @@
   {
    "fieldname": "t_delivery_location",
    "fieldtype": "Data",
+   "hidden": 1,
    "label": "Delivery Location"
   },
   {
    "fieldname": "mode",
    "fieldtype": "Data",
+   "hidden": 1,
    "label": "Mode"
   },
   {
@@ -404,7 +432,7 @@
    "link_fieldname": "freight"
   }
  ],
- "modified": "2021-03-27 14:39:34.757972",
+ "modified": "2026-10-20 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Forwarding",
  "name": "Freight",

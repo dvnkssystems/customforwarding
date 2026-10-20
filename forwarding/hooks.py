@@ -152,17 +152,22 @@ doc_events = {
 		"on_cancel": "forwarding.job_events.on_payment_change",
 	},
 	"Operations": {
-		"validate": "forwarding.subscription.enforce_limit",
+		"validate": [
+			"forwarding.subscription.enforce_limit",
+			"forwarding.child_tables.apply",
+		],
 		"on_update": "forwarding.job_events.on_job_change",
 		"on_update_after_submit": "forwarding.job_events.on_job_change",
 		"on_cancel": "forwarding.job_events.on_job_change",
 		"on_trash": "forwarding.job_events.on_job_change",
 	},
 	"Transportation": {
+		"validate": "forwarding.child_tables.apply",
 		"on_update": "forwarding.job_events.on_linked_change",
 		"on_trash": "forwarding.job_events.on_linked_change",
 	},
 	"Custom Clearance": {
+		"validate": "forwarding.child_tables.apply",
 		"on_update": "forwarding.job_events.on_linked_change",
 		"on_trash": "forwarding.job_events.on_linked_change",
 	},

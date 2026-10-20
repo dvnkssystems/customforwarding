@@ -38,3 +38,26 @@ frappe.ui.form.on('Custom Clearance', {
 		}
 	}
 });	
+// Shared child-table rules (the server applies the same in forwarding.child_tables).
+frappe.ui.form.on("Document Table", {
+	attach(frm, cdt, cdn) {
+		const row = locals[cdt][cdn];
+		if (row.attach && row.received !== "Yes") {
+			frappe.model.set_value(cdt, cdn, "received", "Yes");
+			if (!row.date) frappe.model.set_value(cdt, cdn, "date", frappe.datetime.get_today());
+		}
+	},
+});
+
+frappe.ui.form.on("Activity Template Table", {
+	status(frm, cdt, cdn) {
+		const row = locals[cdt][cdn];
+		if (row.status === "Done" && !row.date) frappe.model.set_value(cdt, cdn, "date", frappe.datetime.get_today());
+	},
+});
+
+frappe.ui.form.on("Cost Table", {
+	cost(frm, cdt, cdn) {
+		frappe.model.set_value(cdt, cdn, "amount", flt(locals[cdt][cdn].cost));
+	},
+});

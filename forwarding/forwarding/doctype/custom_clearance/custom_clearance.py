@@ -7,7 +7,14 @@ import frappe
 from frappe import _
 from frappe.model.document import Document
 
+from forwarding.child_tables import copy_from_job, is_customs_document
+
+
 class CustomClearance(Document):
+	def after_insert(self):
+		# Only the job's documents for the customs stage belong to the clearance.
+		copy_from_job(self, "document_table", is_customs_document)
+
 	def validate(self):
 		"""update operation cost table 
 			update refid in cost table
@@ -31,8 +38,8 @@ class CustomClearance(Document):
 							'parenttype': 'Operations',
 							"item":row.item,
 							"account":row.account,
-							"cost":row.cost
-					
+							"cost":row.cost,
+							"amount":row.cost,
 						})
 						try:
 							cost_table_doc.insert()

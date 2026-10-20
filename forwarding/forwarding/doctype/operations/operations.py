@@ -343,7 +343,12 @@ def make_custom_clearance(source_name, target_doc=None, ignore_permissions=False
 			"field_map": {
 
 			}
-		}
+		},
+		# Only the documents for the customs stage belong to the clearance.
+		"Document Table": {
+			"doctype": "Document Table",
+			"condition": lambda row: cstr(row.stage).strip() == "Customs Clearance",
+		},
 	}, target_doc, postprocess, ignore_permissions= ignore_permissions)
 
 	return doclist

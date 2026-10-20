@@ -237,9 +237,10 @@ LINKED_FIELDS = {
 		"driver",
 		"departure_location",
 		"destination_location",
+		"transport_status",
 		"modified",
 	],
-	"Custom Clearance": ["name", "docstatus", "bayyan_number", "bayyan_date", "status", "modified"],
+	"Custom Clearance": ["name", "docstatus", "bayyan_number", "bayyan_date", "clearance_status", "modified"],
 }
 INVOICE_FIELDS = [
 	"name",
@@ -303,6 +304,7 @@ def _child_rows(parents):
 				"item_name",
 				"cost",
 				"rate",
+				"amount",
 				"paid_amount",
 				"received_amount",
 				"ref_id",
@@ -359,6 +361,7 @@ def _charges(doc, linked, children):
 			"item_name": r.item_name,
 			"cost": flt(r.cost),
 			"rate": flt(r.rate),
+			"amount": flt(r.cost),
 			"paid_amount": flt(r.paid_amount),
 			"received_amount": flt(r.received_amount),
 			"source_doctype": source_doctype,

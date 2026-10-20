@@ -6,13 +6,43 @@ from __future__ import unicode_literals
 import frappe, erpnext
 from frappe import _
 from frappe.model.document import Document
+from frappe.utils import formatdate, getdate, nowdate
+
+from forwarding.child_tables import copy_from_job
+
 
 class Transportation(Document):
+	def after_insert(self):
+		# The job's containers and documents travel with the transport leg.
+		copy_from_job(self, "container_details")
+		copy_from_job(self, "document_table")
+
+	def warn_expired_papers(self):
+		"""Warn, without blocking, when the vehicle's insurance or the driver's
+		licence has run out. ERPNext's Vehicle has no registration expiry field,
+		so insurance (end_date) is the only vehicle date checked."""
+		today = getdate(nowdate())
+		lines = []
+		if self.vehicle:
+			end = frappe.db.get_value("Vehicle", self.vehicle, "end_date")
+			if end and getdate(end) < today:
+				lines.append(_("Insurance of vehicle {0} expired on {1}").format(
+					frappe.bold(self.vehicle), formatdate(end)))
+		if self.driver:
+			expiry = frappe.db.get_value("Driver", self.driver, "expiry_date")
+			if expiry and getdate(expiry) < today:
+				lines.append(_("Licence of driver {0} expired on {1}").format(
+					frappe.bold(self.driver), formatdate(expiry)))
+		if lines:
+			frappe.msgprint("<br>".join(lines), title=_("Expired papers"), indicator="orange")
+		return lines
+
 	def validate(self):
 		"""update operation cost table 
 			update refid in cost table
 
 		"""
+		self.warn_expired_papers()
 		if self.cost_table:
 			for row in self.cost_table:
 				if row.ref_id:
@@ -31,8 +61,8 @@ class Transportation(Document):
 							'parenttype': 'Operations',
 							"item":row.item,
 							"account":row.account,
-							"cost":row.cost
-					
+							"cost":row.cost,
+							"amount":row.cost,
 						})
 						try:
 							cost_table_doc.insert()
