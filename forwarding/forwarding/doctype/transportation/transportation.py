@@ -4,6 +4,7 @@
 
 from __future__ import unicode_literals
 import frappe, erpnext
+from frappe import _
 from frappe.model.document import Document
 
 class Transportation(Document):
@@ -50,9 +51,13 @@ class Transportation(Document):
 		fields_to_transfer = ['awb_number']
 		if self.operations:
 			for field in fields_to_transfer:
+				# Neither this DocType nor its customisations carry these fields
+				# today; copying a missing one wrote NULL over the job's value.
+				if not self.meta.has_field(field) or not self.get(field):
+					continue
 				local_field_value = self.get(field)
 				frappe.db.set_value("Operations",self.operations,field,local_field_value)
-				frappe.msgprint(_("Updated {0} in Operations {1}".format(field,self.operations)))
+				frappe.msgprint(_("Updated {0} in Operations {1}").format(field, self.operations))
 
 	def get_template(self):
 		if self.activity_template:
