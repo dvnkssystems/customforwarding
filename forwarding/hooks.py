@@ -205,6 +205,21 @@ doc_events = {
 		"on_update": "forwarding.job_events.on_supplier_change",
 		"on_trash": "forwarding.job_events.on_supplier_change",
 	},
+	# The custom_ui records forwarding.api.ui_config reads. Child rows (tabs,
+	# wizard fields) are saved through their parent, which fires these; the
+	# Dashboard Tab entry covers a row saved on its own.
+	"Custom UI Dashboard": {
+		"on_update": "forwarding.api.ui_config.clear_cache",
+		"on_trash": "forwarding.api.ui_config.clear_cache",
+	},
+	"Custom UI Dashboard Tab": {
+		"on_update": "forwarding.api.ui_config.clear_cache",
+		"on_trash": "forwarding.api.ui_config.clear_cache",
+	},
+	"Custom UI Wizard Layout": {
+		"on_update": "forwarding.api.ui_config.clear_cache",
+		"on_trash": "forwarding.api.ui_config.clear_cache",
+	},
 }
 
 # Scheduled Tasks
