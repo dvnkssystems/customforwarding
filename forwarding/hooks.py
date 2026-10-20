@@ -179,6 +179,24 @@ doc_events = {
 	},
 	"Customer": {
 		"before_insert": "forwarding.naming.set_customer_code",
+		"on_update": "forwarding.job_events.on_customer_change",
+		"on_trash": "forwarding.job_events.on_customer_change",
+	},
+	"Quote": {
+		"on_update": "forwarding.job_events.on_quote_change",
+		"on_trash": "forwarding.job_events.on_quote_change",
+	},
+	"Contact": {
+		"on_update": "forwarding.job_events.on_party_detail_change",
+		"on_trash": "forwarding.job_events.on_party_detail_change",
+	},
+	"Address": {
+		"on_update": "forwarding.job_events.on_party_detail_change",
+		"on_trash": "forwarding.job_events.on_party_detail_change",
+	},
+	"File": {
+		"after_insert": "forwarding.job_events.on_file_change",
+		"on_trash": "forwarding.job_events.on_file_change",
 	},
 	"Supplier": {
 		"before_insert": "forwarding.naming.set_supplier_code",
