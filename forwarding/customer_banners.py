@@ -21,6 +21,7 @@ from frappe import _
 from frappe.utils import flt, fmt_money
 
 from forwarding.banners import format_date
+from forwarding.party_360 import evaluate_banners
 
 QUOTE_EXPIRY_DAYS = 3
 
@@ -113,22 +114,4 @@ BANNERS = (
 
 def evaluate(ctx):
 	"""[{code, colour, message, action}] for every banner whose condition holds."""
-	out = []
-	for banner in BANNERS:
-		try:
-			if not banner["condition"](ctx):
-				continue
-			message = banner["message"](ctx)
-		except Exception:
-			# One broken banner must not take the customer page down.
-			frappe.log_error(title=f"Customer banner {banner['code']} failed")
-			continue
-		out.append(
-			{
-				"code": banner["code"],
-				"colour": banner["colour"],
-				"message": message,
-				"action": banner["action"],
-			}
-		)
-	return out
+	return evaluate_banners(BANNERS, ctx, "Customer")

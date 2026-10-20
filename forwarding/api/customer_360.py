@@ -20,12 +20,12 @@ access to its DocType.
 import json
 
 import frappe
-from frappe.contacts.doctype.address.address import render_address
 from frappe.query_builder.functions import Coalesce, Count
 from frappe.utils import add_days, cstr, flt, getdate, nowdate
 
-from forwarding import customer_banners
+from forwarding import customer_banners, party_360
 from forwarding.job_events import customer_cache_key
+from forwarding.party_360 import ADDRESS_FIELDS, CONTACT_FIELDS, default_company
 
 CACHE_SECONDS = 60
 # Rows per list. The KPIs are counted over everything, not just these rows.
@@ -70,17 +70,6 @@ PAYMENT_FIELDS = [
 	"docstatus",
 	"reference_no",
 ]
-CONTACT_FIELDS = ["name", "full_name", "email_id", "mobile_no", "is_primary_contact"]
-ADDRESS_FIELDS = [
-	"name",
-	"address_title",
-	"address_type",
-	"address_line1",
-	"city",
-	"country",
-	"is_primary_address",
-]
-
 
 @frappe.whitelist(methods=["GET"])
 def get(customer):
@@ -96,27 +85,10 @@ def get(customer):
 
 def _for_user(payload):
 	"""Drop the lists the current user may not read. Works on a copy."""
-	payload = dict(payload)
-	for key, doctype in GUARDED.items():
-		if not frappe.has_permission(doctype, "read"):
-			payload[key] = []
-	customer = dict(payload["customer"])
-	if not frappe.has_permission("Contact", "read"):
-		customer["primary_contact"] = None
-	if not frappe.has_permission("Address", "read"):
-		customer["primary_address"] = None
-	payload["customer"] = customer
-	return payload
+	return party_360.for_user(payload, "customer", GUARDED)
 
 
 # -- Building the payload -----------------------------------------------------------
-
-
-def default_company():
-	"""The site's default company. Not the user's: the payload is shared."""
-	return frappe.db.get_single_value("Global Defaults", "default_company") or frappe.db.get_value(
-		"Company", {}, "name", order_by="creation asc"
-	)
 
 
 def build(customer):
@@ -202,8 +174,8 @@ def _customer_header(doc, company, credit_limit, contacts, addresses):
 		"status": status,
 		"salesman": _salesman(doc),
 		"credit_limit": flt(credit_limit, 2),
-		"primary_contact": _primary_contact(doc, contacts),
-		"primary_address": _primary_address(doc, addresses),
+		"primary_contact": party_360.primary_contact(doc.customer_primary_contact, contacts),
+		"primary_address": party_360.primary_address(doc.customer_primary_address, addresses),
 	}
 
 
@@ -234,43 +206,7 @@ def _credit_limit(doc, company):
 
 def _linked_party_records(doctype, customer, fields, primary_field):
 	"""Contacts or Addresses linked to the customer, primary first."""
-	return frappe.get_all(
-		doctype,
-		filters=[
-			["Dynamic Link", "link_doctype", "=", "Customer"],
-			["Dynamic Link", "link_name", "=", customer],
-			["Dynamic Link", "parenttype", "=", doctype],
-		],
-		fields=fields,
-		order_by=f"`tab{doctype}`.{primary_field} desc, `tab{doctype}`.creation desc",
-		limit=LIST_LIMIT,
-	)
-
-
-def _primary(doc_link, rows, primary_field):
-	if doc_link:
-		return doc_link
-	for row in rows:
-		if row.get(primary_field):
-			return row.name
-	return rows[0].name if rows else None
-
-
-def _primary_contact(doc, contacts):
-	name = _primary(doc.customer_primary_contact, contacts, "is_primary_contact")
-	if not name:
-		return None
-	row = next((c for c in contacts if c.name == name), None) or frappe.db.get_value(
-		"Contact", name, CONTACT_FIELDS, as_dict=True
-	)
-	return {k: row.get(k) for k in ("name", "full_name", "email_id", "mobile_no")} if row else None
-
-
-def _primary_address(doc, addresses):
-	name = _primary(doc.customer_primary_address, addresses, "is_primary_address")
-	if not name or not frappe.db.exists("Address", name):
-		return None
-	return {"name": name, "address_display": render_address(name, check_permissions=False)}
+	return party_360.linked_party_records(doctype, "Customer", customer, fields, primary_field, LIST_LIMIT)
 
 
 def _active_job_count(customer):
@@ -316,15 +252,10 @@ def _invoices(customer, company, currency, today):
 	)
 
 	def base_outstanding(r):
-		# outstanding_amount is in the party account currency.
-		if r.party_account_currency and r.party_account_currency != currency:
-			return flt(r.outstanding_amount) * flt(r.conversion_rate or 1)
-		return flt(r.outstanding_amount)
+		return party_360.base_outstanding(r, currency)
 
 	def is_overdue(r):
-		return bool(
-			r.docstatus == 1 and flt(r.outstanding_amount) > 0 and r.due_date and getdate(r.due_date) < today
-		)
+		return party_360.is_overdue(r, today)
 
 	outstanding = overdue = 0.0
 	overdue_rows = []
@@ -399,64 +330,9 @@ def _documents(customer):
 				)
 			]
 
-	rows = []
-	if parents:
-		table = frappe.qb.DocType("Document Table")
-		found = (
-			frappe.qb.from_(table)
-			.select(
-				table.name,
-				table.parent,
-				table.parenttype,
-				table.document,
-				table.stage,
-				table.received,
-				table.date,
-				table.attach,
-				table.idx,
-			)
-			.where(
-				table.parent.isin(list({n for _dt, n in parents}))
-				& table.parenttype.isin(list({dt for dt, _n in parents}))
-			)
-			.run(as_dict=True)
-		)
-		# Newest job first; the job's own rows, then its linked records'.
-		order = {p: i for i, p in enumerate(parents)}
-		found.sort(key=lambda r: (order.get((r.parenttype, r.parent), len(order)), r.idx))
-		rows = [
-			{
-				"document": r.document,
-				"stage": r.stage,
-				"received": 1 if cstr(r.received).strip() == "Yes" else 0,
-				"date": r.date,
-				"attach": r.attach,
-				"source_doctype": r.parenttype,
-				"source_name": r.parent,
-				"row_name": r.name,
-			}
-			for r in found
-		]
-
-	files = frappe.get_all(
-		"File",
-		filters={"attached_to_doctype": "Customer", "attached_to_name": customer, "is_folder": 0},
-		fields=["name", "file_name", "file_url", "creation"],
-		order_by="creation desc",
-	)
-	file_rows = [
-		{
-			"document": f.file_name,
-			"stage": None,
-			"received": 1,
-			"date": getdate(f.creation),
-			"attach": f.file_url,
-			"source_doctype": "Customer",
-			"source_name": customer,
-			"row_name": f.name,
-		}
-		for f in files
-	]
+	# Newest job first; the job's own rows, then its linked records'.
+	rows = party_360.document_rows(parents)
+	file_rows = party_360.attached_file_rows("Customer", customer)
 
 	on_file = sum(r["received"] for r in rows) + len(file_rows)
 	# Customer files first: they are about the customer, not one shipment.
