@@ -10,3 +10,4 @@ forwarding.patches.v1_0.disable_sea_variant_modes
 forwarding.patches.v1_0.add_shipment_document_types
 forwarding.patches.v1_0.set_job_statuses
 forwarding.patches.v1_0.set_job_360_fields
+forwarding.patches.v1_0.seed_job_banner_rules
