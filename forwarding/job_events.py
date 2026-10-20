@@ -1,7 +1,8 @@
 # Copyright (c) 2026, DVNKS Systems and contributors
 # For license information, please see license.txt
-"""Keep a job's billing status, its Job 360 cache and its customer's
-Customer 360 cache in step with the documents around them.
+"""Keep a job's billing status, its Job 360 cache, its customer's
+Customer 360 cache and its suppliers' Supplier 360 caches in step with the
+documents around them.
 
 Wired up in hooks.py doc_events. Billing status is written with
 frappe.db.set_value rather than a save, so it also works on submitted jobs
@@ -58,6 +59,61 @@ def clear_customer_cache(*customers):
 		frappe.cache.delete_value(customer_cache_key(customer))
 
 
+SUPPLIER_CACHE_PREFIX = "supplier_360:"
+
+# Supplier links on the records Supplier 360 reads. Purchase Invoice is
+# `supplier`, Transportation `transporter`, Custom Clearance `broker_name`
+# and `transporter_name`; a field a DocType does not have reads as None.
+SUPPLIER_FIELDS = ("supplier", "transporter", "broker_name", "transporter_name")
+# Operations rows that name a supplier: (table field, link field).
+JOB_SUPPLIER_TABLES = (
+	("suppliers", "supplier"),
+	("transport_container_legs", "transporter"),
+	("transport_package_legs", "transporter"),
+)
+
+
+def supplier_cache_key(supplier):
+	return f"{SUPPLIER_CACHE_PREFIX}{supplier}"
+
+
+def clear_supplier_cache(*suppliers):
+	for supplier in {s for s in suppliers if s}:
+		frappe.cache.delete_value(supplier_cache_key(supplier))
+
+
+def job_supplier_links(job):
+	"""Suppliers an Operations document names directly: its handling agent,
+	its Suppliers rows and the transporters on its transport legs."""
+	if not job:
+		return []
+	out = [job.get("handling_agent")]
+	for table, field in JOB_SUPPLIER_TABLES:
+		out += [row.get(field) for row in job.get(table) or []]
+	return [s for s in out if s]
+
+
+def _record_suppliers(doc):
+	return [doc.get(f) for f in SUPPLIER_FIELDS if doc.get(f)]
+
+
+def _service_suppliers(*jobs):
+	"""Suppliers on the jobs' Transportation and Custom Clearance records."""
+	jobs = [j for j in jobs if j]
+	if not jobs:
+		return []
+	out = frappe.get_all(
+		"Transportation", filters={"operations": ["in", jobs]}, pluck="transporter"
+	)
+	for row in frappe.get_all(
+		"Custom Clearance",
+		filters={"operations": ["in", jobs]},
+		fields=["broker_name", "transporter_name"],
+	):
+		out += [row.broker_name, row.transporter_name]
+	return [s for s in out if s]
+
+
 def _job_customers(*jobs):
 	jobs = [j for j in jobs if j]
 	if not jobs:
@@ -104,12 +160,21 @@ def _previous_operations(doc):
 	return _previous(doc, "operations")
 
 
+def _before(doc):
+	return doc.get_doc_before_save() if hasattr(doc, "get_doc_before_save") else None
+
+
 # -- Operations ---------------------------------------------------------------
 
 
 def on_job_change(doc, method=None):
 	clear_job_cache(doc.name)
 	clear_customer_cache(doc.get("customer"), _previous(doc, "customer"))
+	# Every supplier the job names, before and after, and those on its
+	# services: their pages list the job and count it as active.
+	clear_supplier_cache(
+		*job_supplier_links(doc), *job_supplier_links(_before(doc)), *_service_suppliers(doc.name)
+	)
 
 
 # -- Transportation, Custom Clearance, Purchase Invoice -------------------------
@@ -121,6 +186,8 @@ def on_linked_change(doc, method=None):
 	jobs = (doc.get("operations"), _previous_operations(doc))
 	clear_job_cache(*jobs)
 	clear_customer_cache(*_job_customers(*jobs))
+	before = _before(doc)
+	clear_supplier_cache(*_record_suppliers(doc), *(_record_suppliers(before) if before else []))
 
 
 # -- Sales Invoice ---------------------------------------------------------------
@@ -134,20 +201,28 @@ def on_sales_invoice_change(doc, method=None):
 # -- Payment Entry / Journal Entry -------------------------------------------------
 
 
+def clear_payment_party_cache(doc, method=None):
+	"""Drop the Customer 360 / Supplier 360 cache of every party a Payment
+	Entry or Journal Entry is booked against. Hooked on its own to Payment
+	Entry save and delete, since the pages list draft payments too."""
+	if doc.doctype == "Payment Entry":
+		parties = [(doc.get("party_type"), doc.get("party"))]
+	else:
+		parties = [(r.party_type, r.party) for r in doc.get("accounts") or []]
+	clear_customer_cache(*[p for t, p in parties if t == "Customer"])
+	clear_supplier_cache(*[p for t, p in parties if t == "Supplier"])
+
+
 def on_payment_change(doc, method=None):
 	"""Payments change invoice outstanding amounts, so recompute the jobs of
 	every Sales Invoice the entry settles, and drop the Customer 360 cache
 	of every customer the entry is booked against."""
+	clear_payment_party_cache(doc)
 	if doc.doctype == "Payment Entry":
-		if doc.get("party_type") == "Customer":
-			clear_customer_cache(doc.get("party"))
 		invoices = [
 			r.reference_name for r in doc.get("references") or [] if r.reference_doctype == "Sales Invoice"
 		]
 	else:
-		clear_customer_cache(
-			*[r.party for r in doc.get("accounts") or [] if r.party_type == "Customer"]
-		)
 		invoices = [
 			r.reference_name for r in doc.get("accounts") or [] if r.reference_type == "Sales Invoice"
 		]
@@ -174,18 +249,33 @@ def on_quote_change(doc, method=None):
 	clear_customer_cache(doc.get("consignee"), _previous(doc, "consignee"))
 
 
+def _party_links(doc, party_type):
+	return [l.link_name for l in doc.get("links") or [] if l.link_doctype == party_type]
+
+
 def _customer_links(doc):
-	return [l.link_name for l in doc.get("links") or [] if l.link_doctype == "Customer"]
+	return _party_links(doc, "Customer")
 
 
 def on_party_detail_change(doc, method=None):
-	"""Contact or Address: drop the cache of every customer it is (or was)
-	linked to."""
-	before = doc.get_doc_before_save() if hasattr(doc, "get_doc_before_save") else None
-	clear_customer_cache(*_customer_links(doc), *(_customer_links(before) if before else []))
+	"""Contact or Address: drop the cache of every customer and supplier it
+	is (or was) linked to."""
+	before = _before(doc)
+	docs = [doc, before] if before else [doc]
+	clear_customer_cache(*[c for d in docs for c in _party_links(d, "Customer")])
+	clear_supplier_cache(*[s for d in docs for s in _party_links(d, "Supplier")])
 
 
 def on_file_change(doc, method=None):
-	"""Files attached to a Customer count as documents on file."""
+	"""Files attached to a Customer or Supplier count as documents on file."""
 	if doc.get("attached_to_doctype") == "Customer":
 		clear_customer_cache(doc.get("attached_to_name"))
+	elif doc.get("attached_to_doctype") == "Supplier":
+		clear_supplier_cache(doc.get("attached_to_name"))
+
+
+# -- Supplier 360 only ---------------------------------------------------------------
+
+
+def on_supplier_change(doc, method=None):
+	clear_supplier_cache(doc.name)

@@ -144,6 +144,8 @@ doc_events = {
 		"on_trash": "forwarding.job_events.on_linked_change",
 	},
 	"Payment Entry": {
+		"on_update": "forwarding.job_events.clear_payment_party_cache",
+		"on_trash": "forwarding.job_events.clear_payment_party_cache",
 		"on_submit": "forwarding.job_events.on_payment_change",
 		"on_cancel": "forwarding.job_events.on_payment_change",
 	},
@@ -200,6 +202,8 @@ doc_events = {
 	},
 	"Supplier": {
 		"before_insert": "forwarding.naming.set_supplier_code",
+		"on_update": "forwarding.job_events.on_supplier_change",
+		"on_trash": "forwarding.job_events.on_supplier_change",
 	},
 }
 
