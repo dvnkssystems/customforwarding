@@ -16,3 +16,4 @@ forwarding.patches.v1_0.set_service_statuses
 forwarding.patches.v1_0.map_activity_statuses
 forwarding.patches.v1_0.backfill_cost_amounts
 forwarding.patches.v1_0.set_banner_rule_applies_to
+forwarding.patches.v1_0.seed_party_banner_rules

@@ -7,7 +7,7 @@ cache the payload per party for everyone. These are the parts that do not
 depend on which kind of party it is: the company the money is counted in,
 the party's Contacts and Addresses, the Document Table rows of a set of
 records, files attached to the party, outstanding amounts in company
-currency, the per-user list filter and the banner loop.
+currency, the per-user list filter and the banner rule loop.
 """
 
 import frappe
@@ -194,26 +194,46 @@ def money(amount, ctx):
 	return fmt_money(flt(amount), precision=2, currency=ctx.get("currency"))
 
 
+def evaluate_rules(applies_to, conditions, ctx):
+	"""[{code, priority, colour, message, action}] for every enabled Job
+	Banner Rule of applies_to (Customer or Supplier) whose condition holds,
+	lowest priority first.
 
-def evaluate_banners(banners, ctx, label):
-	"""[{code, colour, message, action}] for every banner whose condition
-	holds. label names the page in the error log."""
+	conditions maps a rule's condition_key to a function of ctx. The rule's
+	message_template is Jinja and gets ctx, format_date(), money(amount) (in
+	ctx["currency"]), flt() and _()."""
+	from forwarding.banners import format_date, get_rules
+
+	context = {
+		"ctx": ctx,
+		"format_date": format_date,
+		"money": lambda amount: money(amount, ctx),
+		"flt": flt,
+	}
 	out = []
-	for banner in banners:
+	for rule in get_rules(applies_to):
+		condition = conditions.get(rule.condition_key)
+		if not condition:
+			continue
 		try:
-			if not banner["condition"](ctx):
+			if not condition(ctx):
 				continue
-			message = banner["message"](ctx)
+			message = frappe.render_template(rule.message_template or "", context)
 		except Exception:
 			# One broken banner must not take the page down.
-			frappe.log_error(title=f"{label} banner {banner['code']} failed")
+			frappe.log_error(
+				title=f"{applies_to} banner {rule.rule_code} failed",
+				reference_doctype="Job Banner Rule",
+				reference_name=rule.rule_code,
+			)
 			continue
 		out.append(
 			{
-				"code": banner["code"],
-				"colour": banner["colour"],
-				"message": message,
-				"action": banner["action"],
+				"code": rule.rule_code,
+				"priority": rule.priority or 0,
+				"colour": rule.colour or "info",
+				"message": message.strip(),
+				"action": rule.action or None,
 			}
 		)
 	return out
