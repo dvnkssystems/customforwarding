@@ -21,8 +21,15 @@ class JobBannerRule(Document):
 			validate_template(self.message_template)
 
 	def on_update(self):
-		# Every cached Job 360 payload carries rendered banners.
-		frappe.cache.delete_keys("job_360:")
+		# Every cached Job 360 payload and worklist carries rendered banners.
+		_clear_caches()
 
 	def on_trash(self):
-		frappe.cache.delete_keys("job_360:")
+		_clear_caches()
+
+
+def _clear_caches():
+	from forwarding.job_events import bump_worklist_version
+
+	frappe.cache.delete_keys("job_360:")
+	bump_worklist_version()

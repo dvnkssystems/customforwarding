@@ -22,10 +22,28 @@ def cache_key(job):
 	return f"{CACHE_PREFIX}{job}"
 
 
+# The worklist spans many jobs, so instead of tracking which cached lists a
+# job appears in, any job change moves this version on and every cached
+# worklist (keyed by it) is simply never read again; they expire in 60 s.
+WORKLIST_VERSION_KEY = "job_360_worklist_version"
+
+
+def worklist_version():
+	return frappe.cache.get_value(WORKLIST_VERSION_KEY) or "0"
+
+
+def bump_worklist_version():
+	frappe.cache.set_value(WORKLIST_VERSION_KEY, frappe.generate_hash(length=10))
+
+
 def clear_job_cache(*jobs):
+	cleared = False
 	for job in jobs:
 		if job:
 			frappe.cache.delete_value(cache_key(job))
+			cleared = True
+	if cleared:
+		bump_worklist_version()
 
 
 def get_billing_status(job):

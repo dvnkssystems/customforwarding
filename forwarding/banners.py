@@ -107,12 +107,22 @@ COLOURS = {
 }
 
 
+def format_date(value):
+	"""19 Oct 2026, whatever the system date format. Offered to message
+	templates as format_date()."""
+	if not value:
+		return ""
+	d = getdate(value)
+	return f"{d.day} {d.strftime('%b %Y')}"
+
+
 def get_rules():
 	return frappe.get_all(
 		"Job Banner Rule",
 		filters={"enabled": 1},
 		fields=[
 			"rule_code",
+			"label",
 			"priority",
 			"condition_key",
 			"message_template",
@@ -134,7 +144,9 @@ def evaluate(job, ctx, rules=None):
 		try:
 			if not condition(job, ctx):
 				continue
-			message = frappe.render_template(rule.message_template or "", {"doc": job, "ctx": ctx})
+			message = frappe.render_template(
+				rule.message_template or "", {"doc": job, "ctx": ctx, "format_date": format_date}
+			)
 		except Exception:
 			# One bad template must not take the whole job page down.
 			frappe.log_error(
