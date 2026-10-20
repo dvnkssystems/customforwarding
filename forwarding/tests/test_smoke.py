@@ -29,4 +29,4 @@ class TestFreightLCSSmoke(unittest.TestCase):
 	def test_billing_status_api(self):
 		from forwarding.api import get_billing_status_counts
 		counts = get_billing_status_counts()
-		self.assertIn("Billed", counts)
+		self.assertIn("Paid", counts)

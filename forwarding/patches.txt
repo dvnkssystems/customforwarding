@@ -8,3 +8,6 @@ forwarding.patches.v1_0.map_shipment_types_to_modes
 forwarding.patches.v1_0.set_cargo_layout_and_free_time
 forwarding.patches.v1_0.disable_sea_variant_modes
 forwarding.patches.v1_0.add_shipment_document_types
+forwarding.patches.v1_0.set_job_statuses
+forwarding.patches.v1_0.set_job_360_fields
+forwarding.patches.v1_0.seed_job_banner_rules

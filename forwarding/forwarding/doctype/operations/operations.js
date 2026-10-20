@@ -300,3 +300,70 @@ function print_delivery_note(frm) {
 	});
 	dialog.show();
 }
+
+// ---------------------------------------------------------------------------
+// Sections that only apply to some modes / job types. Changing the mode or job
+// type never clears data: a section that still holds data stays visible. The
+// user is asked first, and saying no puts the old value back.
+// ---------------------------------------------------------------------------
+
+const SECTION_RULES = {
+	mode_of_shipment: [
+		{ label: __("Containers"), fields: ["container_details"], applies: (v) => v !== "Air" },
+		{ label: __("Flight Number / Air Line"), fields: ["flight_number", "air_line"], applies: (v) => v === "Air" },
+		{
+			label: __("Vessel / Voyage / Shipping Line"),
+			fields: ["vessel_name", "voyage_number", "shipping_line"],
+			applies: (v) => v === "Sea",
+		},
+	],
+	job_type: [{ label: __("Cut-offs"), fields: ["cutoffs"], applies: (v) => v === "Export" }],
+};
+
+function has_data(frm, fieldname) {
+	const value = frm.doc[fieldname];
+	return Array.isArray(value) ? value.length > 0 : !!value;
+}
+
+function remember_section_values(frm) {
+	frm._section_values = { mode_of_shipment: frm.doc.mode_of_shipment, job_type: frm.doc.job_type };
+}
+
+function confirm_section_change(frm, trigger) {
+	const previous = (frm._section_values || {})[trigger];
+	const value = frm.doc[trigger];
+	if (frm._reverting || previous === undefined || previous === value) {
+		remember_section_values(frm);
+		return;
+	}
+
+	const affected = SECTION_RULES[trigger]
+		.filter((rule) => rule.applies(previous) && !rule.applies(value))
+		.filter((rule) => rule.fields.some((f) => has_data(frm, f)))
+		.map((rule) => rule.label);
+	if (!affected.length) {
+		remember_section_values(frm);
+		return;
+	}
+
+	frappe.confirm(
+		__("{0} does not use {1}, but this job already has data there. The data is kept and stays visible until you clear it. Continue?", [
+			value || __("this setting"),
+			affected.join(", "),
+		]),
+		() => remember_section_values(frm),
+		() => {
+			frm._reverting = true;
+			frm.set_value(trigger, previous).then(() => {
+				frm._reverting = false;
+				remember_section_values(frm);
+			});
+		}
+	);
+}
+
+frappe.ui.form.on("Operations", {
+	refresh: remember_section_values,
+	mode_of_shipment: (frm) => confirm_section_change(frm, "mode_of_shipment"),
+	job_type: (frm) => confirm_section_change(frm, "job_type"),
+});

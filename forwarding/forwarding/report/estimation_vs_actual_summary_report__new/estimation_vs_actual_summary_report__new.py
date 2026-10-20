@@ -167,7 +167,7 @@ def get_jobs(filters):
 		values["mode_of_shipment"] = filters.mode_of_shipment
 
 	if not filters.get("include_open"):
-		conditions.append("ops.operations_status != 'OPEN'")
+		conditions.append("ops.operations_status != 'Open'")
 
 	if filters.get("date_basis") != "Posting Date":
 		if filters.get("from_date"):

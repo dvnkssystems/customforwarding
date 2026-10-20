@@ -33,7 +33,7 @@ def seed_demo():
 	sow = ensure("Scope Of Work", {"scope_of_work": "Freight Forwarding"},
 		{"scope_of_work": "Freight Forwarding", "abbreviation": "FF", "freight_forwarding": 1})
 
-	for st in ["OPEN", "IN PROGRESS", "COMPLETED", "CLOSED"]:
+	for st in ["Draft", "Open", "On Hold", "Delivered", "Ops Completed", "Closed", "Cancelled"]:
 		ensure("Operations Status", {"status": st}, {"status": st})
 
 	ensure("Waybill Terms", {"title": "Standard Sea Terms"},
@@ -83,9 +83,9 @@ def get_billing_status_counts():
 	)
 	counts = {
 		"No Invoice": 0,
-		"Cost Sheet Pending": 0,
-		"Pending Billing": 0,
-		"Billed": 0,
+		"Invoiced": 0,
+		"Partly Paid": 0,
+		"Paid": 0,
 	}
 	for r in rows:
 		counts[r.billing_status or "No Invoice"] = r.cnt
@@ -98,7 +98,7 @@ def get_dashboard_stats():
 	billing = get_billing_status_counts()
 	return {
 		"total_jobs": frappe.db.count("Operations", {"is_trashed": 0}),
-		"open_jobs": frappe.db.count("Operations", {"is_trashed": 0, "operations_status": "OPEN"}),
+		"open_jobs": frappe.db.count("Operations", {"is_trashed": 0, "operations_status": "Open"}),
 		"waybills": frappe.db.count("Freight Waybill", {"docstatus": ["<", 2]}),
 		"vouchers": frappe.db.count("Freight Voucher", {"docstatus": 1}),
 		"billing": billing,
@@ -422,7 +422,7 @@ def seed_reports_demo():
 	mos2 = ensure("Mode Of Shipment", {"mode_of_shipment": "Air"}, {"mode_of_shipment": "Air", "abbreviation": "AIR"})
 	sow = ensure("Scope Of Work", {"scope_of_work": "Freight Forwarding"},
 		{"scope_of_work": "Freight Forwarding", "abbreviation": "FF", "freight_forwarding": 1})
-	for st in ["OPEN", "IN PROGRESS", "COMPLETED", "CLOSED"]:
+	for st in ["Draft", "Open", "On Hold", "Delivered", "Ops Completed", "Closed", "Cancelled"]:
 		ensure("Operations Status", {"status": st}, {"status": st})
 	ports = {}
 	for pn in ["Jeddah", "Dubai", "Shanghai", "Riyadh", "Dammam"]:
@@ -544,7 +544,7 @@ def seed_reports_demo():
 	else:
 		etas = [nowdate(), add_days(nowdate(), 1), add_days(nowdate(), 3),
 			add_days(nowdate(), 9), add_days(nowdate(), 16), add_days(nowdate(), -4)]
-		billings = ["No Invoice", "Cost Sheet Pending", "Pending Billing", "Billed", "Pending Billing", "Billed"]
+		billings = ["No Invoice", "Invoiced", "Partly Paid", "Paid", "Partly Paid", "Paid"]
 		job_names = []
 		for i in range(6):
 			j = frappe.new_doc("Operations")

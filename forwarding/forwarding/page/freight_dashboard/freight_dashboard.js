@@ -24,9 +24,9 @@ frappe.pages['freight-dashboard'].on_page_load = function (wrapper) {
 
 		html += `<h5>${__('Billing Status')}</h5><div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;">
 			${card(__('No Invoice'), b['No Invoice'] || 0, '#6c7680')}
-			${card(__('Cost Sheet Pending'), b['Cost Sheet Pending'] || 0, '#cb7c00')}
-			${card(__('Pending Billing'), b['Pending Billing'] || 0, '#1f6fd6')}
-			${card(__('Billed'), b['Billed'] || 0, '#2e7d32')}
+			${card(__('Invoiced'), b['Invoiced'] || 0, '#cb7c00')}
+			${card(__('Partly Paid'), b['Partly Paid'] || 0, '#1f6fd6')}
+			${card(__('Paid'), b['Paid'] || 0, '#2e7d32')}
 		</div>`;
 
 		html += `<div style="display:flex;gap:24px;flex-wrap:wrap;">`;

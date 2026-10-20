@@ -10,7 +10,7 @@ from frappe.model.mapper import get_mapped_doc
 # Used by make_sales_invoice / make_purchase_invoice below; was referenced
 # without being imported, so those raised NameError at runtime.
 from frappe.model.utils import get_fetch_values
-from frappe.utils import cstr, flt, getdate, cint, nowdate, add_days, get_link_to_form, strip_html
+from frappe.utils import cstr, flt, getdate, cint, nowdate, add_days, get_link_to_form, strip_html, get_datetime, now_datetime
 from frappe.contacts.doctype.address.address import get_company_address
 from erpnext.stock.doctype.item.item import get_item_defaults
 from erpnext.setup.doctype.item_group.item_group import get_item_group_defaults
@@ -25,6 +25,23 @@ SERVICE_TYPE_FIELD = {
 	"Trading": "svc_trading",
 	"Value Added Services": "svc_packing_relocation",
 }
+
+# kg per cubic metre for air freight volumetric weight (IATA 1:6000)
+AIR_VOLUMETRIC_FACTOR = 167
+
+
+def get_cutoff_status(latest):
+	"""Upcoming, Due Today or Passed for a cut-off's latest time."""
+	if not latest:
+		return None
+	latest = get_datetime(latest)
+	now = now_datetime()
+	if latest < now:
+		return "Passed"
+	if latest.date() == now.date():
+		return "Due Today"
+	return "Upcoming"
+
 
 SERVICE_FIELDS = (
 	"svc_freight_forwarding",
@@ -43,9 +60,15 @@ class Operations(Document):
 		self.set_services_from_activity_code()
 		self.calculate_package_totals()
 		self.set_free_time_expiry()
+		self.set_chargeable_weight()
+		self.set_cutoff_status()
 		self.sync_container_rows()
 		self.set_billing_status()
 		self.warn_missing_documents()
+
+	def onload(self):
+		# Stored statuses age with the clock; show them as of now.
+		self.set_cutoff_status()
 
 	def warn_missing_documents(self):
 		"""Say which documents the job is still waiting on, without blocking it.
@@ -157,9 +180,26 @@ class Operations(Document):
 		self.total_chargeable_weight = chargeable
 
 	def set_free_time_expiry(self):
-		"""Free time runs from the ETA; its expiry date drives the reminder."""
+		"""Free time runs from arrival: the ATA once recorded, the ETA until then."""
 		days = cint(self.free_time_days)
-		self.free_time_expiry = add_days(self.eta_date, days) if self.eta_date and days > 0 else None
+		start = self.ata_date or self.eta_date
+		self.free_time_expiry = add_days(start, days) if start and days > 0 else None
+
+	def set_chargeable_weight(self):
+		"""Air freight bills the greater of actual and volumetric weight.
+
+		Volumetric weight is CBM x 167 kg (IATA 1:6000). Other modes keep
+		whatever was typed in, since there is no single rule for them.
+		"""
+		if self.mode_of_shipment != "Air":
+			return
+		if not (flt(self.gross_weight) or flt(self.cbm)):
+			return
+		self.chargable_weight = max(flt(self.gross_weight), flt(self.cbm) * AIR_VOLUMETRIC_FACTOR)
+
+	def set_cutoff_status(self):
+		for row in self.get("cutoffs") or []:
+			row.cutoff_status = get_cutoff_status(row.latest)
 
 	def sync_container_rows(self):
 		"""Carry the job's containers into the Clearance and Transportation tabs.
@@ -199,27 +239,15 @@ class Operations(Document):
 					have.add(number.upper())
 
 	def set_billing_status(self):
-		"""Derive billing_status from linked Sales / Purchase Invoices.
-		Sales Invoice / Purchase Invoice carry an `operations` link == this job's name.
+		"""How far the job's submitted Sales Invoices have been paid.
+
+		Kept current by the Sales Invoice and Payment Entry hooks in
+		forwarding.job_events; worked out here as well so a save never leaves
+		it stale.
 		"""
-		if not self.name or self.is_new():
-			self.billing_status = "No Invoice"
-			return
+		from forwarding.job_events import get_billing_status
 
-		si = frappe.get_all("Sales Invoice",
-			filters={"operations": self.name, "docstatus": ["<", 2]},
-			fields=["docstatus"])
-		pi_exists = frappe.db.exists("Purchase Invoice",
-			{"operations": self.name, "docstatus": ["<", 2]})
-
-		if any(d.docstatus == 1 for d in si):
-			self.billing_status = "Billed"
-		elif si:
-			self.billing_status = "Pending Billing"
-		elif pi_exists:
-			self.billing_status = "Cost Sheet Pending"
-		else:
-			self.billing_status = "No Invoice"
+		self.billing_status = "No Invoice" if self.is_new() else get_billing_status(self.name)
 
 	def on_update(self):
 		fields_to_transfer = ['awb_number']

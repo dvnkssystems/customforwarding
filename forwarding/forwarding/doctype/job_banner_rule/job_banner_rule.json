@@ -1,0 +1,159 @@
+{
+ "actions": [],
+ "autoname": "field:rule_code",
+ "creation": "2026-10-20 10:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "rule_code",
+  "enabled",
+  "priority",
+  "column_break_rule",
+  "condition_key",
+  "action",
+  "colour",
+  "show_on_worklist",
+  "section_message",
+  "message_template"
+ ],
+ "fields": [
+  {
+   "fieldname": "rule_code",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Rule Code",
+   "reqd": 1,
+   "unique": 1,
+   "description": "Short code, e.g. B1"
+  },
+  {
+   "default": "1",
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Enabled"
+  },
+  {
+   "fieldname": "priority",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Priority",
+   "description": "Lower numbers are shown first"
+  },
+  {
+   "fieldname": "column_break_rule",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "condition_key",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Condition",
+   "reqd": 1,
+   "options": "docs_pending\natd_missing\nata_missing\nfree_time_expiring\nnot_invoiced\ninvoice_overdue\ncustoms_missing\ncredit_hold",
+   "description": "A condition defined in forwarding/banners.py"
+  },
+  {
+   "fieldname": "action",
+   "fieldtype": "Select",
+   "label": "Action",
+   "options": "\nupload_documents\nrecord_atd\nrecord_ata\ncreate_sales_invoice\ncreate_custom_clearance\nview_invoice\nview_milestones\nrequest_override"
+  },
+  {
+   "default": "info",
+   "fieldname": "colour",
+   "fieldtype": "Select",
+   "label": "Colour",
+   "options": "info\nwarning\ncritical"
+  },
+  {
+   "default": "0",
+   "fieldname": "show_on_worklist",
+   "fieldtype": "Check",
+   "label": "Show on Worklist"
+  },
+  {
+   "fieldname": "section_message",
+   "fieldtype": "Section Break",
+   "label": "Message"
+  },
+  {
+   "fieldname": "message_template",
+   "fieldtype": "Small Text",
+   "label": "Message Template",
+   "reqd": 1,
+   "description": "Jinja. <code>doc</code> is the job, <code>ctx</code> holds the job's KPIs, e.g. {{ ctx.docs_total - ctx.docs_received }} documents awaiting"
+  }
+ ],
+ "links": [],
+ "modified": "2026-10-20 10:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Forwarding",
+ "name": "Job Banner Rule",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "role": "Freight Admin"
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "role": "Freight Manager"
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "role": "Freight Operator"
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "role": "Freight Finance"
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "role": "Freight Sales"
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "role": "Freight Viewer"
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "role": "Sales Manager"
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "role": "Sales User"
+  },
+  {
+   "read": 1,
+   "report": 1,
+   "role": "Accounts User"
+  }
+ ],
+ "sort_field": "priority",
+ "sort_order": "ASC",
+ "states": [],
+ "title_field": "rule_code",
+ "track_changes": 1
+}

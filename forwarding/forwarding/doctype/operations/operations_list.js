@@ -6,9 +6,9 @@ frappe.listview_settings['Operations'] = {
 	get_indicator: function (doc) {
 		const map = {
 			"No Invoice": "gray",
-			"Cost Sheet Pending": "orange",
-			"Pending Billing": "blue",
-			"Billed": "green",
+			"Invoiced": "orange",
+			"Partly Paid": "blue",
+			"Paid": "green",
 		};
 		const colour = map[doc.billing_status] || "gray";
 		const label = doc.billing_status || "No Invoice";
@@ -50,10 +50,10 @@ frappe.listview_settings['Operations'] = {
 				}
 				const html = `
 					<div class="freight-kpi-cards" style="display:flex;gap:10px;margin:8px 0;flex-wrap:wrap;">
-						${kpi("No Invoice", c["No Invoice"] || 0, "#6c7680")}
-						${kpi("Cost Sheet Pending", c["Cost Sheet Pending"] || 0, "#cb7c00")}
-						${kpi("Pending Billing", c["Pending Billing"] || 0, "#1f6fd6")}
-						${kpi("Billed", c["Billed"] || 0, "#2e7d32")}
+						${kpi(__("No Invoice"), c["No Invoice"] || 0, "#6c7680")}
+						${kpi(__("Invoiced"), c["Invoiced"] || 0, "#cb7c00")}
+						${kpi(__("Partly Paid"), c["Partly Paid"] || 0, "#1f6fd6")}
+						${kpi(__("Paid"), c["Paid"] || 0, "#2e7d32")}
 					</div>`;
 				$(listview.page.main).find(".freight-kpi-cards").remove();
 				$(listview.page.main).prepend(html);
