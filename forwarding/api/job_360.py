@@ -22,7 +22,7 @@ from frappe import _
 from frappe.utils import cint, cstr, date_diff, flt, getdate, nowdate
 
 from forwarding import banners as job_banners
-from forwarding.forwarding.doctype.operations.operations import get_cutoff_status
+from forwarding.forwarding.doctype.operations.operations import default_cutoff_milestones, get_cutoff_status
 from forwarding.job_events import cache_key, clear_job_cache
 
 CACHE_SECONDS = 60
@@ -533,3 +533,15 @@ def _milestones(doc, cutoffs, submitted_si, today):
 		)
 	)
 	return rows
+
+
+# -- Cut-off defaults -------------------------------------------------------------
+
+
+@frappe.whitelist(methods=["GET", "POST"])
+def default_cutoffs(mode_of_shipment=None, destination_country=None):
+	"""Milestone names an export job's cut-offs start with, for its mode:
+	Sea -> every milestone except AES Deadline (included when the destination
+	country is the United States); Air -> SI Deadline and Cargo Cut-off;
+	anything else -> []."""
+	return default_cutoff_milestones(mode_of_shipment, destination_country)

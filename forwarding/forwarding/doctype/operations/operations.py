@@ -43,6 +43,40 @@ def get_cutoff_status(latest):
 	return "Upcoming"
 
 
+# Cut-off milestones, in the order the Job Cutoff options list them.
+AES_DEADLINE = "AES Deadline"
+SEA_CUTOFFS = ("Rail Cut-off", "Inland Cut-off", "Container Pickup", AES_DEADLINE, "SI Deadline", "Cargo Cut-off")
+AIR_CUTOFFS = ("SI Deadline", "Cargo Cut-off")
+
+# destination_country links to Territory; these are the names the US goes by.
+US_NAMES = {"united states", "united states of america", "usa", "us"}
+
+
+def is_us(country):
+	return cstr(country).strip().lower() in US_NAMES
+
+
+def shipment_mode(mode_of_shipment):
+	"""Sea, Air or None. The old SEA-FCL / SEA-LCL modes count as Sea."""
+	mode = cstr(mode_of_shipment).strip().lower()
+	if mode.startswith("sea"):
+		return "Sea"
+	if mode == "air":
+		return "Air"
+	return None
+
+
+def default_cutoff_milestones(mode_of_shipment, destination_country=None):
+	"""Cut-offs an export job starts with: every Sea milestone (AES only for
+	the United States), or SI Deadline and Cargo Cut-off for Air."""
+	mode = shipment_mode(mode_of_shipment)
+	if mode == "Sea":
+		return [m for m in SEA_CUTOFFS if m != AES_DEADLINE or is_us(destination_country)]
+	if mode == "Air":
+		return list(AIR_CUTOFFS)
+	return []
+
+
 SERVICE_FIELDS = (
 	"svc_freight_forwarding",
 	"svc_customs_clearance",
@@ -61,6 +95,7 @@ class Operations(Document):
 		self.calculate_package_totals()
 		self.set_free_time_expiry()
 		self.set_chargeable_weight()
+		self.validate_cutoffs()
 		self.set_cutoff_status()
 		self.sync_container_rows()
 		self.set_billing_status()
@@ -196,6 +231,19 @@ class Operations(Document):
 		if not (flt(self.gross_weight) or flt(self.cbm)):
 			return
 		self.chargable_weight = max(flt(self.gross_weight), flt(self.cbm) * AIR_VOLUMETRIC_FACTOR)
+
+	def validate_cutoffs(self):
+		"""AES filing only applies to shipments bound for the United States."""
+		if is_us(self.destination_country):
+			return
+		for row in self.get("cutoffs") or []:
+			if row.milestone == AES_DEADLINE:
+				frappe.throw(
+					_("Row {0}: {1} only applies when the destination country is the United States.").format(
+						row.idx, frappe.bold(_(AES_DEADLINE))
+					),
+					title=_("Cut-offs"),
+				)
 
 	def set_cutoff_status(self):
 		for row in self.get("cutoffs") or []:
