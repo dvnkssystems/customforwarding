@@ -248,7 +248,16 @@ LINKED_FIELDS = {
 		"transport_status",
 		"modified",
 	],
-	"Custom Clearance": ["name", "docstatus", "bayyan_number", "bayyan_date", "clearance_status", "modified"],
+	"Custom Clearance": [
+		"name",
+		"docstatus",
+		"bayyan_number",
+		"bayyan_date",
+		"clearance_status",
+		"broker_name",
+		"transporter_name",
+		"modified",
+	],
 }
 INVOICE_FIELDS = [
 	"name",

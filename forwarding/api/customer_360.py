@@ -126,6 +126,8 @@ def build(customer):
 	}
 
 	payload = {
+		# Every money KPI and banner amount is in this, the company's currency.
+		"currency": currency,
 		"customer": _customer_header(doc, company, credit_limit, contacts, addresses),
 		"kpis": kpis,
 		"banners": customer_banners.evaluate(ctx),

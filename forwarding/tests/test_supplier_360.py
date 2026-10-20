@@ -160,7 +160,7 @@ class TestSupplier360(IntegrationTestCase):
 		self.assertEqual(
 			set(data),
 			{
-				"supplier", "kpis", "banners", "jobs", "services", "invoices", "payments", "documents",
+				"currency", "supplier", "kpis", "banners", "jobs", "services", "invoices", "payments", "documents",
 				"contacts", "addresses",
 			},
 		)

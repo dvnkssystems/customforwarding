@@ -128,7 +128,10 @@ class TestCustomer360(IntegrationTestCase):
 		data = fresh(self.customer.name)
 		self.assertEqual(
 			set(data),
-			{"customer", "kpis", "banners", "jobs", "quotes", "invoices", "payments", "documents", "contacts", "addresses"},
+			{
+				"currency", "customer", "kpis", "banners", "jobs", "quotes", "invoices", "payments",
+				"documents", "contacts", "addresses",
+			},
 		)
 		self.assertEqual(
 			set(data["customer"]),

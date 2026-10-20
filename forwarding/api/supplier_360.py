@@ -165,6 +165,8 @@ def build(supplier):
 	}
 
 	payload = {
+		# Every money KPI and banner amount is in this, the company's currency.
+		"currency": currency,
 		"supplier": header,
 		"kpis": kpis,
 		"banners": supplier_banners.evaluate(ctx),
