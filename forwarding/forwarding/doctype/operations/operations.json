@@ -12,6 +12,7 @@
   "operation_id",
   "column_break_rvpd",
   "operations_status",
+  "hold_reason",
   "lifecycle_section",
   "billing_status",
   "date",
@@ -112,6 +113,8 @@
   "free_time_days",
   "free_time_expiry",
   "commodity",
+  "cutoffs_section",
+  "cutoffs",
   "pickup_delivery_section",
   "pickup_date",
   "pickup_reason",
@@ -448,7 +451,8 @@
   {
    "fieldname": "vessel_name",
    "fieldtype": "Data",
-   "label": "Vessel Name"
+   "label": "Vessel Name",
+   "depends_on": "eval:doc.mode_of_shipment==\"Sea\" || doc.vessel_name"
   },
   {
    "fieldname": "customer_supplier",
@@ -486,7 +490,7 @@
    "fieldtype": "Column Break"
   },
   {
-   "depends_on": "eval:doc.mode_of_shipment==\"Sea\"",
+   "depends_on": "eval:doc.mode_of_shipment==\"Sea\" || doc.voyage_number",
    "fieldname": "voyage_number",
    "fieldtype": "Data",
    "label": "Voyage Number"
@@ -518,7 +522,6 @@
   {
    "fieldname": "ata_date",
    "fieldtype": "Date",
-   "hidden": 1,
    "label": "ATA Date"
   },
   {
@@ -571,10 +574,12 @@
    "label": "Packages"
   },
   {
-   "depends_on": "eval:doc.cargo_layout!=\"Containers\" || doc.chargable_weight",
+   "depends_on": "eval:doc.mode_of_shipment==\"Air\" || doc.chargable_weight",
    "fieldname": "chargable_weight",
    "fieldtype": "Float",
-   "label": "Chargable Weight"
+   "label": "Chargable Weight",
+   "read_only_depends_on": "eval:doc.mode_of_shipment==\"Air\"",
+   "description": "Air: the greater of gross weight and CBM x 167"
   },
   {
    "fieldname": "column_break_55",
@@ -686,7 +691,7 @@
    "reqd": 1
   },
   {
-   "depends_on": "eval:doc.mode_of_shipment==\"Sea\" || doc.mode_of_shipment==\"Land\" ",
+   "depends_on": "eval:doc.mode_of_shipment==\"Sea\" || doc.shipping_line",
    "fieldname": "shipping_line",
    "fieldtype": "Link",
    "label": "Shipping Line",
@@ -700,13 +705,13 @@
    "options": "Movement Type"
   },
   {
-   "depends_on": "eval:doc.mode_of_shipment==\"Air\" || doc.mode_of_shipment==\"Land\" ",
+   "depends_on": "eval:doc.mode_of_shipment==\"Air\" || doc.air_line",
    "fieldname": "air_line",
    "fieldtype": "Data",
    "label": "Air Line"
   },
   {
-   "depends_on": "eval:doc.mode_of_shipment==\"Air\"",
+   "depends_on": "eval:doc.mode_of_shipment==\"Air\" || doc.flight_number",
    "fieldname": "flight_number",
    "fieldtype": "Data",
    "label": "Flight Number"
@@ -723,13 +728,13 @@
    "read_only": 1
   },
   {
-   "depends_on": "eval:!doc.cargo_layout || doc.cargo_layout==\"Containers\" || (doc.container_details||[]).length",
+   "depends_on": "eval:(doc.container_details||[]).length || (doc.mode_of_shipment!=\"Air\" && (!doc.cargo_layout || doc.cargo_layout==\"Containers\"))",
    "fieldname": "section_break_75",
    "fieldtype": "Section Break"
   },
   {
    "default": "Container Details",
-   "depends_on": "eval:!doc.cargo_layout || doc.cargo_layout==\"Containers\" || (doc.container_details||[]).length",
+   "depends_on": "eval:(doc.container_details||[]).length || (doc.mode_of_shipment!=\"Air\" && (!doc.cargo_layout || doc.cargo_layout==\"Containers\"))",
    "fieldname": "container_details",
    "fieldtype": "Table",
    "label": "Container Details",
@@ -779,7 +784,7 @@
    "label": "Place of Delivery"
   },
   {
-   "default": "OPEN",
+   "default": "Open",
    "fieldname": "operations_status",
    "fieldtype": "Link",
    "label": "Operations Status",
@@ -797,7 +802,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Billing Status",
-   "options": "No Invoice\nCost Sheet Pending\nPending Billing\nBilled",
+   "options": "No Invoice\nInvoiced\nPartly Paid\nPaid",
    "read_only": 1
   },
   {
@@ -1350,7 +1355,7 @@
    "read_only": 1
   },
   {
-   "depends_on": "eval:!doc.cargo_layout || doc.cargo_layout==\"Containers\" || (doc.container_details||[]).length",
+   "depends_on": "eval:(doc.container_details||[]).length || (doc.mode_of_shipment!=\"Air\" && (!doc.cargo_layout || doc.cargo_layout==\"Containers\"))",
    "fieldname": "tab_container",
    "fieldtype": "Tab Break",
    "label": "Container"
@@ -1387,6 +1392,26 @@
    "fieldname": "tab_costing",
    "fieldtype": "Tab Break",
    "label": "Costing & Documents"
+  },
+  {
+   "fieldname": "hold_reason",
+   "fieldtype": "Small Text",
+   "label": "Hold Reason",
+   "depends_on": "eval:doc.operations_status=='On Hold'",
+   "mandatory_depends_on": "eval:doc.operations_status=='On Hold'"
+  },
+  {
+   "fieldname": "cutoffs_section",
+   "fieldtype": "Section Break",
+   "label": "Cut-offs",
+   "depends_on": "eval:doc.job_type=='Export' || (doc.cutoffs||[]).length"
+  },
+  {
+   "fieldname": "cutoffs",
+   "fieldtype": "Table",
+   "label": "Cut-offs",
+   "options": "Job Cutoff",
+   "depends_on": "eval:doc.job_type=='Export' || (doc.cutoffs||[]).length"
   }
  ],
  "is_submittable": 1,
@@ -1404,7 +1429,7 @@
    "link_fieldname": "operations"
   }
  ],
- "modified": "2026-09-15 16:34:25.110961",
+ "modified": "2026-10-20 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Forwarding",
  "name": "Operations",

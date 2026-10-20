@@ -117,16 +117,54 @@ doc_events = {
 			"forwarding.subscription.enforce_limit",
 			"forwarding.sales_invoice.enforce_overseas_zero_rating",
 		],
-		"on_update": "forwarding.custom_methods.update_cost_table_in_operations",
-		"on_cancel": "forwarding.custom_methods.update_cost_table_in_operations_on_cancle",
+		"on_update": [
+			"forwarding.custom_methods.update_cost_table_in_operations",
+			"forwarding.job_events.on_sales_invoice_change",
+		],
+		"on_submit": "forwarding.job_events.on_sales_invoice_change",
+		"on_cancel": [
+			"forwarding.custom_methods.update_cost_table_in_operations_on_cancle",
+			"forwarding.job_events.on_sales_invoice_change",
+		],
+		"on_update_after_submit": "forwarding.job_events.on_sales_invoice_change",
+		"on_trash": "forwarding.job_events.on_sales_invoice_change",
 	},
     "Purchase Invoice": {
 		"validate": "forwarding.subscription.enforce_limit",
-		"on_update": "forwarding.custom_methods.update_cost_table_in_operations",
-		"on_cancel": "forwarding.custom_methods.update_cost_table_in_operations_on_cancle",
+		"on_update": [
+			"forwarding.custom_methods.update_cost_table_in_operations",
+			"forwarding.job_events.on_linked_change",
+		],
+		"on_submit": "forwarding.job_events.on_linked_change",
+		"on_cancel": [
+			"forwarding.custom_methods.update_cost_table_in_operations_on_cancle",
+			"forwarding.job_events.on_linked_change",
+		],
+		"on_update_after_submit": "forwarding.job_events.on_linked_change",
+		"on_trash": "forwarding.job_events.on_linked_change",
+	},
+	"Payment Entry": {
+		"on_submit": "forwarding.job_events.on_payment_change",
+		"on_cancel": "forwarding.job_events.on_payment_change",
+	},
+	"Journal Entry": {
+		"on_submit": "forwarding.job_events.on_payment_change",
+		"on_cancel": "forwarding.job_events.on_payment_change",
 	},
 	"Operations": {
 		"validate": "forwarding.subscription.enforce_limit",
+		"on_update": "forwarding.job_events.on_job_change",
+		"on_update_after_submit": "forwarding.job_events.on_job_change",
+		"on_cancel": "forwarding.job_events.on_job_change",
+		"on_trash": "forwarding.job_events.on_job_change",
+	},
+	"Transportation": {
+		"on_update": "forwarding.job_events.on_linked_change",
+		"on_trash": "forwarding.job_events.on_linked_change",
+	},
+	"Custom Clearance": {
+		"on_update": "forwarding.job_events.on_linked_change",
+		"on_trash": "forwarding.job_events.on_linked_change",
 	},
 	"Freight Voucher": {
 		"validate": "forwarding.subscription.enforce_limit",
