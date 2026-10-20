@@ -267,7 +267,10 @@ class TestJob360(IntegrationTestCase):
 
 	def test_conditions_registry_matches_rule_options(self):
 		options = frappe.get_meta("Job Banner Rule").get_field("condition_key").options.split("\n")
-		self.assertEqual(set(filter(None, options)), set(banners.CONDITIONS))
+		registered = set()
+		for applies_to in ("Operations", "Customer", "Supplier"):
+			registered |= set(banners.conditions_for(applies_to))
+		self.assertEqual(set(filter(None, options)), registered)
 
 
 def codes(payload):
