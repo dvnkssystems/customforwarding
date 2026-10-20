@@ -18,16 +18,12 @@ Every function takes ctx, the dict built by forwarding.api.customer_360:
 
 import frappe
 from frappe import _
-from frappe.utils import flt, fmt_money
+from frappe.utils import flt
 
 from forwarding.banners import format_date
-from forwarding.party_360 import evaluate_banners
+from forwarding.party_360 import evaluate_banners, money
 
 QUOTE_EXPIRY_DAYS = 3
-
-
-def money(amount, ctx):
-	return fmt_money(flt(amount), precision=2, currency=ctx.get("currency"))
 
 
 # -- C1 over credit limit ----------------------------------------------------------

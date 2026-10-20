@@ -12,7 +12,7 @@ currency, the per-user list filter and the banner loop.
 
 import frappe
 from frappe.contacts.doctype.address.address import render_address
-from frappe.utils import cstr, flt, getdate
+from frappe.utils import cstr, flt, fmt_money, getdate
 
 CONTACT_FIELDS = ["name", "full_name", "email_id", "mobile_no", "is_primary_contact"]
 ADDRESS_FIELDS = [
@@ -187,6 +187,12 @@ def attached_file_rows(doctype, name):
 
 
 # -- Banners -------------------------------------------------------------------------
+
+
+def money(amount, ctx):
+	"""amount in ctx["currency"], for banner messages."""
+	return fmt_money(flt(amount), precision=2, currency=ctx.get("currency"))
+
 
 
 def evaluate_banners(banners, ctx, label):
