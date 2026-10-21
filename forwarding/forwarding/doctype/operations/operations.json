@@ -1365,11 +1365,13 @@
    "label": "Transportation"
   },
   {
+   "depends_on": "eval:doc.mode_of_shipment!='Air' || (doc.transport_container_legs||[]).length",
    "fieldname": "transport_container_section",
    "fieldtype": "Section Break",
    "label": "Container Movements"
   },
   {
+   "depends_on": "eval:doc.mode_of_shipment!='Air' || (doc.transport_container_legs||[]).length",
    "fieldname": "transport_container_legs",
    "fieldtype": "Table",
    "label": "Container Movements",
