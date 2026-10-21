@@ -29,3 +29,4 @@ forwarding.patches.v1_0.sales_invoice_section_labels
 forwarding.patches.v1_0.close_guest_lead_paths
 forwarding.patches.v1_0.recompute_job_billing_status
 forwarding.patches.v1_0.repair_print_formats
+forwarding.patches.v1_0.backfill_export_cutoffs
