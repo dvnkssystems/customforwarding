@@ -22,3 +22,4 @@ forwarding.patches.v1_0.create_job_projects
 forwarding.patches.v1_0.update_customs_banner_rule
 forwarding.patches.v1_0.add_wizard_cargo_fields
 forwarding.patches.v1_0.recompute_package_totals
+forwarding.patches.v1_0.reset_job_field_order

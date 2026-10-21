@@ -99,20 +99,22 @@
   "column_break_35",
   "voyage_number",
   "flight_number",
-  "etd_date",
-  "atd_date",
-  "atd_delay_reason",
   "carrier",
   "shipper",
   "column_break_40",
-  "eta_date",
-  "ata_date",
-  "ata_delay_reason",
   "transit_time",
   "free_time",
   "free_time_days",
   "free_time_expiry",
   "commodity",
+  "schedule_section",
+  "etd_date",
+  "atd_date",
+  "atd_delay_reason",
+  "column_break_schedule",
+  "eta_date",
+  "ata_date",
+  "ata_delay_reason",
   "cutoffs_section",
   "cutoffs",
   "pickup_delivery_section",
@@ -527,7 +529,6 @@
   {
    "fieldname": "ata_delay_reason",
    "fieldtype": "Data",
-   "hidden": 1,
    "label": "ATA Delay Reason"
   },
   {
@@ -1415,6 +1416,15 @@
    "fieldtype": "Table",
    "label": "Cut-offs",
    "options": "Job Cutoff"
+  },
+  {
+   "fieldname": "schedule_section",
+   "fieldtype": "Section Break",
+   "label": "Departure & Arrival"
+  },
+  {
+   "fieldname": "column_break_schedule",
+   "fieldtype": "Column Break"
   }
  ],
  "is_submittable": 1,
