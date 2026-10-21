@@ -93,6 +93,36 @@ def copy_from_job(doc, fieldname, condition=None):
 	return copied
 
 
+def job_containers(job):
+	"""(container number, "size type") of each numbered row in the job's
+	Container tab, in order."""
+	containers = []
+	for row in job.get("container_details") or []:
+		number = cstr(row.container_no).strip()
+		if number:
+			size = f"{row.size}'" if row.size else ""
+			containers.append((number, " ".join(part for part in (size, cstr(row.container_type)) if part)))
+	return containers
+
+
+def add_clearance_containers(clearance, containers):
+	"""Append to a Custom Clearance's Containers table each container it does
+	not list yet, as Pending. Returns the rows appended (not saved)."""
+	have = {cstr(r.container_no).strip().upper() for r in clearance.get("clearance_containers") or []}
+	added = []
+	for number, size_type in containers:
+		if number.upper() in have:
+			continue
+		added.append(
+			clearance.append(
+				"clearance_containers",
+				{"container_no": number, "container_type": size_type, "clearance_status": "Pending"},
+			)
+		)
+		have.add(number.upper())
+	return added
+
+
 def is_customs_document(row):
 	return cstr(row.stage).strip() == "Customs Clearance"
 

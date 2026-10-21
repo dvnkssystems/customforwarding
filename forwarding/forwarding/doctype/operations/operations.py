@@ -15,7 +15,7 @@ from frappe.contacts.doctype.address.address import get_company_address
 from erpnext.stock.doctype.item.item import get_item_defaults
 from erpnext.setup.doctype.item_group.item_group import get_item_group_defaults
 
-from forwarding.child_tables import undate_unreceived_documents
+from forwarding.child_tables import undate_unreceived_documents, job_containers, add_clearance_containers
 
 
 # Freight Activity Code.service_type -> the service checkbox it switches on.
@@ -380,34 +380,22 @@ class Operations(Document):
 			row.cutoff_status = get_cutoff_status(row.latest)
 
 	def sync_container_rows(self):
-		"""Carry the job's containers into the Clearance and Transportation tabs.
+		"""Carry the job's containers into its Transportation tab.
 
 		A container is added once it has a number, and rows are never removed
 		here: a container can run several transport legs with different
-		transporters. To drop a container from both tabs, remove it from the
-		Container tab. Submitted jobs are left alone, since their tables are locked.
+		transporters. To drop a container, remove it from the Container tab.
+		Submitted jobs are left alone, since their tables are locked.
+
+		Container clearance rows belong to the job's Custom Clearance (D5):
+		on_update hands new containers to it (sync_clearance_containers).
 		"""
 		if self.docstatus != 0:
 			return
 
-		containers = []
-		for row in self.get("container_details") or []:
-			number = cstr(row.container_no).strip()
-			if number:
-				size = f"{row.size}'" if row.size else ""
-				containers.append((number, " ".join(part for part in (size, cstr(row.container_type)) if part)))
+		containers = job_containers(self)
 		if not containers:
 			return
-
-		if cint(self.svc_customs_clearance) or cstr(self.custom_clearance) == "1":
-			have = {cstr(r.container_no).strip().upper() for r in self.get("clearance_containers") or []}
-			for number, size_type in containers:
-				if number.upper() not in have:
-					self.append(
-						"clearance_containers",
-						{"container_no": number, "container_type": size_type, "clearance_status": "Pending"},
-					)
-					have.add(number.upper())
 
 		if cint(self.svc_transportation) or cstr(self.transport) == "1":
 			have = {cstr(r.reference_no).strip().upper() for r in self.get("transport_container_legs") or []}
@@ -415,6 +403,19 @@ class Operations(Document):
 				if number.upper() not in have:
 					self.append("transport_container_legs", {"reference_no": number, "status": "Pending"})
 					have.add(number.upper())
+
+	def sync_clearance_containers(self):
+		"""Add the job's new containers to its Custom Clearance's Containers
+		table, without saving the clearance (rows are inserted directly)."""
+		if self.docstatus == 2:
+			return
+		containers = job_containers(self)
+		if not containers:
+			return
+		for name in frappe.get_all("Custom Clearance", filters={"operations": self.name}, pluck="name"):
+			clearance = frappe.get_doc("Custom Clearance", name)
+			for row in add_clearance_containers(clearance, containers):
+				row.db_insert()
 
 	def set_billing_status(self):
 		"""How far the job's submitted Sales Invoices have been paid.
@@ -455,6 +456,7 @@ class Operations(Document):
 
 	def on_update(self):
 		self.ensure_project()
+		self.sync_clearance_containers()
 		fields_to_transfer = ['awb_number']
 		fields_to_transfer_project = ['cost_center']
 		if self.freight:
@@ -546,8 +548,12 @@ def make_custom_clearance(source_name, target_doc=None, ignore_permissions=False
 	doclist = get_mapped_doc("Operations", source_name, {
 		"Operations": {
 			"doctype": "Custom Clearance",
+			# Clearance values a job still carries from before the clearance
+			# owned them (D3); same-named fields map on their own.
 			"field_map": {
-
+				"bayan_no": "bayyan_number",
+				"bayan_date": "bayyan_date",
+				"do_no": "do_number",
 			}
 		},
 		# Only the documents for the customs stage belong to the clearance.
@@ -555,6 +561,9 @@ def make_custom_clearance(source_name, target_doc=None, ignore_permissions=False
 			"doctype": "Document Table",
 			"condition": lambda row: cstr(row.stage).strip() == "Customs Clearance",
 		},
+		# Rows a job still carries from before the clearance owned them (D5).
+		"Operations Clearance Container": {"doctype": "Operations Clearance Container"},
+		"Operations Clearance Document": {"doctype": "Operations Clearance Document"},
 	}, target_doc, postprocess, ignore_permissions= ignore_permissions)
 
 	return doclist

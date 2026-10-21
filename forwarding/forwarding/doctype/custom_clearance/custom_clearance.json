@@ -13,6 +13,7 @@
   "clearance_status",
   "bayyan_number",
   "bayyan_date",
+  "clearance_date",
   "column_break_8",
   "clearance_done_by",
   "broker_name",
@@ -20,14 +21,23 @@
   "transporter_name",
   "delivery_order_section",
   "do_number",
+  "do_date",
   "start_date",
   "column_break_do",
   "end_date",
+  "duty_section",
+  "duty_amount_company",
+  "column_break_duty",
+  "duty_amount_client",
   "undertaking_section",
   "undertaking_no",
   "undertaking_date",
   "column_break_ut",
   "due_date",
+  "clearance_containers_section",
+  "clearance_containers",
+  "clearance_documents_section",
+  "clearance_documents",
   "section_break_18",
   "document_table",
   "section_break_20",
@@ -212,6 +222,58 @@
    "fieldtype": "Data",
    "hidden": 1,
    "label": "Shipping Status"
+  },
+  {
+   "fieldname": "clearance_date",
+   "fieldtype": "Date",
+   "label": "Clearance Date"
+  },
+  {
+   "fieldname": "do_date",
+   "fieldtype": "Date",
+   "label": "DO Date"
+  },
+  {
+   "fieldname": "duty_section",
+   "fieldtype": "Section Break",
+   "label": "Duty"
+  },
+  {
+   "fieldname": "duty_amount_company",
+   "fieldtype": "Currency",
+   "label": "Duty Amount - Company"
+  },
+  {
+   "fieldname": "column_break_duty",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "duty_amount_client",
+   "fieldtype": "Currency",
+   "label": "Duty Amount - Client"
+  },
+  {
+   "fieldname": "clearance_containers_section",
+   "fieldtype": "Section Break",
+   "label": "Containers"
+  },
+  {
+   "fieldname": "clearance_containers",
+   "fieldtype": "Table",
+   "label": "Container Clearance",
+   "options": "Operations Clearance Container"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "clearance_documents_section",
+   "fieldtype": "Section Break",
+   "label": "Clearance Documents"
+  },
+  {
+   "fieldname": "clearance_documents",
+   "fieldtype": "Table",
+   "label": "Clearance Documents",
+   "options": "Operations Clearance Document"
   }
  ],
  "index_web_pages_for_search": 1,
@@ -221,7 +283,7 @@
    "link_fieldname": "custom_clearance_id"
   }
  ],
- "modified": "2026-10-20 12:00:00.000000",
+ "modified": "2026-10-21 12:05:00.000000",
  "modified_by": "Administrator",
  "module": "Forwarding",
  "name": "Custom Clearance",

@@ -7,17 +7,38 @@ import frappe
 from frappe import _
 from frappe.model.document import Document
 
-from forwarding.child_tables import copy_from_job, sync_costs_to_job, is_customs_document
+from forwarding.child_tables import (
+	add_clearance_containers,
+	copy_from_job,
+	is_customs_document,
+	job_containers,
+	sync_costs_to_job,
+)
 
 
 class CustomClearance(Document):
 	def after_insert(self):
 		# Only the job's documents for the customs stage belong to the clearance.
 		copy_from_job(self, "document_table", is_customs_document)
+		# Container clearance and clearance documents moved here from the job
+		# (D5); a job that still carries rows hands them over once.
+		copy_from_job(self, "clearance_documents")
 
 	def validate(self):
 		# The job keeps a copy of every cost row (forwarding.child_tables).
 		sync_costs_to_job(self)
+		self.add_job_containers()
+
+	def add_job_containers(self):
+		"""List every container of the job, Pending until cleared. A job's
+		old clearance rows come first, so their statuses carry over."""
+		if not self.operations:
+			return
+		job = frappe.get_doc("Operations", self.operations)
+		if self.is_new() and not self.get("clearance_containers"):
+			for row in job.get("clearance_containers") or []:
+				self.append("clearance_containers", row.as_dict(no_default_fields=True))
+		add_clearance_containers(self, job_containers(job))
 
 	def on_update(self):
 		fields_to_transfer = ['awb_number']
