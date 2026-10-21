@@ -606,6 +606,7 @@ WORKLIST_JOB_FIELDS = [
 	"eta_date",
 	"ata_date",
 	"free_time_expiry",
+	"svc_customs_clearance",
 ]
 
 

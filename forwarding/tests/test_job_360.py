@@ -168,8 +168,9 @@ class TestJob360(IntegrationTestCase):
 		self.assertRaises(frappe.ValidationError, job_360.record_actual, job.name, "eta", nowdate())
 
 	def test_banner_b7_customs_missing(self):
-		self.assertIn("B7", codes(job_360.build(make(job_type="Import").name)))
-		self.assertNotIn("B7", codes(job_360.build(make(job_type="Export").name)))
+		# C8: Customs Clearance ticked and no Custom Clearance, whatever the job type.
+		self.assertIn("B7", codes(job_360.build(make(job_type="Export", svc_customs_clearance=1).name)))
+		self.assertNotIn("B7", codes(job_360.build(make(job_type="Import", svc_customs_clearance=0).name)))
 
 	def test_b4_colour_follows_days_left(self):
 		job = make(eta_date=add_days(nowdate(), -10), free_time_days=5)

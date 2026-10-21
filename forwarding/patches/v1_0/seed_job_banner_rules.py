@@ -87,7 +87,7 @@ RULES = [
 		"action": "create_custom_clearance",
 		"colour": "info",
 		"show_on_worklist": 0,
-		"message_template": "Import job with no Custom Clearance yet",
+		"message_template": "Customs Clearance is ticked but no Custom Clearance has been created yet",
 	},
 ]
 

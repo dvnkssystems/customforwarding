@@ -74,9 +74,11 @@ def invoice_overdue(job, ctx):
 
 
 def customs_missing(job, ctx):
-	return (
+	"""Customs Clearance is ticked under Activity & Services, but no Custom
+	Clearance record has been created for the job yet."""
+	return bool(
 		_active(job)
-		and (job.get("job_type") or "").lower() == "import"
+		and cint(job.get("svc_customs_clearance"))
 		and not cint(ctx.get("custom_clearance_count"))
 	)
 
