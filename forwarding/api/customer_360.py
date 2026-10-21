@@ -102,7 +102,7 @@ def build(customer):
 
 	invoices, receivable = _invoices(customer, company, currency, today)
 	quotes, quote_counts = _quotes(customer, today)
-	documents, documents_on_file = _documents(customer)
+	documents, documents_on_file, documents_total = _documents(customer)
 	credit_limit = _credit_limit(doc, company)
 	credit_used = receivable["outstanding"]
 
@@ -115,6 +115,8 @@ def build(customer):
 		"credit_limit": flt(credit_limit, 2),
 		"credit_pct": flt(credit_used / credit_limit * 100, 2) if credit_limit else None,
 		"documents_on_file": documents_on_file,
+		# Every listed document, received or not: the tile reads "1 / 4" as on a job.
+		"documents_total": documents_total,
 	}
 
 	ctx = {
@@ -311,8 +313,9 @@ def _documents(customer):
 	"""Document Table rows of the customer's jobs and their Transportation /
 	Custom Clearance records, then the files attached to the Customer.
 
-	Returns (rows, documents_on_file) where documents_on_file counts every
-	received row and every attached file, beyond the listed rows too."""
+	Returns (rows, documents_on_file, documents_total) where documents_on_file
+	counts every received row and every attached file, beyond the listed rows
+	too, and documents_total every row and file, received or not."""
 	jobs = frappe.get_all(
 		"Operations",
 		filters={"customer": customer, "docstatus": ["<", 2]},
@@ -340,5 +343,6 @@ def _documents(customer):
 	file_rows = party_360.attached_file_rows("Customer", customer)
 
 	on_file = sum(r["received"] for r in rows) + len(file_rows)
+	total = len(rows) + len(file_rows)
 	# Customer files first: they are about the customer, not one shipment.
-	return (file_rows + rows)[:DOCUMENT_LIMIT], on_file
+	return (file_rows + rows)[:DOCUMENT_LIMIT], on_file, total

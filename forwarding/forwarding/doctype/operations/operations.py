@@ -167,12 +167,17 @@ class Operations(Document):
 				continue
 			self.append("document_table", {"document": document, "stage": stage or None, "received": "No"})
 
+	def before_validate(self):
+		from forwarding.quote_to_job import commodity_from_quote
+
+		commodity_from_quote(self)
+
 	def validate(self):
 		self.set_company()
 		self.set_operation_id()
-		self.validate_ports()
 		self.validate_shipment_type()
 		self.set_services_from_activity_code()
+		self.validate_ports()
 		self.calculate_package_totals()
 		self.set_free_time_expiry()
 		self.set_chargeable_weight()
@@ -181,6 +186,18 @@ class Operations(Document):
 		self.sync_container_rows()
 		self.set_billing_status()
 		self.warn_missing_documents()
+
+	def before_update_after_submit(self):
+		"""Ops keep a submitted job current (schedule, cut-offs, containers,
+		documents): those fields are Allow on Submit. Re-derive what follows
+		from them, as validate does for a draft."""
+		self.set_free_time_expiry()
+		self.validate_cutoffs()
+		self.set_cutoff_status()
+		self.sync_container_rows()
+
+	def on_update_after_submit(self):
+		self.sync_clearance_containers()
 
 	def onload(self):
 		# Stored statuses age with the clock; show them as of now.
@@ -248,8 +265,13 @@ class Operations(Document):
 		"""A shipment cannot leave from the port it is bound for.
 
 		Checked on every save, so a job saved before this rule has to be
-		corrected before anything else on it is.
+		corrected before anything else on it is. Only a freight forwarding job
+		moves cargo between two ports: a customs-only or local transport job
+		can name one location for both.
 		"""
+		# `freight_forwarding` is the old service flag, still "1" on older jobs.
+		if not (cint(self.svc_freight_forwarding) or cstr(self.freight_forwarding) == "1"):
+			return
 		if not self.port_of_loading or self.port_of_loading != self.port_of_destination:
 			return
 		frappe.throw(
@@ -385,12 +407,12 @@ class Operations(Document):
 		A container is added once it has a number, and rows are never removed
 		here: a container can run several transport legs with different
 		transporters. To drop a container, remove it from the Container tab.
-		Submitted jobs are left alone, since their tables are locked.
+		Cancelled jobs are left alone.
 
 		Container clearance rows belong to the job's Custom Clearance (D5):
 		on_update hands new containers to it (sync_clearance_containers).
 		"""
-		if self.docstatus != 0:
+		if self.docstatus == 2:
 			return
 
 		containers = job_containers(self)

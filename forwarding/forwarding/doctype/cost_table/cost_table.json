@@ -63,7 +63,7 @@
    "description": "Equals Cost: the buying amount of the row.",
    "fieldname": "amount",
    "fieldtype": "Currency",
-   "in_list_view": 1,
+   "hidden": 1,
    "label": "Cost Amount",
    "read_only": 1
   },
@@ -107,7 +107,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-10-21 10:20:00.000000",
+ "modified": "2026-10-21 18:00:00.000000",
  "modified_by": "Administrator",
  "module": "Forwarding",
  "name": "Cost Table",

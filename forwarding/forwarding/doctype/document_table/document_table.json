@@ -18,6 +18,7 @@
  ],
  "fields": [
   {
+   "allow_on_submit": 1,
    "fieldname": "document",
    "fieldtype": "Link",
    "in_list_view": 1,
@@ -25,6 +26,7 @@
    "options": "Document List"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "received",
    "fieldtype": "Select",
    "in_list_view": 1,
@@ -32,24 +34,28 @@
    "options": "\nYes\nNo"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "date",
    "fieldtype": "Date",
    "in_list_view": 1,
    "label": "Date"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "attach",
    "fieldtype": "Attach",
    "in_list_view": 1,
    "label": "Attach"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "remark",
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Remark"
   },
   {
+   "allow_on_submit": 1,
    "description": "Which job milestone this document belongs to.",
    "fieldname": "stage",
    "fieldtype": "Select",
@@ -58,6 +64,7 @@
    "options": "\nBooking\nDocumentation\nDeparture\nIn Transit\nArrival\nCustoms Clearance\nDelivery\nClosed"
   },
   {
+   "allow_on_submit": 1,
    "default": "Not Started",
    "description": "Set by the OCR run; drives the timeline's OCR chip.",
    "fieldname": "ocr_status",
@@ -66,6 +73,7 @@
    "options": "\nNot Started\nReading\nExtracted\nFailed"
   },
   {
+   "allow_on_submit": 1,
    "description": "Raw values OCR read back from the attachment.",
    "fieldname": "extracted_data",
    "fieldtype": "Small Text",
@@ -73,12 +81,14 @@
    "read_only": 1
   },
   {
+   "allow_on_submit": 1,
    "description": "When the attachment landed. `date` is the document's own date.",
    "fieldname": "uploaded_on",
    "fieldtype": "Datetime",
    "label": "Uploaded On"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "uploaded_by",
    "fieldtype": "Link",
    "label": "Uploaded By",
@@ -88,7 +98,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-08-05 13:09:30.950017",
+ "modified": "2026-10-21 16:30:00.000000",
  "modified_by": "Administrator",
  "module": "Forwarding",
  "name": "Document Table",

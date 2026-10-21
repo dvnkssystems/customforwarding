@@ -136,6 +136,9 @@ def get_billing_status(job):
 		return "No Invoice"
 
 	total, outstanding = flt(total), flt(outstanding)
+	# Nothing billed is not paid: a zero-value invoice leaves the job Invoiced.
+	if total <= TOLERANCE:
+		return "Invoiced"
 	if outstanding <= TOLERANCE:
 		return "Paid"
 	if outstanding >= total - TOLERANCE:

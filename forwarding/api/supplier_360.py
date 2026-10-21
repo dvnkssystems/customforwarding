@@ -134,7 +134,7 @@ def build(supplier):
 		s["billed"] = bool(s["operations"] and s["operations"] in billed_jobs)
 
 	jobs, active_jobs = _jobs(supplier, services)
-	documents, documents_on_file = _documents(supplier, services)
+	documents, documents_on_file, documents_total = _documents(supplier, services)
 	header = _supplier_header(doc, today, contacts, addresses)
 
 	kpis = {
@@ -147,6 +147,8 @@ def build(supplier):
 		"unbilled_services": sum(1 for s in services if s["docstatus"] < 2 and not s["billed"]),
 		"billed_this_year": flt(_billed_this_year(supplier, company, today), 2),
 		"documents_on_file": documents_on_file,
+		# Every listed document, received or not: the tile reads "1 / 4" as on a job.
+		"documents_total": documents_total,
 	}
 
 	ctx = {
@@ -490,8 +492,9 @@ def _documents(supplier, services):
 	"""Files attached to the Supplier, then the Document Table rows of its
 	services (newest service first).
 
-	Returns (rows, documents_on_file) where documents_on_file counts every
-	received row and every attached file, beyond the listed rows too."""
+	Returns (rows, documents_on_file, documents_total) where documents_on_file
+	counts every received row and every attached file, beyond the listed rows
+	too, and documents_total every row and file, received or not."""
 	live = [s for s in services if s["docstatus"] < 2]
 	parents = [(s["doctype"], s["name"]) for s in live]
 	job_of = {(s["doctype"], s["name"]): s.get("operations") or s["name"] for s in live}
@@ -501,4 +504,5 @@ def _documents(supplier, services):
 	)
 	file_rows = party_360.attached_file_rows("Supplier", supplier)
 	on_file = sum(r["received"] for r in rows) + len(file_rows)
-	return (file_rows + rows)[:DOCUMENT_LIMIT], on_file
+	total = len(rows) + len(file_rows)
+	return (file_rows + rows)[:DOCUMENT_LIMIT], on_file, total

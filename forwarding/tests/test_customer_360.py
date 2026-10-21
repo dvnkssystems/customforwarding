@@ -144,7 +144,7 @@ class TestCustomer360(IntegrationTestCase):
 			set(data["kpis"]),
 			{
 				"active_jobs", "open_quotes", "outstanding", "overdue", "credit_used", "credit_limit",
-				"credit_pct", "documents_on_file",
+				"credit_pct", "documents_on_file", "documents_total",
 			},
 		)
 		c = data["customer"]

@@ -175,7 +175,7 @@ class TestSupplier360(IntegrationTestCase):
 			set(data["kpis"]),
 			{
 				"active_jobs", "open_services", "payable_outstanding", "overdue", "unbilled_services",
-				"billed_this_year", "documents_on_file",
+				"billed_this_year", "documents_on_file", "documents_total",
 			},
 		)
 		s = data["supplier"]
