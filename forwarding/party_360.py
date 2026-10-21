@@ -119,6 +119,42 @@ def is_overdue(row, today):
 # -- Documents ---------------------------------------------------------------------
 
 
+def merge_documents(rows, job_of):
+	"""One row per document per job, however many records carry a copy.
+
+	Transportation and Custom Clearance copy the job's document rows when they
+	are created, so the same SABER arrived up to three times and every count —
+	the Documents tile, banner B1, the tab badge, the worklist, Customer 360 —
+	grew with each linked record (1/4 became 2/8, then 3/10). Rows are keyed on
+	(job, document, stage); a document counts as received when any copy is. The
+	first row seen stays the primary one — callers list the job's own rows
+	first, so actions such as Upload still land on the job — and `sources`
+	lists every copy, for the Source column. A row with no document named is
+	never merged into another.
+	"""
+	merged = {}
+	for r in rows:
+		job = job_of(r)
+		key = (job, r["document"], r.get("stage")) if r.get("document") else (job, None, r["row_name"])
+		source = {
+			"source_doctype": r["source_doctype"],
+			"source_name": r["source_name"],
+			"row_name": r["row_name"],
+			"received": r["received"],
+		}
+		primary = merged.get(key)
+		if primary is None:
+			merged[key] = {**r, "sources": [source]}
+			continue
+		primary["sources"].append(source)
+		if r["received"] and not primary["received"]:
+			primary["received"] = 1
+			primary["date"] = r.get("date") or primary.get("date")
+		if r.get("attach") and not primary.get("attach"):
+			primary["attach"] = r["attach"]
+	return list(merged.values())
+
+
 def document_rows(parents):
 	"""Document Table rows of parents, a list of (doctype, name), in the
 	order of parents and then row idx."""

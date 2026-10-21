@@ -22,6 +22,7 @@ from frappe import _
 from frappe.utils import cint, cstr, date_diff, flt, getdate, nowdate
 
 from forwarding import banners as job_banners
+from forwarding import party_360
 from forwarding.forwarding.doctype.operations.operations import default_cutoff_milestones, get_cutoff_status
 from forwarding.job_events import cache_key, clear_job_cache, worklist_version
 
@@ -361,7 +362,8 @@ def _documents(doc, linked, children):
 		for parent in linked[dt]:
 			for r in children.get((dt, parent.name), {}).get("Document Table", []):
 				rows.append(row(r, dt, parent.name))
-	return rows
+	# The job's own rows come first, so the merged row stays on the job.
+	return party_360.merge_documents(rows, lambda _r: doc.name)
 
 
 def _charges(doc, linked, children):

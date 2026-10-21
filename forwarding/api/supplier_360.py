@@ -492,8 +492,13 @@ def _documents(supplier, services):
 
 	Returns (rows, documents_on_file) where documents_on_file counts every
 	received row and every attached file, beyond the listed rows too."""
-	parents = [(s["doctype"], s["name"]) for s in services if s["docstatus"] < 2]
-	rows = party_360.document_rows(parents)
+	live = [s for s in services if s["docstatus"] < 2]
+	parents = [(s["doctype"], s["name"]) for s in live]
+	job_of = {(s["doctype"], s["name"]): s.get("operations") or s["name"] for s in live}
+	# Two services of one job carry copies of the same job documents; count once.
+	rows = party_360.merge_documents(
+		party_360.document_rows(parents), lambda r: job_of.get((r["source_doctype"], r["source_name"]))
+	)
 	file_rows = party_360.attached_file_rows("Supplier", supplier)
 	on_file = sum(r["received"] for r in rows) + len(file_rows)
 	return (file_rows + rows)[:DOCUMENT_LIMIT], on_file

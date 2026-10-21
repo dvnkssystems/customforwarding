@@ -320,20 +320,23 @@ def _documents(customer):
 		order_by="creation desc",
 	)
 	parents = [("Operations", j) for j in jobs]
+	job_of = {("Operations", j): j for j in jobs}
 	if jobs:
 		for dt in LINKED:
-			parents += [
-				(dt, n)
-				for n in frappe.get_all(
-					dt,
-					filters={"operations": ["in", jobs], "docstatus": ["<", 2]},
-					pluck="name",
-					order_by="creation desc",
-				)
-			]
+			for linked in frappe.get_all(
+				dt,
+				filters={"operations": ["in", jobs], "docstatus": ["<", 2]},
+				fields=["name", "operations"],
+				order_by="creation desc",
+			):
+				parents.append((dt, linked.name))
+				job_of[(dt, linked.name)] = linked.operations
 
-	# Newest job first; the job's own rows, then its linked records'.
-	rows = party_360.document_rows(parents)
+	# Newest job first; the job's own rows, then its linked records'. Copies of
+	# one document across a job and its linked records count once.
+	rows = party_360.merge_documents(
+		party_360.document_rows(parents), lambda r: job_of.get((r["source_doctype"], r["source_name"]))
+	)
 	file_rows = party_360.attached_file_rows("Customer", customer)
 
 	on_file = sum(r["received"] for r in rows) + len(file_rows)
