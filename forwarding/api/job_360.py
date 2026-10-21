@@ -163,7 +163,8 @@ def job_kpis(doc, documents, charges, linked, submitted_si, today):
 		"linked_count": sum(len(rows) for rows in linked.values()),
 		"cost_total": flt(cost_total, 2),
 		"revenue_total": flt(revenue_total, 2),
-		"margin_pct": flt((revenue_total - cost_total) / revenue_total * 100, 2) if revenue_total else None,
+		# No cost booked yet is not a 100% margin.
+		"margin_pct": flt((revenue_total - cost_total) / revenue_total * 100, 2) if revenue_total and cost_total else None,
 		"billed": flt(sum(flt(si.grand_total) for si in submitted_si), 2),
 		"collected": flt(sum(flt(si.grand_total) - flt(si.outstanding_amount) for si in submitted_si), 2),
 		"free_days_left": date_diff(doc.free_time_expiry, today) if doc.free_time_expiry else None,

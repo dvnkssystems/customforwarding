@@ -85,10 +85,13 @@ def make_operations_from_quote(source_name, target_doc=None):
 		if mode and frappe.db.exists("Mode Of Shipment", mode):
 			target.mode_of_shipment = mode
 
-		# Sea Shipment Type and Shipment Type spell FCL and LCL the same way.
-		shipment_type = (source.get("sea_shipment_type") or "").strip()
-		if shipment_type and frappe.db.exists("Shipment Type", shipment_type):
+		shipment_type = _shipment_type(source, mode)
+		if shipment_type:
 			target.shipment_type = shipment_type
+		if (source.get("cargo") or "").strip().lower() == "dg goods":
+			target.dg_status = 1
+
+		_set_carrier(target, source.get("carrier"), mode)
 
 		_set_place(target, "port_of_loading", "place_of_loading", source.pol, mode)
 		_set_place(target, "port_of_destination", "place_of_delivery", source.pod, mode)
@@ -98,13 +101,13 @@ def make_operations_from_quote(source_name, target_doc=None):
 		if incoterm and frappe.db.exists("Inco Terms", incoterm):
 			target.inco_terms = incoterm
 
-		commodity = (source.get("cargo_details") or "").strip()
-		if commodity and frappe.db.exists("Commodity", commodity):
+		commodity = _commodity((source.get("cargo_details") or "").strip())
+		if commodity:
 			target.commodity = commodity
 
-		# `date` is mandatory on a job but optional on a quote.
-		if not target.get("date"):
-			target.date = nowdate()
+		# The job starts today, whatever day the quote was written.
+		target.date = nowdate()
+		target.posting_date = nowdate()
 
 	return get_mapped_doc(
 		"Quote",
@@ -115,7 +118,6 @@ def make_operations_from_quote(source_name, target_doc=None):
 				"field_map": {
 					"name": "from_quotation",
 					"consignee": "customer",
-					"carrier": "vessel_name",
 					"shipment_reference": "company_ref_no",
 					"cargo_details": "cargo_description",
 				},
@@ -131,6 +133,61 @@ def make_operations_from_quote(source_name, target_doc=None):
 
 
 SAUDI_ARABIA = "Saudi Arabia"
+
+
+def _match(doctype, text):
+	"""The record named `text`, ignoring case, or None."""
+	text = (text or "").strip()
+	if not text:
+		return None
+	return frappe.db.get_value(doctype, {"name": ["like", text.replace("%", "")]}, "name")
+
+
+def _set_carrier(target, text, mode):
+	"""A quote's carrier is free text: the airline on an Air job, the shipping
+	line on a Sea job. It is never a vessel name."""
+	text = (text or "").strip()
+	if not text:
+		return
+	if mode == "Air":
+		target.air_line = text
+	elif mode == "Sea":
+		target.shipping_line = _match("Shipping Line", text)
+	carrier = _match("Carrier", text)
+	if carrier:
+		target.carrier = carrier
+
+
+def _shipment_type(source, mode):
+	"""The job's Shipment Type: DG cargo first, then FCL / LCL on Sea, then the
+	one type kept for the mode ("General Cargo - AIR", "LAND")."""
+	if (source.get("cargo") or "").strip().lower() == "dg goods" and frappe.db.exists("Shipment Type", "DG Cargo"):
+		return "DG Cargo"
+	if mode == "Sea":
+		sea = (source.get("sea_shipment_type") or "").strip()
+		return sea if sea and frappe.db.exists("Shipment Type", sea) else None
+	if not mode:
+		return None
+	types = frappe.get_all("Shipment Type", filters={"mode_of_shipment": mode, "disabled": 0}, pluck="name")
+	if len(types) == 1:
+		return types[0]
+	exact = [t for t in types if t.upper() == mode.upper()]
+	general = [t for t in types if t.lower().startswith("general cargo")]
+	return (exact or general or [None])[0]
+
+
+def _commodity(text):
+	"""The Commodity the quote's cargo names, added to the master when new so
+	the job can link it (its compliance flags start unticked, as on any new
+	commodity)."""
+	if not text:
+		return None
+	found = _match("Commodity", text)
+	if found or not frappe.has_permission("Commodity", "create"):
+		return found
+	doc = frappe.get_doc({"doctype": "Commodity", "commodity": text})
+	doc.insert()
+	return doc.name
 
 
 def _set_place(target, port_field, place_field, text, mode=None):
