@@ -371,7 +371,8 @@ def _charges(doc, linked, children):
 
 	Transportation and Custom Clearance copy their cost rows onto the job
 	(the copy's name is kept in the source row's ref_id). Those rows are
-	counted once, from the job, so the total is not doubled.
+	counted once, from the job, so the total is not doubled -- but they name
+	the record they came from as their source, not the job.
 	"""
 
 	def row(r, source_doctype, source_name):
@@ -390,14 +391,25 @@ def _charges(doc, linked, children):
 
 	job_rows = doc.get("cost_table") or []
 	on_job = {r.name for r in job_rows}
-	rows = [row(r, "Operations", doc.name) for r in job_rows]
+	origin = {}
+	extra = []
 	for dt in LINKED:
 		for parent in linked[dt]:
 			for r in children.get((dt, parent.name), {}).get("Cost Table", []):
 				if r.ref_id and r.ref_id in on_job:
+					origin.setdefault(r.ref_id, (dt, parent.name, r.name))
 					continue
-				rows.append(row(r, dt, parent.name))
-	return rows
+				extra.append(row(r, dt, parent.name))
+
+	rows = []
+	for r in job_rows:
+		if r.name in origin:
+			dt, name, origin_row = origin[r.name]
+			# Named after the origin record's row; the job's copy is job_row_name.
+			rows.append(dict(row(r, dt, name), row_name=origin_row, job_row_name=r.name))
+		else:
+			rows.append(row(r, "Operations", doc.name))
+	return rows + extra
 
 
 def _invoices(job):
