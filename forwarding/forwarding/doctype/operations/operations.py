@@ -87,10 +87,88 @@ SERVICE_FIELDS = (
 )
 
 
+# Masters a job's document checklist is built from on insert, as
+# (job field, master DocType). A master counts once it has a Table field of
+# Document Table (Shipment Type has one; Freight Activity Code does not yet,
+# so adding one as a Custom Field is enough to make it count). Activity
+# Template is matched by the job's job_type and mode_of_shipment instead of a
+# link; it has no document table today either.
+DOCUMENT_SOURCES = (
+	("shipment_type", "Shipment Type"),
+	("activity_code", "Freight Activity Code"),
+)
+DOCUMENT_TEMPLATE_DOCTYPE = "Activity Template"
+
+
+def document_table_field(doctype):
+	"""Fieldname of the doctype's Document Table, or None."""
+	if not frappe.db.exists("DocType", doctype):
+		return None
+	for df in frappe.get_meta(doctype).get_table_fields():
+		if df.options == "Document Table":
+			return df.fieldname
+	return None
+
+
+def expected_documents(job):
+	"""(document, stage) pairs the job's masters expect, in order, once each."""
+	sources = []
+	for fieldname, doctype in DOCUMENT_SOURCES:
+		if job.get(fieldname) and document_table_field(doctype):
+			sources.append((doctype, job.get(fieldname)))
+
+	if document_table_field(DOCUMENT_TEMPLATE_DOCTYPE):
+		# A template applies when each of its job_type / mode_of_shipment is
+		# blank or matches the job's.
+		for t in frappe.get_all(
+			DOCUMENT_TEMPLATE_DOCTYPE, fields=["name", "job_type", "mode_of_shipment"], order_by="name"
+		):
+			if all(not t.get(f) or t.get(f) == job.get(f) for f in ("job_type", "mode_of_shipment")):
+				sources.append((DOCUMENT_TEMPLATE_DOCTYPE, t.name))
+
+	seen, out = set(), []
+	for doctype, name in sources:
+		master = frappe.get_cached_doc(doctype, name)
+		for row in master.get(document_table_field(doctype)) or []:
+			key = (row.document, cstr(row.stage).strip())
+			if row.document and key not in seen:
+				seen.add(key)
+				out.append(key)
+	return out
+
+
 class Operations(Document):
+	def before_insert(self):
+		self.set_default_cutoffs()
+		self.set_document_checklist()
+
+	def set_default_cutoffs(self):
+		"""An export job starts with its mode's cut-off milestones, undated
+		(Sea: Rail, Inland, Container Pickup, SI, Cargo, plus AES when bound
+		for the United States; Air: SI and Cargo). Rows already given -- the
+		desk form adds the same ones -- are left as they are."""
+		if self.job_type != "Export" or self.get("cutoffs"):
+			return
+		country = self.destination_country or (
+			frappe.db.get_value("Port", self.port_of_destination, "country") if self.port_of_destination else None
+		)
+		for milestone in default_cutoff_milestones(self.mode_of_shipment, country):
+			self.append("cutoffs", {"milestone": milestone})
+
+	def set_document_checklist(self):
+		"""Add the documents the job's masters expect (expected_documents) as
+		not-yet-received rows, skipping any the job already lists."""
+		listed = {(r.document, cstr(r.stage).strip()) for r in self.get("document_table") or []}
+		listed_names = {r.document for r in self.get("document_table") or []}
+		for document, stage in expected_documents(self):
+			if (document, stage) in listed or (not stage and document in listed_names):
+				continue
+			self.append("document_table", {"document": document, "stage": stage or None, "received": "No"})
+
 	def validate(self):
 		self.set_company()
 		self.set_operation_id()
+		self.validate_ports()
 		self.validate_shipment_type()
 		self.set_services_from_activity_code()
 		self.calculate_package_totals()
@@ -163,6 +241,22 @@ class Operations(Document):
 	def set_operation_id(self):
 		"""Operation ID is the job number, not something typed in."""
 		self.operation_id = self.name
+
+	def validate_ports(self):
+		"""A shipment cannot leave from the port it is bound for.
+
+		Checked on a new job or when either port changes, so a job saved
+		before this rule can still record its dates until someone fixes it.
+		"""
+		if not self.port_of_loading or self.port_of_loading != self.port_of_destination:
+			return
+		if self.is_new() or self.has_value_changed("port_of_loading") or self.has_value_changed("port_of_destination"):
+			frappe.throw(
+				_("Port of Loading and Port of Discharge are both {0}. Choose a different port for one of them.").format(
+					frappe.bold(self.port_of_loading)
+				),
+				title=_("Same origin and destination"),
+			)
 
 	def validate_shipment_type(self):
 		"""Shipment Type must be one offered for the job's Mode of Shipment.
