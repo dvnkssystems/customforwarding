@@ -34,8 +34,9 @@ The job comes back unsaved, as a draft for someone to complete.
 """
 
 import frappe
+from frappe import _
 from frappe.model.mapper import get_mapped_doc
-from frappe.utils import flt, nowdate
+from frappe.utils import add_days, date_diff, flt, nowdate
 
 # Quote spells its modes in upper case; the Mode Of Shipment master in title case.
 MODES = {
@@ -44,6 +45,31 @@ MODES = {
 	"LAND": "Land",
 	"OTHER": "Others",
 }
+
+
+@frappe.whitelist(methods=["POST"])
+def duplicate_quote(source_name):
+	"""Copy an expired quote into a fresh one, dated today, and return its name.
+
+	An expired quote is not reused as is — its prices were valid for a window
+	that has passed — but its lines are worth keeping. The copy runs from today
+	for as many days as the original did (7 when the original had no validity),
+	and notes which quote it came from. The original is left untouched.
+	"""
+	source = frappe.get_doc("Quote", source_name)
+	source.check_permission("read")
+	frappe.has_permission("Quote", "create", throw=True)
+
+	span = 7
+	if source.date and source.validity:
+		span = max(date_diff(source.validity, source.date), 1)
+
+	copy = frappe.copy_doc(source)
+	copy.date = nowdate()
+	copy.validity = add_days(copy.date, span)
+	copy.insert()
+	copy.add_comment("Info", _("Duplicated from expired quote {0}").format(source.name))
+	return copy.name
 
 
 @frappe.whitelist()
