@@ -314,16 +314,16 @@ class TestPorts(P1TestCase):
 		with self.assertRaises(frappe.ValidationError):
 			make(mode_of_shipment="Sea", port_of_loading=port, port_of_destination=port)
 
-	def test_existing_job_saves_until_a_port_changes(self):
+	def test_existing_job_with_same_ports_must_be_fixed_to_save(self):
 		port = _port("ZZP1A", "P1 Test Port")
 		other = _port("ZZP1B", "P1 Other Port")
 		job = make(mode_of_shipment="Sea", port_of_loading=port, port_of_destination=other)
 		frappe.db.set_value("Operations", job.name, "port_of_destination", port)
 		job.reload()
-		job.save()  # an untouched legacy job still saves
-		job.port_of_loading = other
+		self.assertRaises(frappe.ValidationError, job.save)  # a legacy job is blocked too
+		job.reload()
 		job.port_of_destination = other
-		self.assertRaises(frappe.ValidationError, job.save)
+		job.save()  # and saves once corrected
 
 
 class TestWizardCargo(P1TestCase):
@@ -358,3 +358,30 @@ class TestWizardCargo(P1TestCase):
 			self.assertEqual(names.count(fieldname), 1, fieldname)
 		packages = next(r for r in cargo if r.fieldname == "packages")
 		self.assertEqual(packages.hidden, 1)
+
+
+class TestDuplicateQuote(P1TestCase):
+	# C29 — an expired quote is reused by duplicating it --------------------------
+
+	def test_expired_quote_is_copied_with_a_fresh_window(self):
+		from forwarding.quote_to_job import duplicate_quote
+
+		customer = frappe.get_all("Customer", pluck="name", limit=1)[0]
+		old = frappe.get_doc(
+			{
+				"doctype": "Quote",
+				"consignee": customer,
+				"mode": "SEA",
+				"date": add_days(nowdate(), -40),
+				"validity": add_days(nowdate(), -26),
+				"items": [{"description": "Ocean Freight", "rate": 100, "units": 1, "amount": 100}],
+			}
+		).insert(ignore_permissions=True)
+
+		name = duplicate_quote(old.name)
+		copy = frappe.get_doc("Quote", name)
+		self.assertNotEqual(name, old.name)
+		self.assertEqual(getdate(copy.date), getdate(nowdate()))
+		self.assertEqual(getdate(copy.validity), getdate(add_days(nowdate(), 14)))
+		self.assertEqual((copy.consignee, len(copy.items)), (customer, 1))
+		self.assertEqual(getdate(frappe.db.get_value("Quote", old.name, "validity")), getdate(add_days(nowdate(), -26)))

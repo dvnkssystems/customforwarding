@@ -247,18 +247,17 @@ class Operations(Document):
 	def validate_ports(self):
 		"""A shipment cannot leave from the port it is bound for.
 
-		Checked on a new job or when either port changes, so a job saved
-		before this rule can still record its dates until someone fixes it.
+		Checked on every save, so a job saved before this rule has to be
+		corrected before anything else on it is.
 		"""
 		if not self.port_of_loading or self.port_of_loading != self.port_of_destination:
 			return
-		if self.is_new() or self.has_value_changed("port_of_loading") or self.has_value_changed("port_of_destination"):
-			frappe.throw(
-				_("Port of Loading and Port of Discharge are both {0}. Choose a different port for one of them.").format(
-					frappe.bold(self.port_of_loading)
-				),
-				title=_("Same origin and destination"),
-			)
+		frappe.throw(
+			_("Port of Loading and Port of Discharge are both {0}. Choose a different port for one of them.").format(
+				frappe.bold(self.port_of_loading)
+			),
+			title=_("Same origin and destination"),
+		)
 
 	def validate_shipment_type(self):
 		"""Shipment Type must be one offered for the job's Mode of Shipment.
