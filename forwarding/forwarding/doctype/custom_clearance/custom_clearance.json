@@ -34,6 +34,10 @@
   "undertaking_date",
   "column_break_ut",
   "due_date",
+  "clearance_containers_section",
+  "clearance_containers",
+  "clearance_documents_section",
+  "clearance_documents",
   "section_break_18",
   "document_table",
   "section_break_20",
@@ -247,6 +251,29 @@
    "fieldname": "duty_amount_client",
    "fieldtype": "Currency",
    "label": "Duty Amount - Client"
+  },
+  {
+   "fieldname": "clearance_containers_section",
+   "fieldtype": "Section Break",
+   "label": "Containers"
+  },
+  {
+   "fieldname": "clearance_containers",
+   "fieldtype": "Table",
+   "label": "Container Clearance",
+   "options": "Operations Clearance Container"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "clearance_documents_section",
+   "fieldtype": "Section Break",
+   "label": "Clearance Documents"
+  },
+  {
+   "fieldname": "clearance_documents",
+   "fieldtype": "Table",
+   "label": "Clearance Documents",
+   "options": "Operations Clearance Document"
   }
  ],
  "index_web_pages_for_search": 1,
@@ -256,7 +283,7 @@
    "link_fieldname": "custom_clearance_id"
   }
  ],
- "modified": "2026-10-21 12:00:00.000000",
+ "modified": "2026-10-21 12:05:00.000000",
  "modified_by": "Administrator",
  "module": "Forwarding",
  "name": "Custom Clearance",

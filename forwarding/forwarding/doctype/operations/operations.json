@@ -1200,11 +1200,13 @@
   {
    "fieldname": "clearance_containers_section",
    "fieldtype": "Section Break",
+   "hidden": 1,
    "label": "Containers"
   },
   {
    "fieldname": "clearance_containers",
    "fieldtype": "Table",
+   "hidden": 1,
    "label": "Container Clearance",
    "options": "Operations Clearance Container"
   },
@@ -1259,11 +1261,13 @@
    "collapsible": 1,
    "fieldname": "clearance_documents_section",
    "fieldtype": "Section Break",
+   "hidden": 1,
    "label": "Clearance Documents"
   },
   {
    "fieldname": "clearance_documents",
    "fieldtype": "Table",
+   "hidden": 1,
    "label": "Clearance Documents",
    "options": "Operations Clearance Document"
   },
@@ -1449,7 +1453,7 @@
    "link_fieldname": "operations"
   }
  ],
- "modified": "2026-10-21 12:00:00.000000",
+ "modified": "2026-10-21 12:05:00.000000",
  "modified_by": "Administrator",
  "module": "Forwarding",
  "name": "Operations",
