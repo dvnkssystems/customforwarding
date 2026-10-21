@@ -23,13 +23,19 @@ def apply(doc, method=None):
 
 
 def set_document_received(doc):
-	"""Attaching a file means the document is in hand: mark it received and
-	date it today unless a date was already entered."""
+	"""Attaching a file means the document is in hand: mark it received.
+
+	A row's date is the day it was received: today when it becomes received
+	without one, and none while it is not received (rows copied from the job
+	or a Shipment Type used to arrive dated)."""
 	for row in doc.get("document_table") or []:
 		if row.attach and cstr(row.received).strip() != "Yes":
 			row.received = "Yes"
+		if cstr(row.received).strip() == "Yes":
 			if not row.date:
 				row.date = nowdate()
+		elif row.date:
+			row.date = None
 
 
 def set_cost_amounts(doc):
@@ -73,6 +79,8 @@ def copy_from_job(doc, fieldname, condition=None):
 		if condition and not condition(source):
 			continue
 		row = doc.append(fieldname, source.as_dict(no_default_fields=True))
+		if fieldname == "document_table" and cstr(row.received).strip() != "Yes":
+			row.date = None
 		row.db_insert()
 		copied += 1
 	return copied

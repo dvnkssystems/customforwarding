@@ -19,7 +19,7 @@ import json
 
 import frappe
 from frappe import _
-from frappe.utils import cint, cstr, date_diff, flt, getdate, nowdate
+from frappe.utils import cint, cstr, date_diff, flt, get_datetime, getdate, nowdate
 
 from forwarding import banners as job_banners
 from forwarding import party_360
@@ -248,6 +248,7 @@ LINKED_FIELDS = {
 		"destination_location",
 		"transport_status",
 		"modified",
+		"creation",
 	],
 	"Custom Clearance": [
 		"name",
@@ -258,6 +259,7 @@ LINKED_FIELDS = {
 		"broker_name",
 		"transporter_name",
 		"modified",
+		"creation",
 	],
 }
 INVOICE_FIELDS = [
@@ -326,6 +328,8 @@ def _child_rows(parents):
 				"paid_amount",
 				"received_amount",
 				"ref_id",
+				"ref_docname",
+				"creation",
 				"idx",
 			],
 		),
@@ -390,16 +394,17 @@ def _charges(doc, linked, children):
 		}
 
 	job_rows = doc.get("cost_table") or []
-	on_job = {r.name for r in job_rows}
+	on_job = {r.name: r for r in job_rows}
 	origin = {}
 	extra = []
 	for dt in LINKED:
 		for parent in linked[dt]:
 			for r in children.get((dt, parent.name), {}).get("Cost Table", []):
-				if r.ref_id and r.ref_id in on_job:
-					origin.setdefault(r.ref_id, (dt, parent.name, r.name))
-					continue
-				extra.append(row(r, dt, parent.name))
+				copy = on_job.get(r.ref_id) if r.ref_id else None
+				if not copy:
+					extra.append(row(r, dt, parent.name))
+				elif _copied_from(copy, parent):
+					origin.setdefault(copy.name, (dt, parent.name, r.name))
 
 	rows = []
 	for r in job_rows:
@@ -410,6 +415,21 @@ def _charges(doc, linked, children):
 		else:
 			rows.append(row(r, "Operations", doc.name))
 	return rows + extra
+
+
+def _copied_from(job_row, parent):
+	"""Whether the job's cost row was made from the linked record's row, not
+	the other way round (the Create menu copies the job's rows onto a new
+	Transportation, and those rows point at the job's by ref_id too).
+
+	Copies made since C7 name their record in ref_docname. Older ones do not;
+	they were written while the record was being saved, so after it existed.
+	"""
+	if job_row.get("ref_docname"):
+		return job_row.ref_docname == parent.name
+	if not (job_row.get("creation") and parent.get("creation")):
+		return False
+	return get_datetime(job_row.creation) >= get_datetime(parent.creation)
 
 
 def _invoices(job):
@@ -533,7 +553,8 @@ def _milestones(doc, cutoffs, submitted_si, today):
 		}
 
 	finished = cstr(doc.operations_status).lower() in job_banners.FINISHED
-	rows = [ms("created", _("Job created"), actual=getdate(doc.creation))]
+	# The job's own Date, as the header shows it; creation only if it has none.
+	rows = [ms("created", _("Job created"), actual=getdate(doc.get("date") or doc.creation))]
 
 	cutoff_state = {"Passed": "overdue", "Due Today": "due", "Upcoming": "upcoming"}
 	for i, c in enumerate(cutoffs):
@@ -751,7 +772,7 @@ def _linked_by_job(names):
 		for row in frappe.get_all(
 			dt,
 			filters={"operations": ["in", names], "docstatus": ["<", 2]},
-			fields=["name", "operations"],
+			fields=["name", "operations", "creation"],
 			order_by="creation asc",
 		):
 			grouped.setdefault(row.operations, {d: [] for d in LINKED})[dt].append(row)
