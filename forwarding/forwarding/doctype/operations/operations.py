@@ -182,6 +182,18 @@ class Operations(Document):
 		self.set_billing_status()
 		self.warn_missing_documents()
 
+	def before_update_after_submit(self):
+		"""Ops keep a submitted job current (schedule, cut-offs, containers,
+		documents): those fields are Allow on Submit. Re-derive what follows
+		from them, as validate does for a draft."""
+		self.set_free_time_expiry()
+		self.validate_cutoffs()
+		self.set_cutoff_status()
+		self.sync_container_rows()
+
+	def on_update_after_submit(self):
+		self.sync_clearance_containers()
+
 	def onload(self):
 		# Stored statuses age with the clock; show them as of now.
 		self.set_cutoff_status()
@@ -385,12 +397,12 @@ class Operations(Document):
 		A container is added once it has a number, and rows are never removed
 		here: a container can run several transport legs with different
 		transporters. To drop a container, remove it from the Container tab.
-		Submitted jobs are left alone, since their tables are locked.
+		Cancelled jobs are left alone.
 
 		Container clearance rows belong to the job's Custom Clearance (D5):
 		on_update hands new containers to it (sync_clearance_containers).
 		"""
-		if self.docstatus != 0:
+		if self.docstatus == 2:
 			return
 
 		containers = job_containers(self)

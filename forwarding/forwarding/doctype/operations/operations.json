@@ -418,6 +418,7 @@
    "options": "Port"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "carrier",
    "fieldtype": "Link",
    "label": "Carrier",
@@ -451,6 +452,7 @@
    "read_only": 1
   },
   {
+   "allow_on_submit": 1,
    "depends_on": "eval:doc.mode_of_shipment==\"Sea\" || doc.vessel_name",
    "fieldname": "vessel_name",
    "fieldtype": "Data",
@@ -473,16 +475,19 @@
    "fieldtype": "Column Break"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "awb_number",
    "fieldtype": "Data",
    "label": "BL/AWB Number"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "awb_date",
    "fieldtype": "Date",
    "label": "BL/AWB Date"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "house_number",
    "fieldtype": "Data",
    "label": "HBL/HAWB Number"
@@ -492,22 +497,26 @@
    "fieldtype": "Column Break"
   },
   {
+   "allow_on_submit": 1,
    "depends_on": "eval:doc.mode_of_shipment==\"Sea\" || doc.voyage_number",
    "fieldname": "voyage_number",
    "fieldtype": "Data",
    "label": "Voyage Number"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "etd_date",
    "fieldtype": "Date",
    "label": "ETD Date"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "atd_date",
    "fieldtype": "Date",
    "label": "ATD Date"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "atd_delay_reason",
    "fieldtype": "Data",
    "label": "ATD Delay Reason"
@@ -517,16 +526,19 @@
    "fieldtype": "Column Break"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "eta_date",
    "fieldtype": "Date",
    "label": "ETA Date"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "ata_date",
    "fieldtype": "Date",
    "label": "ATA Date"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "ata_delay_reason",
    "fieldtype": "Data",
    "label": "ATA Delay Reason"
@@ -687,6 +699,7 @@
    "reqd": 1
   },
   {
+   "allow_on_submit": 1,
    "depends_on": "eval:doc.mode_of_shipment==\"Sea\" || doc.shipping_line",
    "fieldname": "shipping_line",
    "fieldtype": "Link",
@@ -701,18 +714,21 @@
    "options": "Movement Type"
   },
   {
+   "allow_on_submit": 1,
    "depends_on": "eval:doc.mode_of_shipment==\"Air\" || doc.air_line",
    "fieldname": "air_line",
    "fieldtype": "Data",
    "label": "Air Line"
   },
   {
+   "allow_on_submit": 1,
    "depends_on": "eval:doc.mode_of_shipment==\"Air\" || doc.flight_number",
    "fieldname": "flight_number",
    "fieldtype": "Data",
    "label": "Flight Number"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "transit_time",
    "fieldtype": "Data",
    "label": "Transit Time"
@@ -729,6 +745,7 @@
    "fieldtype": "Section Break"
   },
   {
+   "allow_on_submit": 1,
    "default": "Container Details",
    "depends_on": "eval:(doc.container_details||[]).length || (doc.mode_of_shipment!=\"Air\" && (!doc.cargo_layout || doc.cargo_layout==\"Containers\"))",
    "fieldname": "container_details",
@@ -756,6 +773,7 @@
    "label": "Free Time"
   },
   {
+   "allow_on_submit": 1,
    "description": "Container return grace period, counted from ETA",
    "fieldname": "free_time_days",
    "fieldtype": "Int",
@@ -763,6 +781,7 @@
    "non_negative": 1
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "free_time_expiry",
    "fieldtype": "Date",
    "label": "Free Time Expires",
@@ -775,11 +794,13 @@
    "label": "Calculate Weight"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "place_of_delivery",
    "fieldtype": "Data",
    "label": "Place of Delivery"
   },
   {
+   "allow_on_submit": 1,
    "default": "Open",
    "fieldname": "operations_status",
    "fieldtype": "Link",
@@ -806,6 +827,7 @@
    "fieldtype": "Column Break"
   },
   {
+   "allow_on_submit": 1,
    "default": "0",
    "fieldname": "is_favorite",
    "fieldtype": "Check",
@@ -813,6 +835,7 @@
    "label": "Is Favorite"
   },
   {
+   "allow_on_submit": 1,
    "default": "0",
    "fieldname": "is_trashed",
    "fieldtype": "Check",
@@ -828,6 +851,7 @@
    "fieldtype": "Section Break"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "document_table",
    "fieldtype": "Table",
    "label": "Document Table",
@@ -1023,16 +1047,19 @@
    "label": "Pickup & Delivery"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "pickup_date",
    "fieldtype": "Date",
    "label": "Pickup Date"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "pickup_reason",
    "fieldtype": "Data",
    "label": "Reason for Pickup Change"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "pickup_address",
    "fieldtype": "Small Text",
    "label": "Pickup Address"
@@ -1042,11 +1069,13 @@
    "fieldtype": "Column Break"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "delivery_date",
    "fieldtype": "Date",
    "label": "Delivery Date"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "delivery_address",
    "fieldtype": "Small Text",
    "label": "Delivery Address"
@@ -1064,11 +1093,13 @@
    "read_only_depends_on": "eval:(doc.package_details||[]).length"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "location_in_port",
    "fieldtype": "Data",
    "label": "Location In Port"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "edi_rotation_no",
    "fieldtype": "Data",
    "label": "EDI Rotation No"
@@ -1084,6 +1115,7 @@
    "options": "Operations Supplier"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "supplier_ref_no",
    "fieldtype": "Data",
    "label": "Supplier Ref No"
@@ -1113,21 +1145,25 @@
    "label": "Documents & D.O"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "type_of_clearance",
    "fieldtype": "Data",
    "label": "Type of Clearance"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "docs_copy_received_date",
    "fieldtype": "Date",
    "label": "Docs Copy Received Date"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "bl_receive_date",
    "fieldtype": "Date",
    "label": "BL Receive Date"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "original_docs_received_date",
    "fieldtype": "Date",
    "label": "Original Docs Received Date"
@@ -1137,6 +1173,7 @@
    "fieldtype": "Column Break"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "saber_certificate_date",
    "fieldtype": "Date",
    "label": "Saber Certificate Date"
@@ -1182,6 +1219,7 @@
    "label": "Duty Amount - Client"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "demurrage_date",
    "fieldtype": "Date",
    "label": "Demurrage Date"
@@ -1193,6 +1231,7 @@
    "label": "Clearance Date"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "do_remarks",
    "fieldtype": "Small Text",
    "label": "Remarks"
@@ -1217,16 +1256,19 @@
    "label": "Lab & Undertaking"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "commercial_invoice_no",
    "fieldtype": "Data",
    "label": "Commercial Invoice No"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "lab_submission_date",
    "fieldtype": "Date",
    "label": "Lab Submission Date"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "lab_undertaking_start_date",
    "fieldtype": "Date",
    "label": "Lab Undertaking Start Date"
@@ -1236,12 +1278,14 @@
    "fieldtype": "Column Break"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "lab_cleared_status",
    "fieldtype": "Select",
    "label": "Lab Cleared Status",
    "options": "\nCleared\nRejected"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "lab_cleared_date",
    "fieldtype": "Date",
    "label": "Lab Cleared Date"
@@ -1253,6 +1297,7 @@
    "options": "Operations Permit"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "clearance_remarks",
    "fieldtype": "Small Text",
    "label": "Remarks"
@@ -1278,21 +1323,25 @@
    "label": "Warehousing"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "wh_reference_no",
    "fieldtype": "Data",
    "label": "Reference No"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "wh_delivery_date",
    "fieldtype": "Date",
    "label": "Delivery Date"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "wh_shipment_received",
    "fieldtype": "Date",
    "label": "Shipment Received"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "wh_storage_period",
    "fieldtype": "Data",
    "label": "Storage Period"
@@ -1302,16 +1351,19 @@
    "fieldtype": "Column Break"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "wh_storage_type",
    "fieldtype": "Data",
    "label": "Storage Type"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "wh_eir_no",
    "fieldtype": "Data",
    "label": "EIR No"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "wh_temperature",
    "fieldtype": "Data",
    "label": "Temperature"
@@ -1386,6 +1438,7 @@
    "label": "Container Movements"
   },
   {
+   "allow_on_submit": 1,
    "depends_on": "eval:doc.mode_of_shipment!='Air' || (doc.transport_container_legs||[]).length",
    "fieldname": "transport_container_legs",
    "fieldtype": "Table",
@@ -1398,6 +1451,7 @@
    "label": "Package Movements"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "transport_package_legs",
    "fieldtype": "Table",
    "label": "Package Movements",
@@ -1409,6 +1463,7 @@
    "label": "Costing & Documents"
   },
   {
+   "allow_on_submit": 1,
    "depends_on": "eval:doc.operations_status=='On Hold'",
    "fieldname": "hold_reason",
    "fieldtype": "Small Text",
@@ -1422,6 +1477,7 @@
    "label": "Cut-offs"
   },
   {
+   "allow_on_submit": 1,
    "depends_on": "eval:doc.job_type=='Export' || (doc.cutoffs||[]).length",
    "fieldname": "cutoffs",
    "fieldtype": "Table",
@@ -1453,7 +1509,7 @@
    "link_fieldname": "operations"
   }
  ],
- "modified": "2026-10-21 12:05:00.000000",
+ "modified": "2026-10-21 16:30:00.000000",
  "modified_by": "Administrator",
  "module": "Forwarding",
  "name": "Operations",
