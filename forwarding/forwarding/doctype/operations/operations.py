@@ -170,9 +170,9 @@ class Operations(Document):
 	def validate(self):
 		self.set_company()
 		self.set_operation_id()
-		self.validate_ports()
 		self.validate_shipment_type()
 		self.set_services_from_activity_code()
+		self.validate_ports()
 		self.calculate_package_totals()
 		self.set_free_time_expiry()
 		self.set_chargeable_weight()
@@ -260,8 +260,13 @@ class Operations(Document):
 		"""A shipment cannot leave from the port it is bound for.
 
 		Checked on every save, so a job saved before this rule has to be
-		corrected before anything else on it is.
+		corrected before anything else on it is. Only a freight forwarding job
+		moves cargo between two ports: a customs-only or local transport job
+		can name one location for both.
 		"""
+		# `freight_forwarding` is the old service flag, still "1" on older jobs.
+		if not (cint(self.svc_freight_forwarding) or cstr(self.freight_forwarding) == "1"):
+			return
 		if not self.port_of_loading or self.port_of_loading != self.port_of_destination:
 			return
 		frappe.throw(

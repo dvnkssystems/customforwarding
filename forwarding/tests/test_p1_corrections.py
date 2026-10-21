@@ -312,12 +312,12 @@ class TestPorts(P1TestCase):
 	def test_same_origin_and_destination_refused(self):
 		port = _port("ZZP1A", "P1 Test Port")
 		with self.assertRaises(frappe.ValidationError):
-			make(mode_of_shipment="Sea", port_of_loading=port, port_of_destination=port)
+			make(mode_of_shipment="Sea", svc_freight_forwarding=1, port_of_loading=port, port_of_destination=port)
 
 	def test_existing_job_with_same_ports_must_be_fixed_to_save(self):
 		port = _port("ZZP1A", "P1 Test Port")
 		other = _port("ZZP1B", "P1 Other Port")
-		job = make(mode_of_shipment="Sea", port_of_loading=port, port_of_destination=other)
+		job = make(mode_of_shipment="Sea", svc_freight_forwarding=1, port_of_loading=port, port_of_destination=other)
 		frappe.db.set_value("Operations", job.name, "port_of_destination", port)
 		job.reload()
 		self.assertRaises(frappe.ValidationError, job.save)  # a legacy job is blocked too
