@@ -19,14 +19,18 @@ What the mapping can and cannot carry:
   `item_name` and the two links stay empty for whoever prices the job. Those
   rows carry no Item or Account until someone fills them in, so they do not
   reach the ledger on their own.
-* Ports are free text on a quote and Links on a job, and none of the text in use
-  matches the port master — which holds 42,000 records under three naming
-  conventions. So the text lands in the Place of Loading / Delivery beside each
-  Link, and the Link is left for the user to choose.
+* Ports are free text on a quote and Links on a job, and the port master holds
+  42,000 records under several naming conventions — Jeddah alone is there three
+  times. A port is filled only when the text names exactly one record for the
+  job's mode (see `_resolve_port`); otherwise the text lands in the Place of
+  Loading / Delivery beside the Link and the Link is left for the user.
+* A quote records no branch, job type or service type, so they are derived from
+  the resolved ports: a Saudi destination makes an import, a Saudi origin an
+  export; the Saudi port's city names the branch; mode and direction name the
+  service ("Sea Freight Import"). Each is set only when it resolves to a real
+  record, so nothing reads as chosen when it was guessed.
 
-The job comes back unsaved. `Operations` requires a branch and a job type that a
-quote does not record, so it opens as a draft for someone to complete rather
-than being saved with values nobody chose.
+The job comes back unsaved, as a draft for someone to complete.
 """
 
 import frappe
@@ -60,8 +64,17 @@ def make_operations_from_quote(source_name, target_doc=None):
 		if shipment_type and frappe.db.exists("Shipment Type", shipment_type):
 			target.shipment_type = shipment_type
 
-		_set_place(target, "port_of_loading", "place_of_loading", source.pol)
-		_set_place(target, "port_of_destination", "place_of_delivery", source.pod)
+		_set_place(target, "port_of_loading", "place_of_loading", source.pol, mode)
+		_set_place(target, "port_of_destination", "place_of_delivery", source.pod, mode)
+		_set_direction(target, mode)
+
+		incoterm = (source.get("shipping_terms") or "").strip()
+		if incoterm and frappe.db.exists("Inco Terms", incoterm):
+			target.inco_terms = incoterm
+
+		commodity = (source.get("cargo_details") or "").strip()
+		if commodity and frappe.db.exists("Commodity", commodity):
+			target.commodity = commodity
 
 		# `date` is mandatory on a job but optional on a quote.
 		if not target.get("date"):
@@ -91,19 +104,78 @@ def make_operations_from_quote(source_name, target_doc=None):
 	)
 
 
-def _set_place(target, port_field, place_field, text):
-	"""Use the port master where the text names a record, else keep the text.
+SAUDI_ARABIA = "Saudi Arabia"
 
-	An exact match is the only one taken. The master carries several spellings of
-	the same place — Jeddah is there as `JEDSA-JEDDAH`, `SAJED-Jeddah islamic
-	port` and `JEDDAH AIRPORT` — so guessing would pick the wrong one about as
-	often as the right one, and a wrong port reads as though someone chose it.
-	"""
+
+def _set_place(target, port_field, place_field, text, mode=None):
+	"""Use the port master where the text names one record, else keep the text."""
 	text = (text or "").strip()
 	if not text:
 		return
 
-	if frappe.db.exists("Port", text):
-		target.set(port_field, text)
+	port = _resolve_port(text, mode)
+	if port:
+		target.set(port_field, port)
 	else:
 		target.set(place_field, text)
+
+
+def _resolve_port(text, mode=None):
+	"""The one Port the text names for this mode, or None when it is ambiguous.
+
+	A record name is taken as is. Otherwise ports whose `port_name` matches the
+	text (ignoring case) are narrowed by the job's mode — Hamburg is `HAM` by air
+	and `DEHAM` by sea — and then by quality: a record named `<code>-<name>` with
+	a real country beats a stray `port_code-…` row or one filed under "All
+	Territories". Anything still tied is left for the user; a wrong port reads as
+	though someone chose it.
+	"""
+	if frappe.db.exists("Port", text):
+		return text
+
+	candidates = frappe.get_all(
+		"Port",
+		filters={"port_name": text},
+		fields=["name", "port_code", "port_name", "country", "mode_of_shipment"],
+	)
+	if mode:
+		same_mode = [c for c in candidates if c.mode_of_shipment == mode]
+		candidates = same_mode or [c for c in candidates if not c.mode_of_shipment]
+	if len(candidates) > 1:
+		well_formed = [
+			c
+			for c in candidates
+			if c.port_code
+			and c.name == f"{c.port_code}-{c.port_name}"
+			and c.country not in (None, "", "All Territories")
+		]
+		candidates = well_formed or candidates
+	return candidates[0].name if len(candidates) == 1 else None
+
+
+def _set_direction(target, mode):
+	"""Job type, branch and service type, from where the cargo starts and ends."""
+	origin = _port_country(target.get("port_of_loading"))
+	destination = _port_country(target.get("port_of_destination"))
+	if destination == SAUDI_ARABIA and origin != SAUDI_ARABIA:
+		job_type, saudi_port = "Import", target.get("port_of_destination")
+	elif origin == SAUDI_ARABIA and destination != SAUDI_ARABIA:
+		job_type, saudi_port = "Export", target.get("port_of_loading")
+	else:
+		return
+
+	if frappe.db.exists("Job Type", job_type):
+		target.job_type = job_type
+
+	city = (frappe.db.get_value("Port", saudi_port, "port_name") or "").upper()
+	branch = next((b for b in frappe.get_all("Branch", pluck="name") if b.upper() in city.split()), None)
+	if branch:
+		target.branch = branch
+
+	service = f"{mode} Freight {job_type}" if mode else None
+	if service and frappe.db.exists("Freight Activity Code", service):
+		target.activity_code = service
+
+
+def _port_country(port):
+	return frappe.db.get_value("Port", port, "country") if port else None

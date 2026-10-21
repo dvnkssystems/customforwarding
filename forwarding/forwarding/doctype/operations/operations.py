@@ -309,7 +309,34 @@ class Operations(Document):
 
 		self.billing_status = "No Invoice" if self.is_new() else get_billing_status(self.name)
 
+	def ensure_project(self):
+		"""Give the job its Project, named after the job.
+
+		Per-job accounting runs through Project: the site's Sales and Purchase
+		Invoice client scripts set `project` to the job's name, and Payment Entry
+		and Estimation vs Actual read it the same way. Only a desk client script
+		used to create it, after save — so a job saved any other way (the app, an
+		import, a script) had none, and every invoice raised from it failed with
+		"Could not find Project".
+		"""
+		if self.project and frappe.db.exists("Project", self.project):
+			return
+		if not frappe.db.exists("Project", self.name):
+			project = frappe.get_doc(
+				{
+					"doctype": "Project",
+					"project_name": self.name,
+					"company": self.company,
+					"customer": self.customer,
+					"cost_center": self.cost_center,
+				}
+			)
+			project.flags.ignore_permissions = True
+			project.insert(set_name=self.name)
+		self.db_set("project", self.name, update_modified=False)
+
 	def on_update(self):
+		self.ensure_project()
 		fields_to_transfer = ['awb_number']
 		fields_to_transfer_project = ['cost_center']
 		if self.freight:
@@ -432,6 +459,24 @@ def make_transportaion(source_name, target_doc=None, ignore_permissions=False):
 
 	return doclist
 	
+def _invoice_from_today(target):
+	"""Undo what the job's same-named fields did to a mapped invoice.
+
+	get_mapped_doc copies every field the two doctypes share. The job's
+	`posting_date` landed on the invoice and the due date was worked out from
+	it; saving then moved the posting date to today (posting time is not set)
+	and left the due date behind it — "Due Date cannot be before Posting Date"
+	on any job older than its credit days. The job's `naming_series` landed too,
+	so invoices were numbered like jobs ("branch_abb-job_type_abb-…"). Both go
+	back to the invoice's own defaults.
+	"""
+	target.posting_date = nowdate()
+	target.due_date = None
+	if target.meta.has_field("bill_date"):
+		target.bill_date = None
+	target.naming_series = None
+
+
 @frappe.whitelist()
 def make_sales_invoice(source_name, target_doc=None, ignore_permissions=False):
 	def postprocess(source, target):
@@ -443,6 +488,7 @@ def make_sales_invoice(source_name, target_doc=None, ignore_permissions=False):
 	def set_missing_values(source, target):
 		target.ignore_pricing_rule = 1
 		target.flags.ignore_permissions = True
+		_invoice_from_today(target)
 		target.run_method("set_missing_values")
 		target.run_method("set_po_nos")
 		target.run_method("calculate_taxes_and_totals")
@@ -519,6 +565,7 @@ def make_purchase_invoice(source_name, target_doc=None, ignore_permissions=False
 	def set_missing_values(source, target):
 		target.ignore_pricing_rule = 1
 		target.flags.ignore_permissions = True
+		_invoice_from_today(target)
 		target.run_method("set_missing_values")
 		target.run_method("calculate_taxes_and_totals")
 
