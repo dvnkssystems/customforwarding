@@ -1154,18 +1154,21 @@
    "allow_on_submit": 1,
    "fieldname": "docs_copy_received_date",
    "fieldtype": "Date",
+   "hidden": 1,
    "label": "Docs Copy Received Date"
   },
   {
    "allow_on_submit": 1,
    "fieldname": "bl_receive_date",
    "fieldtype": "Date",
+   "hidden": 1,
    "label": "BL Receive Date"
   },
   {
    "allow_on_submit": 1,
    "fieldname": "original_docs_received_date",
    "fieldtype": "Date",
+   "hidden": 1,
    "label": "Original Docs Received Date"
   },
   {
@@ -1176,6 +1179,7 @@
    "allow_on_submit": 1,
    "fieldname": "saber_certificate_date",
    "fieldtype": "Date",
+   "hidden": 1,
    "label": "Saber Certificate Date"
   },
   {
@@ -1509,7 +1513,7 @@
    "link_fieldname": "operations"
   }
  ],
- "modified": "2026-10-21 16:30:00.000000",
+ "modified": "2026-10-21 18:00:00.000000",
  "modified_by": "Administrator",
  "module": "Forwarding",
  "name": "Operations",
