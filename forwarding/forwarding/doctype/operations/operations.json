@@ -1144,21 +1144,25 @@
   {
    "fieldname": "bayan_date",
    "fieldtype": "Date",
+   "hidden": 1,
    "label": "Custom Declaration (Bayan) Date"
   },
   {
    "fieldname": "bayan_no",
    "fieldtype": "Data",
+   "hidden": 1,
    "label": "Custom Declaration (Bayan) No"
   },
   {
    "fieldname": "do_date",
    "fieldtype": "Date",
+   "hidden": 1,
    "label": "DO Date"
   },
   {
    "fieldname": "do_no",
    "fieldtype": "Data",
+   "hidden": 1,
    "label": "D.O No"
   },
   {
@@ -1168,11 +1172,13 @@
   {
    "fieldname": "duty_amount_company",
    "fieldtype": "Currency",
+   "hidden": 1,
    "label": "Duty Amount - Company"
   },
   {
    "fieldname": "duty_amount_client",
    "fieldtype": "Currency",
+   "hidden": 1,
    "label": "Duty Amount - Client"
   },
   {
@@ -1183,6 +1189,7 @@
   {
    "fieldname": "clearance_date",
    "fieldtype": "Date",
+   "hidden": 1,
    "label": "Clearance Date"
   },
   {

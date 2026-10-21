@@ -23,3 +23,4 @@ forwarding.patches.v1_0.update_customs_banner_rule
 forwarding.patches.v1_0.add_wizard_cargo_fields
 forwarding.patches.v1_0.recompute_package_totals
 forwarding.patches.v1_0.reset_job_field_order
+forwarding.patches.v1_0.move_clearance_fields_to_custom_clearance

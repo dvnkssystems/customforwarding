@@ -546,8 +546,12 @@ def make_custom_clearance(source_name, target_doc=None, ignore_permissions=False
 	doclist = get_mapped_doc("Operations", source_name, {
 		"Operations": {
 			"doctype": "Custom Clearance",
+			# Clearance values a job still carries from before the clearance
+			# owned them (D3); same-named fields map on their own.
 			"field_map": {
-
+				"bayan_no": "bayyan_number",
+				"bayan_date": "bayyan_date",
+				"do_no": "do_number",
 			}
 		},
 		# Only the documents for the customs stage belong to the clearance.

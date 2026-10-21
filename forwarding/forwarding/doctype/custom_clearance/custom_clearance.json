@@ -13,6 +13,7 @@
   "clearance_status",
   "bayyan_number",
   "bayyan_date",
+  "clearance_date",
   "column_break_8",
   "clearance_done_by",
   "broker_name",
@@ -20,9 +21,14 @@
   "transporter_name",
   "delivery_order_section",
   "do_number",
+  "do_date",
   "start_date",
   "column_break_do",
   "end_date",
+  "duty_section",
+  "duty_amount_company",
+  "column_break_duty",
+  "duty_amount_client",
   "undertaking_section",
   "undertaking_no",
   "undertaking_date",
@@ -212,6 +218,35 @@
    "fieldtype": "Data",
    "hidden": 1,
    "label": "Shipping Status"
+  },
+  {
+   "fieldname": "clearance_date",
+   "fieldtype": "Date",
+   "label": "Clearance Date"
+  },
+  {
+   "fieldname": "do_date",
+   "fieldtype": "Date",
+   "label": "DO Date"
+  },
+  {
+   "fieldname": "duty_section",
+   "fieldtype": "Section Break",
+   "label": "Duty"
+  },
+  {
+   "fieldname": "duty_amount_company",
+   "fieldtype": "Currency",
+   "label": "Duty Amount - Company"
+  },
+  {
+   "fieldname": "column_break_duty",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "duty_amount_client",
+   "fieldtype": "Currency",
+   "label": "Duty Amount - Client"
   }
  ],
  "index_web_pages_for_search": 1,
@@ -221,7 +256,7 @@
    "link_fieldname": "custom_clearance_id"
   }
  ],
- "modified": "2026-10-20 12:00:00.000000",
+ "modified": "2026-10-21 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Forwarding",
  "name": "Custom Clearance",
