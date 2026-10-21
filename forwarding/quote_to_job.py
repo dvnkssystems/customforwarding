@@ -92,6 +92,10 @@ def make_operations_from_quote(source_name, target_doc=None):
 			target.dg_status = 1
 
 		_set_carrier(target, source.get("carrier"), mode)
+		# The quote's consignee is the customer (mapped above); the job's own
+		# Consignee field links a Consignee record, which a customer is not.
+		if target.get("consignee") and not frappe.db.exists("Consignee", target.consignee):
+			target.consignee = None
 
 		_set_place(target, "port_of_loading", "place_of_loading", source.pol, mode)
 		_set_place(target, "port_of_destination", "place_of_delivery", source.pod, mode)
@@ -153,9 +157,9 @@ def _set_carrier(target, text, mode):
 		target.air_line = text
 	elif mode == "Sea":
 		target.shipping_line = _match("Shipping Line", text)
-	carrier = _match("Carrier", text)
-	if carrier:
-		target.carrier = carrier
+	# Same fieldname, so the mapper copied the text as is; keep it only when it
+	# names a Carrier record.
+	target.carrier = _match("Carrier", text)
 
 
 def _shipment_type(source, mode):
@@ -177,17 +181,25 @@ def _shipment_type(source, mode):
 
 
 def _commodity(text):
-	"""The Commodity the quote's cargo names, added to the master when new so
-	the job can link it (its compliance flags start unticked, as on any new
-	commodity)."""
+	"""The Commodity the quote's cargo names, if the master has it. A new one
+	is added only when the job is saved (commodity_from_quote), so picking a
+	quote and walking away leaves no trace."""
+	return _match("Commodity", text) if text else None
+
+
+def commodity_from_quote(job):
+	"""On saving a job made from a quote with no commodity, link the quote's
+	cargo, adding it to the Commodity master when new (its compliance flags
+	start unticked, as on any new commodity)."""
+	if job.get("commodity") or not job.get("from_quotation") or not job.is_new():
+		return
+	text = (frappe.db.get_value("Quote", job.from_quotation, "cargo_details") or "").strip()
 	if not text:
-		return None
+		return
 	found = _match("Commodity", text)
-	if found or not frappe.has_permission("Commodity", "create"):
-		return found
-	doc = frappe.get_doc({"doctype": "Commodity", "commodity": text})
-	doc.insert()
-	return doc.name
+	if not found and frappe.has_permission("Commodity", "create"):
+		found = frappe.get_doc({"doctype": "Commodity", "commodity": text}).insert().name
+	job.commodity = found
 
 
 def _set_place(target, port_field, place_field, text, mode=None):

@@ -167,6 +167,11 @@ class Operations(Document):
 				continue
 			self.append("document_table", {"document": document, "stage": stage or None, "received": "No"})
 
+	def before_validate(self):
+		from forwarding.quote_to_job import commodity_from_quote
+
+		commodity_from_quote(self)
+
 	def validate(self):
 		self.set_company()
 		self.set_operation_id()

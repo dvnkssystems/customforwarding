@@ -51,8 +51,13 @@ class TestQuoteToJob(RetestCase):
 		self.assertFalse(job.vessel_name)
 		if frappe.db.exists("Shipment Type", {"mode_of_shipment": "Air", "disabled": 0}):
 			self.assertTrue(job.shipment_type)
-		self.assertEqual(job.commodity, frappe.db.get_value("Commodity", {"name": ["like", "Retest Widgets"]}))
 		self.assertEqual(job.cargo_description, "Retest Widgets")
+		# Picking the quote adds nothing; saving the job adds and links the commodity.
+		self.assertFalse(job.commodity)
+		self.assertFalse(frappe.db.exists("Commodity", "Retest Widgets"))
+		job.update({"company": frappe.db.get_value("Company", {}, "name"), "branch": frappe.db.get_value("Branch", {"abbreviation": ["is", "set"]}), "job_type": "Import"})
+		job.insert(ignore_permissions=True)
+		self.assertEqual(job.commodity, "Retest Widgets")
 
 	def test_sea_quote(self):
 		quote = make_quote(CUSTOMER, mode="SEA", sea_shipment_type="FCL", cargo="Dg Goods", carrier="Nobody Lines")
