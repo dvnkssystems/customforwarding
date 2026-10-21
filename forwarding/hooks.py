@@ -117,6 +117,7 @@ doc_events = {
 			"forwarding.subscription.enforce_limit",
 			"forwarding.sales_invoice.enforce_overseas_zero_rating",
 		],
+		"before_submit": "forwarding.sales_invoice.block_zero_value_job_invoice",
 		"on_update": [
 			"forwarding.custom_methods.update_cost_table_in_operations",
 			"forwarding.job_events.on_sales_invoice_change",
@@ -263,6 +264,7 @@ scheduler_events = {
 override_whitelisted_methods = {
 	"frappe.www.contact.send_message": "forwarding.contact_us.send_message",
 	"erpnext.templates.utils.send_message": "forwarding.contact_us.send_message",
+	"frappe.utils.print_format.download_pdf": "forwarding.print_pdf.download_pdf",
 }
 #
 # each overriding function accepts a `data` argument;
