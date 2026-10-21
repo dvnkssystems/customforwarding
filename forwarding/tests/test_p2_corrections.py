@@ -268,3 +268,6 @@ class TestSalesInvoiceLabels(P2TestCase):
 			frappe.db.count("Property Setter", {"doc_type": "Sales Invoice", "field_name": "customer_section", "property": "label"}),
 			1,
 		)
+		purchase = frappe.get_meta("Purchase Invoice")
+		self.assertEqual(purchase.get_field("sec_warehouse").label, "Stock")
+		self.assertNotIn("Items", [f.label for f in purchase.fields if f.fieldtype == "Section Break"])
