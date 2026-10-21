@@ -15,6 +15,8 @@ from frappe.contacts.doctype.address.address import get_company_address
 from erpnext.stock.doctype.item.item import get_item_defaults
 from erpnext.setup.doctype.item_group.item_group import get_item_group_defaults
 
+from forwarding.child_tables import undate_unreceived_documents
+
 
 # Freight Activity Code.service_type -> the service checkbox it switches on.
 # Mirrors how Bridge LCS derives a job's Services from its Activity Code.
@@ -539,7 +541,8 @@ def make_custom_clearance(source_name, target_doc=None, ignore_permissions=False
 		set_missing_values(source, target)
 	
 	def set_missing_values(source, target):
-		pass
+		# A copied document is dated only once received (C16).
+		undate_unreceived_documents(target)
 		
 	doclist = get_mapped_doc("Operations", source_name, {
 		"Operations": {
@@ -563,7 +566,8 @@ def make_transportaion(source_name, target_doc=None, ignore_permissions=False):
 		set_missing_values(source, target)
 	
 	def set_missing_values(source, target):
-		pass
+		# A copied document is dated only once received (C16).
+		undate_unreceived_documents(target)
 		
 	doclist = get_mapped_doc("Operations", source_name, {
 		"Operations": {

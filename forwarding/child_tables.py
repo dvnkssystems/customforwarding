@@ -38,6 +38,13 @@ def set_document_received(doc):
 			row.date = None
 
 
+def undate_unreceived_documents(doc):
+	"""Clear the date of every document row not marked received."""
+	for row in doc.get("document_table") or []:
+		if cstr(row.received).strip() != "Yes":
+			row.date = None
+
+
 def set_cost_amounts(doc):
 	"""amount is the row's buying amount, which is Cost alone (not Cost x Rate:
 	Rate is the selling amount of the same charge). Rows without an account
