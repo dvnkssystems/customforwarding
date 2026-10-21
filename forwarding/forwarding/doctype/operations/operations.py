@@ -206,8 +206,11 @@ class Operations(Document):
 	def calculate_package_totals(self):
 		"""Roll the package grid up into the Package tab totals.
 
-		Volume and total weight are derived per row the same way the Bridge LCS
-		package grid does: volume = qty * (L*W*H) / 1e6, total = qty * weight.
+		Per row, the same way the Bridge LCS package grid does:
+		volume = qty x (L x W x H) / 1e6, the row's total m3 (dimensions in cm);
+		total weight = qty x weight; chargeable weight = the greater of the
+		total weight and volume x 167 (IATA 1:6000). The total chargeable
+		weight is the sum of the rows, not the rule applied to the totals.
 		"""
 		qty = volume = weight = chargeable = 0.0
 
@@ -215,6 +218,7 @@ class Operations(Document):
 			row.volume = flt(row.quantity) * (
 				flt(row.length) * flt(row.width) * flt(row.height)) / 1000000.0
 			row.total_weight = flt(row.quantity) * flt(row.weight)
+			row.chargeable_weight = max(flt(row.total_weight), flt(row.volume) * AIR_VOLUMETRIC_FACTOR)
 
 			qty += flt(row.quantity)
 			volume += flt(row.volume)
@@ -225,6 +229,24 @@ class Operations(Document):
 		self.total_package_volume = volume
 		self.total_package_weight = weight
 		self.total_chargeable_weight = chargeable
+		self.set_cargo_from_packages()
+
+	def set_cargo_from_packages(self):
+		"""With package rows, the header cargo figures are the rows' totals.
+
+		The form makes them read-only while rows exist (read_only_depends_on),
+		so the header and the grid cannot disagree. A job without package rows
+		-- a container job, or one keyed in by weight -- keeps what was typed.
+		"""
+		if not self.get("package_details"):
+			return
+		pieces = flt(self.total_package_qty)
+		self.packages = f"{pieces:g}"
+		self.no_of_pieces = cint(round(pieces))
+		self.gross_weight = flt(self.total_package_weight)
+		self.cbm = flt(self.total_package_volume, 3)
+		self.volume = flt(self.total_package_volume, 3)
+		self.chargable_weight = flt(self.total_chargeable_weight)
 
 	def set_free_time_expiry(self):
 		"""Free time runs from arrival: the ATA once recorded, the ETA until then."""
@@ -238,7 +260,8 @@ class Operations(Document):
 		Volumetric weight is CBM x 167 kg (IATA 1:6000). Other modes keep
 		whatever was typed in, since there is no single rule for them.
 		"""
-		if self.mode_of_shipment != "Air":
+		if self.mode_of_shipment != "Air" or self.get("package_details"):
+			# With package rows it is their total (set_cargo_from_packages).
 			return
 		if not (flt(self.gross_weight) or flt(self.cbm)):
 			return
