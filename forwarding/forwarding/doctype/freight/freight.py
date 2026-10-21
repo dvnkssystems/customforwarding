@@ -21,9 +21,7 @@ class Freight(Document):
 				if row.ref_id:
 					self.update_cost_table_in_operations()
 				else:
-					print("in else")
 					ref_name = frappe.get_all("Cost Table",filters={"parent":self.operations,"item":row.item},fields=['name'])
-					print(ref_name)
 					if ref_name:
 						row.ref_id = ref_name[0].name
 					else:
