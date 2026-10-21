@@ -3,6 +3,8 @@
 """Whitelisted API endpoints for forwarding (desk widgets + mobile)."""
 
 import frappe
+from frappe import _
+from frappe.rate_limiter import rate_limit
 
 
 def seed_demo():
@@ -179,17 +181,43 @@ def update_job_status(job_name, status, remarks=None):
 	return doc.name
 
 
-@frappe.whitelist(allow_guest=True)
+JOB_REQUEST_TEXT_FIELDS = {"cargo_description", "special_instructions"}
+JOB_REQUEST_MAX_DATA = 140
+JOB_REQUEST_MAX_TEXT = 2000
+
+
+@frappe.whitelist(allow_guest=True, methods=["POST"])
+@rate_limit(limit=10, seconds=60 * 60)
 def submit_job_request(payload):
-	"""Guest endpoint backing the public Freight Job Request form."""
+	"""Guest endpoint backing the public Freight Job Request form.
+
+	Rate-limited per IP; partner_email must be one valid address; text is
+	stripped and capped (140 for one-line fields, 2000 for the long ones).
+	"""
+	from frappe.utils import cint, cstr, flt, validate_email_address
+
 	data = frappe.parse_json(payload) if isinstance(payload, str) else payload
+	if data and not isinstance(data, dict):
+		frappe.throw(_("Invalid request."))
 	allowed = {"partner_company", "partner_contact", "partner_email", "job_type",
 		"awb_bl_no", "activity_code", "origin", "destination", "weight", "pieces",
 		"cargo_description", "special_instructions"}
 	doc = frappe.new_doc("Freight Job Request")
 	for k, v in (data or {}).items():
-		if k in allowed and v not in (None, ""):
-			doc.set(k, v)
+		if k not in allowed or v in (None, ""):
+			continue
+		if k == "weight":
+			v = flt(v)
+		elif k == "pieces":
+			v = cint(v)
+		else:
+			v = cstr(v).strip()
+			v = v[:JOB_REQUEST_MAX_TEXT] if k in JOB_REQUEST_TEXT_FIELDS else v[:JOB_REQUEST_MAX_DATA]
+		if k == "partner_email" and v:
+			email = validate_email_address(v, throw=True)
+			if email != v:
+				frappe.throw(_("Please enter a single valid email address."), frappe.InvalidEmailAddressError)
+		doc.set(k, v)
 	doc.status = "Pending"
 	doc.insert(ignore_permissions=True)
 	frappe.db.commit()

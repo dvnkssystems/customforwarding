@@ -26,3 +26,4 @@ forwarding.patches.v1_0.reset_job_field_order
 forwarding.patches.v1_0.move_clearance_fields_to_custom_clearance
 forwarding.patches.v1_0.move_clearance_tables_to_custom_clearance
 forwarding.patches.v1_0.sales_invoice_section_labels
+forwarding.patches.v1_0.close_guest_lead_paths

@@ -257,9 +257,13 @@ scheduler_events = {
 # Overriding Methods
 # ------------------------------
 #
-# override_whitelisted_methods = {
-# 	"frappe.desk.doctype.event.event.get_events": "forwarding.event.get_events"
-# }
+# The website Contact Us endpoint is a Guest path that can create Leads
+# (ERPNext's override inserts a Lead + Opportunity). Route both dotted paths
+# through the guarded version; see forwarding/contact_us.py.
+override_whitelisted_methods = {
+	"frappe.www.contact.send_message": "forwarding.contact_us.send_message",
+	"erpnext.templates.utils.send_message": "forwarding.contact_us.send_message",
+}
 #
 # each overriding function accepts a `data` argument;
 # generated from the base implementation of the doctype dashboard,
