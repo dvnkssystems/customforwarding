@@ -1058,6 +1058,7 @@
   {
    "fieldname": "volume",
    "fieldtype": "Float",
+   "hidden": 1,
    "label": "Volume (m3)",
    "read_only_depends_on": "eval:(doc.package_details||[]).length"
   },
@@ -1089,11 +1090,13 @@
   {
    "fieldname": "dimension",
    "fieldtype": "Data",
+   "hidden": 1,
    "label": "Dimension"
   },
   {
    "fieldname": "no_of_pieces",
    "fieldtype": "Int",
+   "hidden": 1,
    "label": "No. of Pieces",
    "read_only_depends_on": "eval:(doc.package_details||[]).length"
   },
