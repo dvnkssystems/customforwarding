@@ -15,6 +15,8 @@ from frappe.contacts.doctype.address.address import get_company_address
 from erpnext.stock.doctype.item.item import get_item_defaults
 from erpnext.setup.doctype.item_group.item_group import get_item_group_defaults
 
+from forwarding.child_tables import undate_unreceived_documents
+
 
 # Freight Activity Code.service_type -> the service checkbox it switches on.
 # Mirrors how Bridge LCS derives a job's Services from its Activity Code.
@@ -87,10 +89,88 @@ SERVICE_FIELDS = (
 )
 
 
+# Masters a job's document checklist is built from on insert, as
+# (job field, master DocType). A master counts once it has a Table field of
+# Document Table (Shipment Type has one; Freight Activity Code does not yet,
+# so adding one as a Custom Field is enough to make it count). Activity
+# Template is matched by the job's job_type and mode_of_shipment instead of a
+# link; it has no document table today either.
+DOCUMENT_SOURCES = (
+	("shipment_type", "Shipment Type"),
+	("activity_code", "Freight Activity Code"),
+)
+DOCUMENT_TEMPLATE_DOCTYPE = "Activity Template"
+
+
+def document_table_field(doctype):
+	"""Fieldname of the doctype's Document Table, or None."""
+	if not frappe.db.exists("DocType", doctype):
+		return None
+	for df in frappe.get_meta(doctype).get_table_fields():
+		if df.options == "Document Table":
+			return df.fieldname
+	return None
+
+
+def expected_documents(job):
+	"""(document, stage) pairs the job's masters expect, in order, once each."""
+	sources = []
+	for fieldname, doctype in DOCUMENT_SOURCES:
+		if job.get(fieldname) and document_table_field(doctype):
+			sources.append((doctype, job.get(fieldname)))
+
+	if document_table_field(DOCUMENT_TEMPLATE_DOCTYPE):
+		# A template applies when each of its job_type / mode_of_shipment is
+		# blank or matches the job's.
+		for t in frappe.get_all(
+			DOCUMENT_TEMPLATE_DOCTYPE, fields=["name", "job_type", "mode_of_shipment"], order_by="name"
+		):
+			if all(not t.get(f) or t.get(f) == job.get(f) for f in ("job_type", "mode_of_shipment")):
+				sources.append((DOCUMENT_TEMPLATE_DOCTYPE, t.name))
+
+	seen, out = set(), []
+	for doctype, name in sources:
+		master = frappe.get_cached_doc(doctype, name)
+		for row in master.get(document_table_field(doctype)) or []:
+			key = (row.document, cstr(row.stage).strip())
+			if row.document and key not in seen:
+				seen.add(key)
+				out.append(key)
+	return out
+
+
 class Operations(Document):
+	def before_insert(self):
+		self.set_default_cutoffs()
+		self.set_document_checklist()
+
+	def set_default_cutoffs(self):
+		"""An export job starts with its mode's cut-off milestones, undated
+		(Sea: Rail, Inland, Container Pickup, SI, Cargo, plus AES when bound
+		for the United States; Air: SI and Cargo). Rows already given -- the
+		desk form adds the same ones -- are left as they are."""
+		if self.job_type != "Export" or self.get("cutoffs"):
+			return
+		country = self.destination_country or (
+			frappe.db.get_value("Port", self.port_of_destination, "country") if self.port_of_destination else None
+		)
+		for milestone in default_cutoff_milestones(self.mode_of_shipment, country):
+			self.append("cutoffs", {"milestone": milestone})
+
+	def set_document_checklist(self):
+		"""Add the documents the job's masters expect (expected_documents) as
+		not-yet-received rows, skipping any the job already lists."""
+		listed = {(r.document, cstr(r.stage).strip()) for r in self.get("document_table") or []}
+		listed_names = {r.document for r in self.get("document_table") or []}
+		for document, stage in expected_documents(self):
+			if (document, stage) in listed or (not stage and document in listed_names):
+				continue
+			self.append("document_table", {"document": document, "stage": stage or None, "received": "No"})
+
 	def validate(self):
 		self.set_company()
 		self.set_operation_id()
+		self.validate_ports()
 		self.validate_shipment_type()
 		self.set_services_from_activity_code()
 		self.calculate_package_totals()
@@ -164,6 +244,21 @@ class Operations(Document):
 		"""Operation ID is the job number, not something typed in."""
 		self.operation_id = self.name
 
+	def validate_ports(self):
+		"""A shipment cannot leave from the port it is bound for.
+
+		Checked on every save, so a job saved before this rule has to be
+		corrected before anything else on it is.
+		"""
+		if not self.port_of_loading or self.port_of_loading != self.port_of_destination:
+			return
+		frappe.throw(
+			_("Port of Loading and Port of Discharge are both {0}. Choose a different port for one of them.").format(
+				frappe.bold(self.port_of_loading)
+			),
+			title=_("Same origin and destination"),
+		)
+
 	def validate_shipment_type(self):
 		"""Shipment Type must be one offered for the job's Mode of Shipment.
 
@@ -206,8 +301,11 @@ class Operations(Document):
 	def calculate_package_totals(self):
 		"""Roll the package grid up into the Package tab totals.
 
-		Volume and total weight are derived per row the same way the Bridge LCS
-		package grid does: volume = qty * (L*W*H) / 1e6, total = qty * weight.
+		Per row, the same way the Bridge LCS package grid does:
+		volume = qty x (L x W x H) / 1e6, the row's total m3 (dimensions in cm);
+		total weight = qty x weight; chargeable weight = the greater of the
+		total weight and volume x 167 (IATA 1:6000). The total chargeable
+		weight is the sum of the rows, not the rule applied to the totals.
 		"""
 		qty = volume = weight = chargeable = 0.0
 
@@ -215,6 +313,7 @@ class Operations(Document):
 			row.volume = flt(row.quantity) * (
 				flt(row.length) * flt(row.width) * flt(row.height)) / 1000000.0
 			row.total_weight = flt(row.quantity) * flt(row.weight)
+			row.chargeable_weight = max(flt(row.total_weight), flt(row.volume) * AIR_VOLUMETRIC_FACTOR)
 
 			qty += flt(row.quantity)
 			volume += flt(row.volume)
@@ -225,6 +324,24 @@ class Operations(Document):
 		self.total_package_volume = volume
 		self.total_package_weight = weight
 		self.total_chargeable_weight = chargeable
+		self.set_cargo_from_packages()
+
+	def set_cargo_from_packages(self):
+		"""With package rows, the header cargo figures are the rows' totals.
+
+		The form makes them read-only while rows exist (read_only_depends_on),
+		so the header and the grid cannot disagree. A job without package rows
+		-- a container job, or one keyed in by weight -- keeps what was typed.
+		"""
+		if not self.get("package_details"):
+			return
+		pieces = flt(self.total_package_qty)
+		self.packages = f"{pieces:g}"
+		self.no_of_pieces = cint(round(pieces))
+		self.gross_weight = flt(self.total_package_weight)
+		self.cbm = flt(self.total_package_volume, 3)
+		self.volume = flt(self.total_package_volume, 3)
+		self.chargable_weight = flt(self.total_chargeable_weight)
 
 	def set_free_time_expiry(self):
 		"""Free time runs from arrival: the ATA once recorded, the ETA until then."""
@@ -238,7 +355,8 @@ class Operations(Document):
 		Volumetric weight is CBM x 167 kg (IATA 1:6000). Other modes keep
 		whatever was typed in, since there is no single rule for them.
 		"""
-		if self.mode_of_shipment != "Air":
+		if self.mode_of_shipment != "Air" or self.get("package_details"):
+			# With package rows it is their total (set_cargo_from_packages).
 			return
 		if not (flt(self.gross_weight) or flt(self.cbm)):
 			return
@@ -422,7 +540,8 @@ def make_custom_clearance(source_name, target_doc=None, ignore_permissions=False
 		set_missing_values(source, target)
 	
 	def set_missing_values(source, target):
-		pass
+		# A copied document is dated only once received (C16).
+		undate_unreceived_documents(target)
 		
 	doclist = get_mapped_doc("Operations", source_name, {
 		"Operations": {
@@ -446,7 +565,8 @@ def make_transportaion(source_name, target_doc=None, ignore_permissions=False):
 		set_missing_values(source, target)
 	
 	def set_missing_values(source, target):
-		pass
+		# A copied document is dated only once received (C16).
+		undate_unreceived_documents(target)
 		
 	doclist = get_mapped_doc("Operations", source_name, {
 		"Operations": {

@@ -552,7 +552,8 @@
    "depends_on": "eval:doc.cargo_layout!=\"Containers\" || doc.gross_weight",
    "fieldname": "gross_weight",
    "fieldtype": "Float",
-   "label": "Gross weight"
+   "label": "Gross weight",
+   "read_only_depends_on": "eval:(doc.package_details||[]).length"
   },
   {
    "depends_on": "eval:doc.cargo_layout!=\"Containers\" || doc.gross_weight || doc.net_weight",
@@ -564,22 +565,24 @@
   {
    "depends_on": "eval:doc.cargo_layout!=\"Containers\" || doc.cbm",
    "fieldname": "cbm",
-   "fieldtype": "Int",
-   "label": "CBM"
+   "fieldtype": "Float",
+   "label": "CBM",
+   "read_only_depends_on": "eval:(doc.package_details||[]).length"
   },
   {
    "depends_on": "eval:doc.cargo_layout!=\"Containers\" || doc.packages",
    "fieldname": "packages",
    "fieldtype": "Data",
-   "label": "Packages"
+   "label": "Packages",
+   "read_only_depends_on": "eval:(doc.package_details||[]).length"
   },
   {
    "depends_on": "eval:doc.mode_of_shipment==\"Air\" || doc.chargable_weight",
    "fieldname": "chargable_weight",
    "fieldtype": "Float",
    "label": "Chargable Weight",
-   "read_only_depends_on": "eval:doc.mode_of_shipment==\"Air\"",
-   "description": "Air: the greater of gross weight and CBM x 167"
+   "read_only_depends_on": "eval:doc.mode_of_shipment==\"Air\" || (doc.package_details||[]).length",
+   "description": "From the package rows when there are any; otherwise, for Air, the greater of gross weight and CBM x 167"
   },
   {
    "fieldname": "column_break_55",
@@ -863,7 +866,8 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Activity Code",
-   "options": "Freight Activity Code"
+   "options": "Freight Activity Code",
+   "link_filters": "[[\"Freight Activity Code\", \"mode\", \"=\", \"eval:(doc.mode_of_shipment||\\\"\\\").replace(/^sea.*/i,\\\"Sea\\\").replace(/^others$/i,\\\"Other\\\")\"]]"
   },
   {
    "fetch_from": "activity_code.mode",
@@ -1061,7 +1065,8 @@
   {
    "fieldname": "volume",
    "fieldtype": "Float",
-   "label": "Volume (m3)"
+   "label": "Volume (m3)",
+   "read_only_depends_on": "eval:(doc.package_details||[]).length"
   },
   {
    "fieldname": "location_in_port",
@@ -1096,7 +1101,8 @@
   {
    "fieldname": "no_of_pieces",
    "fieldtype": "Int",
-   "label": "No. of Pieces"
+   "label": "No. of Pieces",
+   "read_only_depends_on": "eval:(doc.package_details||[]).length"
   },
   {
    "depends_on": "eval:doc.svc_customs_clearance || doc.custom_clearance==1",
@@ -1428,7 +1434,7 @@
    "link_fieldname": "operations"
   }
  ],
- "modified": "2026-10-20 10:00:00.000000",
+ "modified": "2026-10-21 10:30:00.000000",
  "modified_by": "Administrator",
  "module": "Forwarding",
  "name": "Operations",

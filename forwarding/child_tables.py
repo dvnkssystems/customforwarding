@@ -23,13 +23,26 @@ def apply(doc, method=None):
 
 
 def set_document_received(doc):
-	"""Attaching a file means the document is in hand: mark it received and
-	date it today unless a date was already entered."""
+	"""Attaching a file means the document is in hand: mark it received.
+
+	A row's date is the day it was received: today when it becomes received
+	without one, and none while it is not received (rows copied from the job
+	or a Shipment Type used to arrive dated)."""
 	for row in doc.get("document_table") or []:
 		if row.attach and cstr(row.received).strip() != "Yes":
 			row.received = "Yes"
+		if cstr(row.received).strip() == "Yes":
 			if not row.date:
 				row.date = nowdate()
+		elif row.date:
+			row.date = None
+
+
+def undate_unreceived_documents(doc):
+	"""Clear the date of every document row not marked received."""
+	for row in doc.get("document_table") or []:
+		if cstr(row.received).strip() != "Yes":
+			row.date = None
 
 
 def set_cost_amounts(doc):
@@ -73,6 +86,8 @@ def copy_from_job(doc, fieldname, condition=None):
 		if condition and not condition(source):
 			continue
 		row = doc.append(fieldname, source.as_dict(no_default_fields=True))
+		if fieldname == "document_table" and cstr(row.received).strip() != "Yes":
+			row.date = None
 		row.db_insert()
 		copied += 1
 	return copied
@@ -80,3 +95,77 @@ def copy_from_job(doc, fieldname, condition=None):
 
 def is_customs_document(row):
 	return cstr(row.stage).strip() == "Customs Clearance"
+
+
+def sync_costs_to_job(doc):
+	"""Keep a copy of each of a Transportation / Custom Clearance's cost rows
+	on its job, so the job's Cost Table carries every charge.
+
+	The origin row's ref_id names the job's copy. A row without one takes the
+	job's row for the same item if there is one (as before), or gets a new row
+	appended to the job; the copy's ref_docname names the origin record. A
+	row with one updates its copy when the item, account or cost changed.
+
+	Replaces the per-DocType code that set ref_id with db.set_value on a row
+	not inserted yet (so it never stuck and the charge was counted twice) and
+	called an update method that did not exist (so a third save raised).
+	"""
+	if not doc.get("operations") or not doc.get("cost_table"):
+		return
+
+	job_rows = {
+		r.name: r
+		for r in frappe.get_all(
+			"Cost Table",
+			filters={"parent": doc.operations, "parenttype": "Operations", "parentfield": "cost_table"},
+			fields=["name", "item", "account", "cost", "idx"],
+		)
+	}
+	next_idx = max((r.idx for r in job_rows.values()), default=0) + 1
+	# Job rows already standing for another record's cost row.
+	claimed = set(
+		frappe.get_all(
+			"Cost Table",
+			filters={"ref_id": ["in", list(job_rows) or [""]], "parent": ["!=", doc.name]},
+			pluck="ref_id",
+		)
+	)
+
+	for row in doc.cost_table:
+		if not row.item:
+			continue
+		copy = job_rows.get(row.ref_id) if row.ref_id else None
+		if copy:
+			values = {"item": row.item, "account": row.account, "cost": flt(row.cost), "amount": flt(row.cost)}
+			if any(cstr(copy.get(k) or "") != cstr(v or "") for k, v in values.items() if k in ("item", "account")) or flt(
+				copy.cost
+			) != flt(row.cost):
+				frappe.db.set_value("Cost Table", copy.name, values, update_modified=False)
+			continue
+
+		same_item = next((r for r in job_rows.values() if r.item == row.item and r.name not in claimed), None)
+		if same_item:
+			row.ref_id = same_item.name
+			claimed.add(same_item.name)
+			continue
+
+		new = frappe.get_doc(
+			{
+				"doctype": "Cost Table",
+				"parent": doc.operations,
+				"parenttype": "Operations",
+				"parentfield": "cost_table",
+				"idx": next_idx,
+				"item": row.item,
+				"item_name": row.item_name,
+				"account": row.account,
+				"cost": flt(row.cost),
+				"amount": flt(row.cost),
+				"ref_docname": doc.name,
+			}
+		)
+		new.db_insert()
+		next_idx += 1
+		job_rows[new.name] = frappe._dict(name=new.name, item=row.item, account=row.account, cost=flt(row.cost), idx=new.idx)
+		row.ref_id = new.name
+		claimed.add(new.name)

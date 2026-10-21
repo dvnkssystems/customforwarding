@@ -117,12 +117,18 @@ const SERVICE_TYPE_FIELD = {
 	"Value Added Services": "svc_packing_relocation",
 };
 
+// kg per cubic metre for volumetric weight (IATA 1:6000), as on the server.
+const VOLUMETRIC_FACTOR = 167;
+
+// Mirrors Operations.calculate_package_totals / set_cargo_from_packages.
 function calculate_package_totals(frm) {
 	let qty = 0, volume = 0, weight = 0, chargeable = 0;
+	const rows = frm.doc.package_details || [];
 
-	(frm.doc.package_details || []).forEach(row => {
+	rows.forEach(row => {
 		row.volume = flt(row.quantity) * (flt(row.length) * flt(row.width) * flt(row.height)) / 1000000;
 		row.total_weight = flt(row.quantity) * flt(row.weight);
+		row.chargeable_weight = Math.max(row.total_weight, row.volume * VOLUMETRIC_FACTOR);
 
 		qty += flt(row.quantity);
 		volume += flt(row.volume);
@@ -134,6 +140,15 @@ function calculate_package_totals(frm) {
 	frm.set_value("total_package_volume", volume);
 	frm.set_value("total_package_weight", weight);
 	frm.set_value("total_chargeable_weight", chargeable);
+	if (rows.length) {
+		// The header cargo figures follow the rows while there are any.
+		frm.set_value("packages", String(qty));
+		frm.set_value("no_of_pieces", Math.round(qty));
+		frm.set_value("gross_weight", weight);
+		frm.set_value("cbm", flt(volume, 3));
+		frm.set_value("volume", flt(volume, 3));
+		frm.set_value("chargable_weight", chargeable);
+	}
 	frm.refresh_field("package_details");
 }
 
@@ -163,7 +178,6 @@ frappe.ui.form.on("Package", {
 	length: calculate_package_totals,
 	width: calculate_package_totals,
 	height: calculate_package_totals,
-	chargeable_weight: calculate_package_totals,
 });
 
 // Bulk-create identical container rows, mirroring the LCS "Count -> Create" control.
@@ -371,8 +385,10 @@ frappe.ui.form.on("Operations", {
 // ---------------------------------------------------------------------------
 // Cut-offs: an export job with none starts with the milestones for its mode
 // (Sea: all but AES unless bound for the US; Air: SI Deadline + Cargo Cut-off).
-// Latest Time is mandatory, so the rows are added here for the user to date
-// rather than on the server. A job that already has cut-offs is left alone.
+// The server adds the same rows when the job is inserted (Operations.
+// before_insert); adding them here shows them before the first save. Latest
+// is optional, so the rows can be saved undated. A job that already has
+// cut-offs is left alone.
 // ---------------------------------------------------------------------------
 
 async function prefill_cutoffs(frm) {

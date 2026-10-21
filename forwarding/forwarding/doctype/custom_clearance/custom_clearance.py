@@ -7,7 +7,7 @@ import frappe
 from frappe import _
 from frappe.model.document import Document
 
-from forwarding.child_tables import copy_from_job, is_customs_document
+from forwarding.child_tables import copy_from_job, sync_costs_to_job, is_customs_document
 
 
 class CustomClearance(Document):
@@ -16,43 +16,8 @@ class CustomClearance(Document):
 		copy_from_job(self, "document_table", is_customs_document)
 
 	def validate(self):
-		"""update operation cost table 
-			update refid in cost table
-
-		"""
-		if self.cost_table:
-			for row in self.cost_table:
-				if row.ref_id:
-					self.update_cost_table_in_operations()
-				else:
-					print("in else")
-					ref_name = frappe.get_all("Cost Table",filters={"parent":self.operations,"item":row.item},fields=['name'])
-					print(ref_name)
-					if ref_name:
-						row.ref_id = ref_name[0].name
-					else:
-						cost_table_doc = frappe.get_doc({
-							"doctype":"Cost Table",
-							'parent': self.operations,
-							'parentfield': 'cost_table',
-							'parenttype': 'Operations',
-							"item":row.item,
-							"account":row.account,
-							"cost":row.cost,
-							"amount":row.cost,
-						})
-						try:
-							cost_table_doc.insert()
-							# row.ref_id = 
-							frappe.db.set_value(row.doctype,row.name,"ref_id",cost_table_doc.name)
-						except:
-							frappe.db.rollback()
-							traceback = frappe.get_traceback()
-							frappe.log_error(message=traceback)
-							frappe.msgprint("Error adding cost table in operations")
-						
-			# self.save()
-			frappe.db.commit()
+		# The job keeps a copy of every cost row (forwarding.child_tables).
+		sync_costs_to_job(self)
 
 	def on_update(self):
 		fields_to_transfer = ['awb_number']
