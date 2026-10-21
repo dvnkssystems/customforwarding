@@ -114,3 +114,17 @@ def zero_rated_template(company):
 		{"company": company, "disabled": 0, "title": ["like", "%VAT Zero%"]},
 		"name",
 	)
+
+
+def block_zero_value_job_invoice(doc, method=None):
+	"""A job's invoice must bill something: a 0.00 invoice would show the job
+	as billed with nothing to collect. Credit notes are exempt."""
+	if doc.get("is_return") or not doc.get("operations"):
+		return
+	if flt(doc.grand_total) <= 0:
+		frappe.throw(
+			_("Invoice {0} for job {1} has a total of 0. Add the charges before submitting it.").format(
+				frappe.bold(doc.name), frappe.bold(doc.operations)
+			),
+			title=_("Nothing to bill"),
+		)
