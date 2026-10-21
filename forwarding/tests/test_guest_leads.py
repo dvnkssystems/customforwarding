@@ -130,6 +130,21 @@ class TestGuestLeads(IntegrationTestCase):
 		with self.assertRaises(frappe.PermissionError):
 			self._guest_call("frappe.client.insert", doc={"doctype": "Lead", "lead_name": "Scanner"})
 
+	def test_appointment_portal_is_off_for_guests(self):
+		# ERPNext's Appointment creates a Lead for unknown emails; its Guest
+		# endpoint must stay behind the (disabled) appointment portal setting.
+		self.assertFalse(frappe.db.get_single_value("Appointment Booking Settings", "enable_appointment_portal"))
+		before = _lead_count()
+		with self.assertRaises(frappe.Redirect):
+			self._guest_call(
+				"erpnext.www.book_appointment.index.create_appointment",
+				date="2030-01-01",
+				time="10:00:00",
+				tz="Asia/Riyadh",
+				contact=frappe.as_json({"name": "Scan", "email": "scan@example.com"}),
+			)
+		self.assertEqual(_lead_count(), before)
+
 	def test_no_guest_web_form_or_server_script_for_lead(self):
 		self.assertFalse(
 			frappe.get_all(
