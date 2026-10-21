@@ -866,7 +866,8 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Activity Code",
-   "options": "Freight Activity Code"
+   "options": "Freight Activity Code",
+   "link_filters": "[[\"Freight Activity Code\", \"mode\", \"=\", \"eval:(doc.mode_of_shipment||\\\"\\\").replace(/^sea.*/i,\\\"Sea\\\").replace(/^others$/i,\\\"Other\\\")\"]]"
   },
   {
    "fetch_from": "activity_code.mode",
@@ -1433,7 +1434,7 @@
    "link_fieldname": "operations"
   }
  ],
- "modified": "2026-10-21 10:00:00.000000",
+ "modified": "2026-10-21 10:30:00.000000",
  "modified_by": "Administrator",
  "module": "Forwarding",
  "name": "Operations",
