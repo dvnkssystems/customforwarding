@@ -63,6 +63,8 @@ JOB_FIELDS = (
 	"flight_number",
 	"air_line",
 	"shipping_line",
+	"carrier",
+	"handling_agent",
 	"commodity",
 	"packages",
 	"gross_weight",
@@ -210,6 +212,14 @@ def build(job):
 	# Operations has no customer_name of its own.
 	job_fields["customer_name"] = (
 		frappe.db.get_value("Customer", doc.customer, "customer_name", cache=True) if doc.customer else None
+	)
+	# The Supplier that bills for the job's Shipping Line / Carrier, so their
+	# names can open the supplier page (Phase 2 §4). None when not linked.
+	job_fields["shipping_line_supplier"] = (
+		frappe.db.get_value("Shipping Line", doc.shipping_line, "supplier") if doc.get("shipping_line") else None
+	)
+	job_fields["carrier_supplier"] = (
+		frappe.db.get_value("Carrier", doc.carrier, "supplier") if doc.get("carrier") else None
 	)
 
 	payload = {
