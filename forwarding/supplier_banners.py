@@ -16,7 +16,16 @@ Every condition takes ctx, the dict built by forwarding.api.supplier_360:
 	supplier	the supplier header (status, ...)
 	hold_type	ERPNext's Supplier hold type (All / Invoices / Payments)
 	release_date	date an on-hold supplier is released, if set
+	expiring_rates	[{name, item_code, valid_upto}] buying Item Prices for the
+			supplier ending within rate_expiry_days (not yet ended)
+	rate_expiry_days	Party Alert Settings' Rate Expiry Warning (Days)
+	cost_variance	the Cost variance KPI dict (jobs_over_estimate, threshold, ...)
+	jobs_over	[{job, estimated, invoiced, variance_pct}] jobs over the threshold
 	today		date the banners are worked out for
+
+S4 (rate_expiring) and S6 (over_estimate) come from the Phase 2 spec §6.2;
+they are provisional, so their wording lives in Job Banner Rule and their
+thresholds in Party Alert Settings.
 """
 
 from forwarding.banners import format_date  # noqa: F401  (re-exported for callers and tests)
@@ -35,10 +44,20 @@ def on_hold_or_blocked(ctx):
 	return ctx["supplier"]["status"] in ("On Hold", "Blocked")
 
 
+def rate_expiring(ctx):
+	return bool(ctx.get("expiring_rates"))
+
+
+def over_estimate(ctx):
+	return bool(ctx.get("jobs_over"))
+
+
 CONDITIONS = {
 	"overdue_payables": overdue_payables,
 	"unbilled_services": unbilled_services,
 	"on_hold_or_blocked": on_hold_or_blocked,
+	"rate_expiring": rate_expiring,
+	"over_estimate": over_estimate,
 }
 
 

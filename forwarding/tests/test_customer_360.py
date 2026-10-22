@@ -137,7 +137,9 @@ class TestCustomer360(IntegrationTestCase):
 			set(data["customer"]),
 			{
 				"name", "customer_name", "customer_group", "territory", "tax_id", "cr_no", "disabled",
-				"status", "salesman", "credit_limit", "primary_contact", "primary_address",
+				"customer_group_parent", "status", "salesman", "default_salesman", "branch", "credit_limit",
+				"primary_contact",
+				"primary_address",
 			},
 		)
 		self.assertEqual(

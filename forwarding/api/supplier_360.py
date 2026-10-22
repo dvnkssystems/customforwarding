@@ -10,11 +10,23 @@ and Addresses -- and folds them into KPIs, banners and lists.
 How a supplier is on a job (its roles):
 
 	Handling agent	Operations.handling_agent
-	Supplier	Operations.suppliers (Operations Supplier.supplier)
+	Supplier	Operations.suppliers (Operations Supplier.supplier), a cost row
+			(Cost Table.supplier) on the job or on its Transportation /
+			Custom Clearance, or a submitted Purchase Invoice for the job
 	Transporter	Operations transport legs (Operations Transport Leg.transporter
 			in transport_container_legs / transport_package_legs),
 			Transportation.transporter, Custom Clearance.transporter_name
 	Broker		Custom Clearance.broker_name
+	Shipping Line	Operations.shipping_line whose Shipping Line.supplier is it
+	Airline		Operations.carrier whose Carrier.supplier is it
+
+Cancelled jobs (docstatus 2, or status Cancelled) are left out of the list.
+
+Cost variance (Phase 2 spec §6.1) compares, per job with a submitted Purchase
+Invoice from the supplier, the invoiced base_net_total with the estimate: the
+job's own cost rows naming the supplier (a Transportation / Custom Clearance
+cost row is copied onto the job, so the job's rows hold every charge once).
+Jobs with no estimate are counted apart, not as over estimate.
 
 Operations.shipper and customer_supplier link to the Shipper DocType, not
 Supplier, and are not read.
@@ -41,6 +53,7 @@ from frappe.query_builder.functions import Coalesce, Sum
 from frappe.utils import flt, get_datetime, getdate, nowdate
 
 from forwarding import party_360, supplier_banners
+from forwarding.forwarding.doctype.party_alert_settings.party_alert_settings import get_settings
 from forwarding.job_events import supplier_cache_key
 from forwarding.party_360 import ADDRESS_FIELDS, CONTACT_FIELDS, default_company
 
@@ -62,7 +75,20 @@ DELIVERED_STATUSES = {
 }
 
 # Display order of a job's roles.
-ROLES = ("Handling agent", "Supplier", "Transporter", "Broker")
+ROLES = ("Handling agent", "Supplier", "Transporter", "Broker", "Shipping Line", "Airline")
+
+# The supplier's own role tick-boxes (§4) -> pill label, in display order.
+SUPPLIER_ROLES = (
+	("is_transporter", "Transporter"),
+	("is_handling_agent", "Handling Agent"),
+	("is_broker", "Broker"),
+	("is_shipping_line", "Shipping Line"),
+	("is_airline", "Airline"),
+	("is_overseas_agent", "Overseas Agent"),
+)
+
+# Records carrying a supplier link that make it a carrier on a job.
+CARRIER_LINKS = (("Shipping Line", "shipping_line", "Shipping Line"), ("Carrier", "carrier", "Airline"))
 
 # List in the payload -> DocType a user must be able to read to see it.
 GUARDED = {
@@ -133,7 +159,10 @@ def build(supplier):
 	for s in services:
 		s["billed"] = bool(s["operations"] and s["operations"] in billed_jobs)
 
+	settings = get_settings()
 	jobs, active_jobs = _jobs(supplier, services)
+	cost_variance, jobs_over = _cost_variance(supplier, settings.cost_variance_threshold)
+	expiring_rates = _expiring_rates(supplier, today, settings.rate_expiry_days)
 	documents, documents_on_file, documents_total = _documents(supplier, services)
 	header = _supplier_header(doc, today, contacts, addresses)
 
@@ -146,6 +175,7 @@ def build(supplier):
 		"overdue": flt(payable["overdue"], 2),
 		"unbilled_services": sum(1 for s in services if s["docstatus"] < 2 and not s["billed"]),
 		"billed_this_year": flt(_billed_this_year(supplier, company, today), 2),
+		"cost_variance": cost_variance,
 		"documents_on_file": documents_on_file,
 		# Every listed document, received or not: the tile reads "1 / 4" as on a job.
 		"documents_total": documents_total,
@@ -163,6 +193,10 @@ def build(supplier):
 		"supplier": header,
 		"hold_type": doc.get("hold_type"),
 		"release_date": doc.get("release_date"),
+		"expiring_rates": expiring_rates,
+		"rate_expiry_days": settings.rate_expiry_days,
+		"cost_variance": cost_variance,
+		"jobs_over": jobs_over,
 		"today": today,
 	}
 
@@ -212,6 +246,9 @@ def _supplier_header(doc, today, contacts, addresses):
 		# ERPNext's tax_id, else a VAT number ksa_compliance may keep.
 		"tax_id": doc.tax_id or doc.get("custom_vat_registration_number") or None,
 		"supplier_code": doc.get("supplier_code") or None,
+		"cr_no": doc.get("cr_no") or None,
+		# Role pills (§4), from the role tick-boxes.
+		"roles": [label for field, label in SUPPLIER_ROLES if doc.get(field)],
 		"disabled": doc.disabled,
 		"status": _status(doc, today),
 		"default_currency": doc.default_currency,
@@ -322,6 +359,44 @@ def _job_roles(supplier, services):
 	for s in services:
 		for role in s["role"].split(", "):
 			add(s["operations"], role)
+
+	# Cost rows naming the supplier, on the job or on its services.
+	ct = frappe.qb.DocType("Cost Table")
+	service_jobs = {}
+	for parent, parenttype in (
+		frappe.qb.from_(ct)
+		.select(ct.parent, ct.parenttype)
+		.distinct()
+		.where(
+			(ct.supplier == supplier)
+			& ct.parenttype.isin(["Operations", "Transportation", "Custom Clearance"])
+			& (ct.parentfield == "cost_table")
+		)
+		.run()
+	):
+		if parenttype == "Operations":
+			add(parent, "Supplier")
+		else:
+			service_jobs.setdefault(parenttype, set()).add(parent)
+	for doctype, names in service_jobs.items():
+		for job in frappe.get_all(doctype, filters={"name": ["in", list(names)]}, pluck="operations"):
+			add(job, "Supplier")
+
+	# Submitted bills for a job.
+	for job in frappe.get_all(
+		"Purchase Invoice",
+		filters={"supplier": supplier, "docstatus": 1, "operations": ["is", "set"]},
+		pluck="operations",
+		distinct=True,
+	):
+		add(job, "Supplier")
+
+	# The job's Shipping Line / Carrier is linked to the supplier.
+	for doctype, job_field, role in CARRIER_LINKS:
+		names = frappe.get_all(doctype, filters={"supplier": supplier}, pluck="name")
+		if names:
+			for job in frappe.get_all("Operations", filters={job_field: ["in", names]}, pluck="name"):
+				add(job, role)
 	return roles
 
 
@@ -333,10 +408,11 @@ def _jobs(supplier, services):
 
 	rows = frappe.get_all(
 		"Operations",
-		filters={"name": ["in", list(roles)]},
+		filters={"name": ["in", list(roles)], "docstatus": ["<", 2]},
 		fields=JOB_FIELDS,
 		order_by="creation desc",
 	)
+	rows = [r for r in rows if (r.operations_status or "") != "Cancelled"]
 	active = sum(
 		1
 		for r in rows
@@ -376,6 +452,92 @@ def _jobs(supplier, services):
 			}
 		)
 	return jobs, active
+
+
+# -- Cost variance and rates ------------------------------------------------------------
+
+
+def _cost_variance(supplier, threshold):
+	"""The Cost variance tile (§6.1) and the jobs over the threshold.
+
+	Over every job (not cancelled) with a submitted Purchase Invoice from the
+	supplier: invoiced = the bills' base_net_total (debit notes net off),
+	estimated = the job's cost rows naming the supplier. pct is the overall
+	(invoiced - estimated) / estimated x 100 over the jobs that have an
+	estimate; a job is over estimate when its own pct exceeds threshold."""
+	pi = frappe.qb.DocType("Purchase Invoice")
+	ops = frappe.qb.DocType("Operations")
+	invoiced = dict(
+		frappe.qb.from_(pi)
+		.join(ops)
+		.on(ops.name == pi.operations)
+		.select(pi.operations, Sum(pi.base_net_total))
+		.where(
+			(pi.supplier == supplier)
+			& (pi.docstatus == 1)
+			& (ops.docstatus < 2)
+			& (Coalesce(ops.operations_status, "") != "Cancelled")
+		)
+		.groupby(pi.operations)
+		.run()
+	)
+	estimated = {}
+	if invoiced:
+		ct = frappe.qb.DocType("Cost Table")
+		estimated = dict(
+			frappe.qb.from_(ct)
+			.select(ct.parent, Sum(ct.cost))
+			.where(
+				(ct.supplier == supplier)
+				& (ct.parenttype == "Operations")
+				& (ct.parentfield == "cost_table")
+				& ct.parent.isin(list(invoiced))
+			)
+			.groupby(ct.parent)
+			.run()
+		)
+
+	total_est = total_inv = 0.0
+	over = []
+	without_estimate = 0
+	for job in sorted(invoiced):
+		inv, est = flt(invoiced[job]), flt(estimated.get(job))
+		if est <= 0:
+			without_estimate += 1
+			continue
+		total_est += est
+		total_inv += inv
+		pct = (inv - est) / est * 100
+		if pct > flt(threshold):
+			over.append({"job": job, "estimated": flt(est, 2), "invoiced": flt(inv, 2), "variance_pct": flt(pct, 2)})
+
+	kpi = {
+		"pct": flt((total_inv - total_est) / total_est * 100, 2) if total_est else None,
+		"estimated": flt(total_est, 2),
+		"invoiced": flt(total_inv, 2),
+		"jobs_compared": len(invoiced) - without_estimate,
+		"jobs_over_estimate": len(over),
+		"jobs_without_estimate": without_estimate,
+		"threshold": flt(threshold),
+	}
+	return kpi, over
+
+
+def _expiring_rates(supplier, today, days):
+	"""Buying Item Prices for the supplier whose valid_upto falls between today
+	and days from now (S4)."""
+	from frappe.utils import add_days
+
+	return frappe.get_all(
+		"Item Price",
+		filters={
+			"buying": 1,
+			"supplier": supplier,
+			"valid_upto": ["between", [today, add_days(today, days)]],
+		},
+		fields=["name", "item_code", "price_list_rate", "currency", "valid_upto"],
+		order_by="valid_upto asc, name asc",
+	)
 
 
 # -- Purchase Invoices ----------------------------------------------------------------
