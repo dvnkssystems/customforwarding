@@ -203,8 +203,21 @@ doc_events = {
 	},
 	"Supplier": {
 		"before_insert": "forwarding.naming.set_supplier_code",
+		"validate": "forwarding.supplier.validate",
 		"on_update": "forwarding.job_events.on_supplier_change",
 		"on_trash": "forwarding.job_events.on_supplier_change",
+	},
+	"Vehicle": {
+		"on_update": "forwarding.job_events.on_fleet_change",
+		"on_trash": "forwarding.job_events.on_fleet_change",
+	},
+	"Driver": {
+		"on_update": "forwarding.job_events.on_fleet_change",
+		"on_trash": "forwarding.job_events.on_fleet_change",
+	},
+	"Item Price": {
+		"on_update": "forwarding.job_events.on_item_price_change",
+		"on_trash": "forwarding.job_events.on_item_price_change",
 	},
 	# The custom_ui records forwarding.api.ui_config reads. Child rows (tabs,
 	# wizard fields) are saved through their parent, which fires these; the

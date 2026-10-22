@@ -70,6 +70,7 @@ JOB_SUPPLIER_TABLES = (
 	("suppliers", "supplier"),
 	("transport_container_legs", "transporter"),
 	("transport_package_legs", "transporter"),
+	("cost_table", "supplier"),
 )
 
 
@@ -83,18 +84,26 @@ def clear_supplier_cache(*suppliers):
 
 
 def job_supplier_links(job):
-	"""Suppliers an Operations document names directly: its handling agent,
-	its Suppliers rows and the transporters on its transport legs."""
+	"""Suppliers an Operations document names: its handling agent, its
+	Suppliers rows, the transporters on its transport legs, the suppliers on
+	its cost rows and those linked to its Shipping Line and Carrier."""
 	if not job:
 		return []
+	from forwarding.carriers import carrier_suppliers
+
 	out = [job.get("handling_agent")]
 	for table, field in JOB_SUPPLIER_TABLES:
 		out += [row.get(field) for row in job.get(table) or []]
+	out += carrier_suppliers(job)
 	return [s for s in out if s]
 
 
 def _record_suppliers(doc):
-	return [doc.get(f) for f in SUPPLIER_FIELDS if doc.get(f)]
+	"""Suppliers a Transportation, Custom Clearance or Purchase Invoice names,
+	its cost rows' suppliers included."""
+	out = [doc.get(f) for f in SUPPLIER_FIELDS if doc.get(f)]
+	out += [row.get("supplier") for row in doc.get("cost_table") or [] if row.get("supplier")]
+	return out
 
 
 def _service_suppliers(*jobs):
@@ -282,3 +291,19 @@ def on_file_change(doc, method=None):
 
 def on_supplier_change(doc, method=None):
 	clear_supplier_cache(doc.name)
+
+
+def on_fleet_change(doc, method=None):
+	"""Vehicle or Driver: drop the cache of the transporter it belongs to
+	(Driver.transporter is ERPNext's; Vehicle.transporter is ours, when set)."""
+	before = _before(doc)
+	clear_supplier_cache(doc.get("transporter"), before.get("transporter") if before else None)
+
+
+def on_item_price_change(doc, method=None):
+	"""A buying Item Price is one of the supplier's rates (Rates tab, S4)."""
+	before = _before(doc)
+	suppliers = [doc.get("supplier")] if doc.get("buying") else []
+	if before and before.get("buying"):
+		suppliers.append(before.get("supplier"))
+	clear_supplier_cache(*suppliers)
