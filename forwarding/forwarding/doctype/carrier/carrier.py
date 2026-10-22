@@ -1,10 +1,14 @@
-# -*- coding: utf-8 -*-
 # Copyright (c) 2021, FirstERP and contributors
 # For license information, please see license.txt
 
-from __future__ import unicode_literals
-# import frappe
 from frappe.model.document import Document
 
+from forwarding.carriers import on_carrier_change
+
+
 class Carrier(Document):
-	pass
+	def on_update(self):
+		on_carrier_change(self)
+
+	def on_trash(self):
+		on_carrier_change(self, deleted=True)

@@ -6,7 +6,8 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
-  "carrier"
+  "carrier",
+  "supplier"
  ],
  "fields": [
   {
@@ -16,11 +17,19 @@
    "label": "Carrier",
    "reqd": 1,
    "unique": 1
+  },
+  {
+   "description": "The supplier that bills for this airline. Saving ticks Is Airline on it.",
+   "fieldname": "supplier",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Supplier",
+   "options": "Supplier"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2021-02-01 22:13:26.557532",
+ "modified": "2026-10-22 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "Forwarding",
  "name": "Carrier",
