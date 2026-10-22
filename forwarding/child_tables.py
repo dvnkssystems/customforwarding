@@ -19,6 +19,7 @@ def apply(doc, method=None):
 		return
 	set_document_received(doc)
 	set_cost_amounts(doc)
+	set_cost_suppliers(doc)
 	set_activity_dates(doc)
 
 
@@ -54,6 +55,37 @@ def set_cost_amounts(doc):
 		row.amount = flt(row.cost)
 		if row.item and not row.account and company:
 			row.account = _default_expense_account(row.item, company)
+
+
+# The supplier a new cost row is bought from by default, per parent DocType:
+# the first of these fields that is set. A job's own rows have no default.
+COST_SUPPLIER_FIELDS = {
+	"Transportation": ("transporter",),
+	"Custom Clearance": ("transporter_name", "broker_name"),
+}
+
+
+def default_cost_supplier(doc):
+	for field in COST_SUPPLIER_FIELDS.get(doc.doctype, ()):
+		if doc.get(field):
+			return doc.get(field)
+	return None
+
+
+def set_cost_suppliers(doc):
+	"""Give each new cost row with no supplier the record's transporter (or,
+	on a Custom Clearance with none, its broker).
+
+	Only rows added in this save: a row that already existed keeps whatever
+	the user left in it, blank included."""
+	supplier = default_cost_supplier(doc)
+	if not supplier:
+		return
+	before = doc.get_doc_before_save() if not doc.is_new() else None
+	existing = {r.name for r in (before.get("cost_table") or [])} if before else set()
+	for row in doc.get("cost_table") or []:
+		if not row.supplier and (not row.name or row.name not in existing):
+			row.supplier = supplier
 
 
 def _default_expense_account(item, company):
@@ -140,6 +172,9 @@ def sync_costs_to_job(doc):
 	not inserted yet (so it never stuck and the charge was counted twice) and
 	called an update method that did not exist (so a third save raised).
 	"""
+	# The controller's validate runs before the apply() doc_event: default
+	# the rows' supplier first, so the job's copies carry it.
+	set_cost_suppliers(doc)
 	if not doc.get("operations") or not doc.get("cost_table"):
 		return
 
@@ -148,7 +183,7 @@ def sync_costs_to_job(doc):
 		for r in frappe.get_all(
 			"Cost Table",
 			filters={"parent": doc.operations, "parenttype": "Operations", "parentfield": "cost_table"},
-			fields=["name", "item", "account", "cost", "idx"],
+			fields=["name", "item", "account", "cost", "supplier", "idx"],
 		)
 	}
 	next_idx = max((r.idx for r in job_rows.values()), default=0) + 1
@@ -166,10 +201,16 @@ def sync_costs_to_job(doc):
 			continue
 		copy = job_rows.get(row.ref_id) if row.ref_id else None
 		if copy:
-			values = {"item": row.item, "account": row.account, "cost": flt(row.cost), "amount": flt(row.cost)}
-			if any(cstr(copy.get(k) or "") != cstr(v or "") for k, v in values.items() if k in ("item", "account")) or flt(
-				copy.cost
-			) != flt(row.cost):
+			values = {
+				"item": row.item,
+				"account": row.account,
+				"supplier": row.get("supplier"),
+				"cost": flt(row.cost),
+				"amount": flt(row.cost),
+			}
+			if any(
+				cstr(copy.get(k) or "") != cstr(v or "") for k, v in values.items() if k in ("item", "account", "supplier")
+			) or flt(copy.cost) != flt(row.cost):
 				frappe.db.set_value("Cost Table", copy.name, values, update_modified=False)
 			continue
 
@@ -177,6 +218,8 @@ def sync_costs_to_job(doc):
 		if same_item:
 			row.ref_id = same_item.name
 			claimed.add(same_item.name)
+			if row.get("supplier") and not same_item.get("supplier"):
+				frappe.db.set_value("Cost Table", same_item.name, "supplier", row.supplier, update_modified=False)
 			continue
 
 		new = frappe.get_doc(
@@ -188,6 +231,7 @@ def sync_costs_to_job(doc):
 				"idx": next_idx,
 				"item": row.item,
 				"item_name": row.item_name,
+				"supplier": row.get("supplier"),
 				"account": row.account,
 				"cost": flt(row.cost),
 				"amount": flt(row.cost),
@@ -196,6 +240,8 @@ def sync_costs_to_job(doc):
 		)
 		new.db_insert()
 		next_idx += 1
-		job_rows[new.name] = frappe._dict(name=new.name, item=row.item, account=row.account, cost=flt(row.cost), idx=new.idx)
+		job_rows[new.name] = frappe._dict(
+			name=new.name, item=row.item, account=row.account, cost=flt(row.cost), supplier=row.get("supplier"), idx=new.idx
+		)
 		row.ref_id = new.name
 		claimed.add(new.name)
