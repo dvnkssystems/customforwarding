@@ -257,6 +257,53 @@ class TestPhase2PartyPages(IntegrationTestCase):
 		row = next(r for r in job_360.get(job.name)["invoices"]["purchase"] if r["name"] == pi.name)
 		self.assertEqual((row["supplier"], row["supplier_name"]), (self.supplier.name, self.supplier.supplier_name))
 
+	def test_job_names_the_carrier_suppliers(self):
+		from forwarding.api import job_360
+		from forwarding.job_events import cache_key
+
+		line = frappe.get_doc(
+			{"doctype": "Shipping Line", "shipping_line": f"P2 Line {frappe.generate_hash(length=5)}", "supplier": self.supplier.name}
+		).insert(ignore_permissions=True)
+		carrier = frappe.get_doc({"doctype": "Carrier", "carrier": f"P2 Air {frappe.generate_hash(length=5)}"}).insert(
+			ignore_permissions=True
+		)
+		job = make(shipping_line=line.name, carrier=carrier.name, handling_agent=self.supplier.name)
+		frappe.cache.delete_value(cache_key(job.name))
+		got = job_360.get(job.name)["job"]
+		self.assertEqual(
+			(got["shipping_line_supplier"], got["carrier"], got["carrier_supplier"], got["handling_agent"]),
+			(self.supplier.name, carrier.name, None, self.supplier.name),
+		)
+
+	def test_supplier_tile_patch_swaps_only_open_services(self):
+		from forwarding.patches.v1_0.supplier_tile_cost_variance import replace_tile
+
+		props = {
+			"freight_page": "supplier_360",
+			"tiles": [
+				{"key": "payables", "label": "Owed", "tab": "jobs"},
+				{"key": "open_services", "label": "Services open", "tab": "services", "hidden": 1},
+				{"key": "active_jobs", "label": "Active jobs", "tab": "jobs"},
+			],
+			"actions": [{"key": "edit", "label": "Edit"}],
+		}
+		new = replace_tile(props)
+		self.assertEqual(
+			new["tiles"],
+			[
+				{"key": "payables", "label": "Owed", "tab": "jobs"},
+				{"key": "cost_variance", "label": "Cost variance", "tab": "jobs", "hidden": 1},
+				{"key": "active_jobs", "label": "Active jobs", "tab": "jobs"},
+			],
+		)
+		self.assertEqual(new["actions"], props["actions"])
+		self.assertIsNone(replace_tile(new), "running again changes nothing")
+
+		from forwarding.api import ui_config
+
+		self.assertIn("cost_variance", [t["key"] for t in ui_config.default_page("supplier_360")["tiles"]])
+		self.assertNotIn("open_services", [t["key"] for t in ui_config.default_page("supplier_360")["tiles"]])
+
 	def test_job_banner_rules_stay_on_their_page(self):
 		from forwarding import banners
 

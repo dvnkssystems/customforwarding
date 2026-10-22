@@ -148,7 +148,8 @@ PAGES = {
 		],
 		"tiles": [
 			{"key": "active_jobs", "label": "Active jobs", "tab": "jobs"},
-			{"key": "open_services", "label": "Open services", "tab": "services"},
+			# Open services moved under Active jobs as a sub-line (Phase 2 SU4).
+			{"key": "cost_variance", "label": "Cost variance", "tab": "jobs"},
 			{"key": "payables", "label": "Payables outstanding", "tab": "purchase_invoices"},
 			{"key": "billed_year", "label": "Billed this year", "tab": "purchase_invoices"},
 			{"key": "documents", "label": "Documents on file", "tab": "documents"},
