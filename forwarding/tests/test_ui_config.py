@@ -123,12 +123,12 @@ class TestUIConfig(IntegrationTestCase):
 				tiles["payables"],
 				tiles["active_jobs"],
 				tiles["documents"],
-				tiles["open_services"],
+				tiles["cost_variance"],
 			]
 
 		set_props("Supplier 360", mutate)
 		tiles = ui_config.get_page("supplier_360")["tiles"]
-		self.assertEqual(keys(tiles), ["billed_year", "payables", "active_jobs", "open_services"])
+		self.assertEqual(keys(tiles), ["billed_year", "payables", "active_jobs", "cost_variance"])
 		self.assertEqual(tiles[1]["label"], "Owed to them")
 		self.assertEqual(tiles[0]["tab"], "jobs")
 

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>{{ _("Statement of Account") }} - {{ s.party_name }}</title>
+<style>
+	body { font-family: "Helvetica Neue", Arial, sans-serif; font-size: 11px; color: #1f2933; margin: 0; }
+	.head { display: table; width: 100%; margin-bottom: 14px; }
+	.head > div { display: table-cell; vertical-align: top; }
+	.head .right { text-align: right; }
+	h1 { font-size: 18px; margin: 0 0 4px; }
+	.muted { color: #616e7c; }
+	table { width: 100%; border-collapse: collapse; }
+	th, td { padding: 5px 6px; border-bottom: 1px solid #e4e7eb; text-align: left; }
+	th { background: #f5f7fa; font-weight: 600; font-size: 10px; text-transform: uppercase; color: #52606d; }
+	td.num, th.num { text-align: right; white-space: nowrap; }
+	tr.total td { font-weight: 600; border-top: 1px solid #9aa5b1; border-bottom: none; }
+	tr.opening td { font-style: italic; }
+	.ageing { margin-top: 18px; width: 60%; }
+	.closing { margin-top: 10px; font-size: 13px; font-weight: 600; text-align: right; }
+</style>
+</head>
+<body>
+	<div class="head">
+		<div>
+			<h1>{{ _("Statement of Account") }}</h1>
+			<div><strong>{{ s.party_name }}</strong>{% if s.party_name != s.party %} ({{ s.party }}){% endif %}</div>
+			{% if s.tax_id %}<div class="muted">{{ _("VAT No.") }} {{ s.tax_id }}</div>{% endif %}
+		</div>
+		<div class="right">
+			<div><strong>{{ s.company }}</strong></div>
+			<div class="muted">{{ formatdate(s.from_date) }} &ndash; {{ formatdate(s.to_date) }}</div>
+			<div class="muted">{{ _("All amounts in {0}").format(s.currency) }}</div>
+		</div>
+	</div>
+
+	<table>
+		<thead>
+			<tr>
+				<th>{{ _("Date") }}</th>
+				<th>{{ _("Type") }}</th>
+				<th>{{ _("Voucher") }}</th>
+				<th>{{ _("Reference") }}</th>
+				<th>{{ _("Due Date") }}</th>
+				<th class="num">{{ _("Debit") }}</th>
+				<th class="num">{{ _("Credit") }}</th>
+				<th class="num">{{ _("Balance") }}</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr class="opening">
+				<td>{{ formatdate(s.from_date) }}</td>
+				<td colspan="6">{{ _("Opening balance") }}</td>
+				<td class="num">{{ money(s.opening_balance) }}</td>
+			</tr>
+			{% for r in s.rows %}
+			<tr>
+				<td>{{ formatdate(r.posting_date) }}</td>
+				<td>{{ r.type }}</td>
+				<td>{{ r.voucher_no }}</td>
+				<td>{{ r.reference or "" }}</td>
+				<td>{{ formatdate(r.due_date) if r.due_date else "" }}</td>
+				<td class="num">{{ money(r.debit) if r.debit else "" }}</td>
+				<td class="num">{{ money(r.credit) if r.credit else "" }}</td>
+				<td class="num">{{ money(r.balance) }}</td>
+			</tr>
+			{% endfor %}
+			<tr class="total">
+				<td colspan="5">{{ _("Totals for the period") }}</td>
+				<td class="num">{{ money(s.total_debit) }}</td>
+				<td class="num">{{ money(s.total_credit) }}</td>
+				<td class="num">{{ money(s.closing_balance) }}</td>
+			</tr>
+		</tbody>
+	</table>
+
+	<div class="closing">{{ _("Closing balance ({0})").format(s.balance_label) }}: {{ money(s.closing_balance) }}</div>
+
+	<table class="ageing">
+		<thead>
+			<tr>
+				{% for b in buckets %}<th class="num">{{ _("{0} days").format(b) }}</th>{% endfor %}
+				<th class="num">{{ _("Total open") }}</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				{% for b in buckets %}<td class="num">{{ money(s.ageing[b]) }}</td>{% endfor %}
+				<td class="num">{{ money(s.ageing.total) }}</td>
+			</tr>
+		</tbody>
+	</table>
+	<p class="muted">{{ _("Ageing as of {0}, by days past due date.").format(formatdate(s.to_date)) }}</p>
+</body>
+</html>

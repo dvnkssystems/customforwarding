@@ -30,3 +30,7 @@ forwarding.patches.v1_0.close_guest_lead_paths
 forwarding.patches.v1_0.recompute_job_billing_status
 forwarding.patches.v1_0.repair_print_formats
 forwarding.patches.v1_0.backfill_export_cutoffs
+forwarding.patches.v1_0.seed_phase2_party_banner_rules
+forwarding.patches.v1_0.link_carriers_to_suppliers
+forwarding.patches.v1_0.backfill_cost_row_suppliers
+forwarding.patches.v1_0.supplier_tile_cost_variance

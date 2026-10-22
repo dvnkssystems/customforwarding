@@ -63,6 +63,8 @@ JOB_FIELDS = (
 	"flight_number",
 	"air_line",
 	"shipping_line",
+	"carrier",
+	"handling_agent",
 	"commodity",
 	"packages",
 	"gross_weight",
@@ -211,6 +213,14 @@ def build(job):
 	job_fields["customer_name"] = (
 		frappe.db.get_value("Customer", doc.customer, "customer_name", cache=True) if doc.customer else None
 	)
+	# The Supplier that bills for the job's Shipping Line / Carrier, so their
+	# names can open the supplier page (Phase 2 §4). None when not linked.
+	job_fields["shipping_line_supplier"] = (
+		frappe.db.get_value("Shipping Line", doc.shipping_line, "supplier") if doc.get("shipping_line") else None
+	)
+	job_fields["carrier_supplier"] = (
+		frappe.db.get_value("Carrier", doc.carrier, "supplier") if doc.get("carrier") else None
+	)
 
 	payload = {
 		"job": job_fields,
@@ -229,7 +239,7 @@ def build(job):
 		"cutoffs": cutoffs,
 		"invoices": {
 			"sales": [_pick(si, INVOICE_FIELDS) for si in invoices["sales"]],
-			"purchase": [_pick(pi, INVOICE_FIELDS) for pi in invoices["purchase"]],
+			"purchase": [_pick(pi, [*INVOICE_FIELDS, *PURCHASE_FIELDS]) for pi in invoices["purchase"]],
 			"payments": invoices["payments"],
 		},
 	}
@@ -270,6 +280,9 @@ LINKED_FIELDS = {
 		"creation",
 	],
 }
+# Purchase Invoice rows also say who billed (the Invoices tab links the
+# supplier page).
+PURCHASE_FIELDS = ["supplier", "supplier_name"]
 INVOICE_FIELDS = [
 	"name",
 	"posting_date",
@@ -450,7 +463,7 @@ def _invoices(job):
 	pi = frappe.get_all(
 		"Purchase Invoice",
 		filters={"operations": job, "docstatus": ["<", 2]},
-		fields=INVOICE_FIELDS,
+		fields=[*INVOICE_FIELDS, *PURCHASE_FIELDS],
 		order_by="posting_date asc, creation asc",
 	)
 

@@ -23,7 +23,7 @@ import frappe
 from frappe.query_builder.functions import Coalesce, Count
 from frappe.utils import add_days, cstr, flt, getdate, nowdate
 
-from forwarding import customer_banners, party_360
+from forwarding import banners, customer_banners, party_360
 from forwarding.job_events import customer_cache_key
 from forwarding.party_360 import ADDRESS_FIELDS, CONTACT_FIELDS, default_company
 
@@ -101,7 +101,8 @@ def build(customer):
 	addresses = _linked_party_records("Address", customer, ADDRESS_FIELDS, "is_primary_address")
 
 	invoices, receivable = _invoices(customer, company, currency, today)
-	quotes, quote_counts = _quotes(customer, today)
+	quote_days = customer_banners.quote_expiry_days()
+	quotes, quote_counts = _quotes(customer, today, quote_days)
 	documents, documents_on_file, documents_total = _documents(customer)
 	credit_limit = _credit_limit(doc, company)
 	credit_used = receivable["outstanding"]
@@ -124,6 +125,8 @@ def build(customer):
 		"currency": currency,
 		"overdue": receivable["overdue_rows"],
 		"expiring_quotes": quote_counts["expiring"],
+		"quote_expiry_days": quote_days,
+		"not_invoiced_jobs": _not_invoiced_jobs(customer, today),
 		"today": today,
 	}
 
@@ -159,6 +162,7 @@ def build(customer):
 
 
 def _customer_header(doc, company, credit_limit, contacts, addresses):
+	salesman = _salesman(doc)
 	if doc.disabled:
 		status = "Disabled"
 	elif doc.get("is_blocked") or doc.get("is_frozen"):
@@ -170,13 +174,25 @@ def _customer_header(doc, company, credit_limit, contacts, addresses):
 		"name": doc.name,
 		"customer_name": doc.customer_name,
 		"customer_group": doc.customer_group,
+		# Empty for the root group ("All Customer Groups"), so the page can
+		# hide that pill (CU5).
+		"customer_group_parent": (
+			frappe.db.get_value("Customer Group", doc.customer_group, "parent_customer_group") or None
+		)
+		if doc.customer_group
+		else None,
 		"territory": doc.territory,
 		# ERPNext's tax_id, else the VAT number ksa_compliance keeps.
 		"tax_id": doc.tax_id or doc.get("custom_vat_registration_number") or None,
 		"cr_no": doc.get("cr_no") or None,
 		"disabled": doc.disabled,
 		"status": status,
-		"salesman": _salesman(doc),
+		"salesman": salesman,
+		# For pre-filling a new job (CU4): Operations.salesman links to Sales
+		# Person, so only a salesman that is one; Operations.branch from the
+		# Customer's branch.
+		"default_salesman": salesman if salesman and frappe.db.exists("Sales Person", salesman) else None,
+		"branch": doc.get("branch") or None,
 		"credit_limit": flt(credit_limit, 2),
 		"primary_contact": party_360.primary_contact(doc.customer_primary_contact, contacts),
 		"primary_address": party_360.primary_address(doc.customer_primary_address, addresses),
@@ -289,14 +305,31 @@ def _invoices(customer, company, currency, today):
 	return listed, {"outstanding": outstanding, "overdue": overdue, "overdue_rows": overdue_rows}
 
 
-def _quotes(customer, today):
+def _not_invoiced_jobs(customer, today):
+	"""The customer's jobs raising job banner B5 (delivered or ops completed,
+	no invoice): the same check Job 360 makes, banners.not_invoiced."""
+	rows = frappe.get_all(
+		"Operations",
+		filters={"customer": customer, "docstatus": ["<", 2]},
+		fields=["name", "operations_status", "billing_status", "docstatus"],
+		order_by="creation desc",
+	)
+	ctx = {"today": today}
+	return [
+		{"name": r.name, "operations_status": r.operations_status}
+		for r in rows
+		if banners.not_invoiced(r, ctx)
+	]
+
+
+def _quotes(customer, today, days=None):
 	rows = frappe.get_all(
 		"Quote",
 		filters={"consignee": customer},
 		fields=["name", "date", "validity", "mode", "pol", "pod", "total"],
 		order_by="date desc, creation desc",
 	)
-	soon = add_days(today, customer_banners.QUOTE_EXPIRY_DAYS)
+	soon = add_days(today, customer_banners.QUOTE_EXPIRY_DAYS if days is None else days)
 	open_count = 0
 	expiring = []
 	for r in rows:

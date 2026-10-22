@@ -221,7 +221,9 @@ class TestJob360(IntegrationTestCase):
 		)
 		self.assertEqual(set(payload["linked"]), {"transportation", "custom_clearance"})
 		self.assertEqual(set(payload["invoices"]), {"sales", "purchase", "payments"})
-		self.assertEqual(set(payload["job"]), set(job_360.JOB_FIELDS))
+		self.assertEqual(
+			set(payload["job"]), {*job_360.JOB_FIELDS, "shipping_line_supplier", "carrier_supplier"}
+		)
 
 		kpis = payload["kpis"]
 		self.assertEqual(kpis["cost_total"], 300)

@@ -13,9 +13,15 @@ Every condition takes ctx, the dict built by forwarding.api.customer_360:
 	kpis		the customer's KPI dict (credit_used, credit_limit, ...)
 	currency	company currency the amounts are in
 	overdue		[{name, due_date, outstanding}] submitted invoices past due
-	expiring_quotes	[{name, validity}] open quotes expiring within QUOTE_EXPIRY_DAYS
-	quote_expiry_days	QUOTE_EXPIRY_DAYS, for message templates
+	expiring_quotes	[{name, validity}] open quotes expiring within quote_expiry_days
+	quote_expiry_days	Party Alert Settings' Quote Expiry Warning (Days), for message templates
+	not_invoiced_jobs	[{name, operations_status}] jobs raising job banner B5
+			(delivered or ops completed, no invoice)
 	today		date the banners are worked out for
+
+C5 (job_not_invoiced) and the threshold settings come from the Phase 2
+spec §6.2; they are provisional and live in Job Banner Rule / Party Alert
+Settings, not in code.
 """
 
 from frappe.utils import flt
@@ -23,7 +29,14 @@ from frappe.utils import flt
 from forwarding.banners import format_date  # noqa: F401  (re-exported for callers and tests)
 from forwarding.party_360 import evaluate_rules
 
+# Fallback only; the live value is Party Alert Settings.quote_expiry_days.
 QUOTE_EXPIRY_DAYS = 3
+
+
+def quote_expiry_days():
+	from forwarding.forwarding.doctype.party_alert_settings.party_alert_settings import get_settings
+
+	return get_settings().quote_expiry_days
 
 
 def over_credit_limit(ctx):
@@ -39,14 +52,22 @@ def quote_expiring(ctx):
 	return bool(ctx.get("expiring_quotes"))
 
 
+def job_not_invoiced(ctx):
+	"""Any of the customer's jobs raises the job banner B5 condition."""
+	return bool(ctx.get("not_invoiced_jobs"))
+
+
 CONDITIONS = {
 	"over_credit_limit": over_credit_limit,
 	"overdue_invoices": overdue_invoices,
 	"quote_expiring": quote_expiring,
+	"job_not_invoiced": job_not_invoiced,
 }
 
 
 def evaluate(ctx):
 	"""[{code, priority, colour, message, action}] for every enabled Customer
 	rule whose condition holds, lowest priority first."""
-	return evaluate_rules("Customer", CONDITIONS, {**ctx, "quote_expiry_days": QUOTE_EXPIRY_DAYS})
+	return evaluate_rules(
+		"Customer", CONDITIONS, {"quote_expiry_days": quote_expiry_days(), "not_invoiced_jobs": [], **ctx}
+	)
