@@ -406,7 +406,15 @@ class TestPhase2PartyPages(IntegrationTestCase):
 		line = frappe.get_doc({"doctype": "Shipping Line", "shipping_line": f"  {name.upper()} "}).insert(
 			ignore_permissions=True
 		)
-		with patch("builtins.print"):
+		# The patch's schema steps (reload_doc, syncing custom/supplier.json)
+		# are already applied by migrate, and their DDL commits the test
+		# transaction implicitly: every job this class had made so far stayed
+		# behind as a stray draft. Only the matching is under test here.
+		with (
+			patch("builtins.print"),
+			patch.object(frappe, "reload_doc"),
+			patch.object(link_carriers_to_suppliers, "_sync_supplier_customizations"),
+		):
 			link_carriers_to_suppliers.execute()
 		self.assertEqual(frappe.db.get_value("Shipping Line", line.name, "supplier"), supplier.name)
 		self.assertEqual(frappe.db.get_value("Supplier", supplier.name, "is_shipping_line"), 1)
