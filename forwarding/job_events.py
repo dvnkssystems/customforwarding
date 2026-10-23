@@ -57,6 +57,8 @@ def customer_cache_key(customer):
 def clear_customer_cache(*customers):
 	for customer in {c for c in customers if c}:
 		frappe.cache.delete_value(customer_cache_key(customer))
+		# Copies built for a date range (party_360.ranged_cache_key).
+		frappe.cache.delete_keys(f"{customer_cache_key(customer)}|")
 
 
 SUPPLIER_CACHE_PREFIX = "supplier_360:"
@@ -81,6 +83,8 @@ def supplier_cache_key(supplier):
 def clear_supplier_cache(*suppliers):
 	for supplier in {s for s in suppliers if s}:
 		frappe.cache.delete_value(supplier_cache_key(supplier))
+		# Copies built for a date range (party_360.ranged_cache_key).
+		frappe.cache.delete_keys(f"{supplier_cache_key(supplier)}|")
 
 
 def job_supplier_links(job):

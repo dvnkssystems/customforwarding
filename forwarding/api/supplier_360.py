@@ -126,13 +126,19 @@ PAYMENT_FIELDS = [
 
 
 @frappe.whitelist(methods=["GET"])
-def get(supplier):
+def get(supplier, from_date=None, to_date=None):
+	"""The page's payload. from_date / to_date (optional, M-18) narrow the
+	services (and the open / unbilled counts over them), the jobs (by job
+	date) and the bill and payment lists (by posting date); payables, billed
+	this year and cost variance are unchanged."""
 	frappe.has_permission("Supplier", "read", supplier, throw=True)
 
-	payload = frappe.cache.get_value(supplier_cache_key(supplier))
+	date_range = party_360.date_range(from_date, to_date)
+	key = party_360.ranged_cache_key(supplier_cache_key(supplier), date_range)
+	payload = frappe.cache.get_value(key)
 	if payload is None:
-		payload = build(supplier)
-		frappe.cache.set_value(supplier_cache_key(supplier), payload, expires_in_sec=CACHE_SECONDS)
+		payload = build(supplier, date_range)
+		frappe.cache.set_value(key, payload, expires_in_sec=CACHE_SECONDS)
 
 	return party_360.for_user(payload, "supplier", GUARDED)
 
@@ -140,7 +146,7 @@ def get(supplier):
 # -- Building the payload -----------------------------------------------------------
 
 
-def build(supplier):
+def build(supplier, date_range=None):
 	doc = frappe.get_doc("Supplier", supplier)
 	today = getdate(nowdate())
 	company = default_company()
@@ -153,17 +159,20 @@ def build(supplier):
 		"Address", "Supplier", supplier, ADDRESS_FIELDS, "is_primary_address", LIST_LIMIT
 	)
 
-	services = _services(supplier)
-	invoices, payable = _invoices(supplier, company, currency, today)
+	all_services = _services(supplier)
+	invoices, payable = _invoices(supplier, company, currency, today, date_range)
 	billed_jobs = set(payable["billed_jobs"])
-	for s in services:
+	for s in all_services:
 		s["billed"] = bool(s["operations"] and s["operations"] in billed_jobs)
+	# The date filter narrows the services listed and counted; which jobs the
+	# supplier works on and its documents still come from all of them.
+	services = party_360.in_range(all_services, "date", date_range)
 
 	settings = get_settings()
-	jobs, active_jobs = _jobs(supplier, services)
+	jobs, active_jobs = _jobs(supplier, all_services, date_range)
 	cost_variance, jobs_over = _cost_variance(supplier, settings.cost_variance_threshold)
 	expiring_rates = _expiring_rates(supplier, today, settings.rate_expiry_days)
-	documents, documents_on_file, documents_total = _documents(supplier, services)
+	documents, documents_on_file, documents_total = _documents(supplier, all_services)
 	header = _supplier_header(doc, today, contacts, addresses)
 
 	kpis = {
@@ -211,7 +220,12 @@ def build(supplier):
 		"invoices": invoices,
 		"payments": frappe.get_all(
 			"Payment Entry",
-			filters={"party_type": "Supplier", "party": supplier, "docstatus": ["<", 2]},
+			filters={
+				"party_type": "Supplier",
+				"party": supplier,
+				"docstatus": ["<", 2],
+				**party_360.range_filter("posting_date", date_range),
+			},
 			fields=PAYMENT_FIELDS,
 			order_by="posting_date desc, creation desc",
 			limit=LIST_LIMIT,
@@ -400,15 +414,20 @@ def _job_roles(supplier, services):
 	return roles
 
 
-def _jobs(supplier, services):
-	"""The job list (newest first, capped) and the count of active jobs."""
+def _jobs(supplier, services, date_range=None):
+	"""The job list (newest first, capped) and the count of active jobs,
+	both within date_range (by job date) when one is given."""
 	roles = _job_roles(supplier, services)
 	if not roles:
 		return [], 0
 
 	rows = frappe.get_all(
 		"Operations",
-		filters={"name": ["in", list(roles)], "docstatus": ["<", 2]},
+		filters={
+			"name": ["in", list(roles)],
+			"docstatus": ["<", 2],
+			**party_360.range_filter("date", date_range),
+		},
 		fields=JOB_FIELDS,
 		order_by="creation desc",
 	)
@@ -543,7 +562,7 @@ def _expiring_rates(supplier, today, days):
 # -- Purchase Invoices ----------------------------------------------------------------
 
 
-def _invoices(supplier, company, currency, today):
+def _invoices(supplier, company, currency, today, date_range=None):
 	"""The bill list, the payable totals in company currency, and the jobs
 	the supplier has a submitted bill for (any company: billed is about the
 	work, not the books).
@@ -603,7 +622,7 @@ def _invoices(supplier, company, currency, today):
 			"operations": r.operations,
 			"overdue": party_360.is_overdue(r, today),
 		}
-		for r in rows[:LIST_LIMIT]
+		for r in party_360.in_range(rows, "posting_date", date_range)[:LIST_LIMIT]
 	]
 	return listed, {
 		"outstanding": outstanding,

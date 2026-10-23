@@ -33,6 +33,63 @@ def default_company():
 	)
 
 
+def date_range(from_date=None, to_date=None):
+	"""(from, to) as dates for the 360 pages' date filter (M-18), either end
+	open, or None when neither is given: no range is today's behaviour."""
+	start = getdate(from_date) if from_date else None
+	end = getdate(to_date) if to_date else None
+	if not (start or end):
+		return None
+	if start and end and start > end:
+		frappe.throw(frappe._("From date must be on or before To date."))
+	return (start, end)
+
+
+def ranged_cache_key(key, date_range):
+	"""The party's cache key, plus the range when there is one. Ranged copies
+	share the party's prefix so clearing the party clears them too."""
+	if not date_range:
+		return key
+	start, end = date_range
+	return f"{key}|{start or ''}|{end or ''}"
+
+
+def range_filter(fieldname, date_range):
+	"""frappe.get_all filters keeping fieldname within the range ({} for none)."""
+	if not date_range:
+		return {}
+	start, end = date_range
+	if start and end:
+		return {fieldname: ["between", [start, end]]}
+	return {fieldname: [">=", start] if start else ["<=", end]}
+
+
+def range_condition(column, date_range):
+	"""The same as a frappe.qb criterion on column, or None for no range."""
+	if not date_range:
+		return None
+	start, end = date_range
+	if start and end:
+		return column[start:end]
+	return column >= start if start else column <= end
+
+
+def in_range(rows, fieldname, date_range):
+	"""The rows whose fieldname falls within the range; all of them for none.
+	A row without the date is outside any range."""
+	if not date_range:
+		return list(rows)
+	start, end = date_range
+
+	def inside(value):
+		if not value:
+			return False
+		value = getdate(value)
+		return (not start or value >= start) and (not end or value <= end)
+
+	return [r for r in rows if inside(r.get(fieldname))]
+
+
 def for_user(payload, header_key, guarded):
 	"""Drop the lists the current user may not read. Works on a copy.
 
