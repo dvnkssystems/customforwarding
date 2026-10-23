@@ -135,7 +135,11 @@ def cancel_job(job, delete_drafts=0):
 	blockers = cancel_blockers(links)
 	if blockers:
 		frappe.throw(
-			_("Cancel {0} first. They are linked to job {1}.").format(_list(blockers), frappe.bold(job)),
+			(
+				_("Cancel {0} first. It is linked to job {1}.")
+				if len(blockers) == 1
+				else _("Cancel {0} first. They are linked to job {1}.")
+			).format(_list(blockers), frappe.bold(job)),
 			title=_("Linked records"),
 		)
 
