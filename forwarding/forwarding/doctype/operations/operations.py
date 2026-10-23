@@ -139,6 +139,25 @@ def expected_documents(job):
 	return out
 
 
+@frappe.whitelist()
+def default_expense_account(item, company=None):
+	"""The expense account a cost row for `item` books to: the item's default
+	for the company, else its item group's, else the company's default
+	expense account. None when there is none."""
+	if not item:
+		return None
+	company = company or frappe.defaults.get_user_default("Company") or frappe.db.get_single_value(
+		"Global Defaults", "default_company"
+	)
+	if not company:
+		return None
+	return (
+		get_item_defaults(item, company).get("expense_account")
+		or get_item_group_defaults(item, company).get("expense_account")
+		or frappe.get_cached_value("Company", company, "default_expense_account")
+	)
+
+
 class Operations(Document):
 	def before_insert(self):
 		self.set_default_cutoffs()
@@ -185,6 +204,7 @@ class Operations(Document):
 		self.set_cutoff_status()
 		self.sync_container_rows()
 		self.set_billing_status()
+		self.set_cost_accounts()
 		self.warn_missing_documents()
 
 	def before_update_after_submit(self):
@@ -438,6 +458,13 @@ class Operations(Document):
 			clearance = frappe.get_doc("Custom Clearance", name)
 			for row in add_clearance_containers(clearance, containers):
 				row.db_insert()
+
+	def set_cost_accounts(self):
+		"""A cost row with an item and no account books to the item's default
+		expense account for the job's company (R2-28)."""
+		for row in self.get("cost_table") or []:
+			if row.item and not row.account:
+				row.account = default_expense_account(row.item, self.company)
 
 	def set_billing_status(self):
 		"""How far the job's submitted Sales Invoices have been paid.

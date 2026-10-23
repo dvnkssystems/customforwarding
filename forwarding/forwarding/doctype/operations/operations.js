@@ -435,4 +435,19 @@ frappe.ui.form.on("Cost Table", {
 	cost(frm, cdt, cdn) {
 		frappe.model.set_value(cdt, cdn, "amount", flt(locals[cdt][cdn].cost));
 	},
+	// The item's default expense account for the job's company (R2-28); the
+	// server fills it on save too, for rows added any other way.
+	item(frm, cdt, cdn) {
+		const row = locals[cdt][cdn];
+		if (!row.item) return;
+		frappe.call({
+			method: "forwarding.forwarding.doctype.operations.operations.default_expense_account",
+			args: { item: row.item, company: frm.doc.company },
+			callback: (r) => {
+				if (r && r.message && locals[cdt][cdn] && locals[cdt][cdn].item === row.item) {
+					frappe.model.set_value(cdt, cdn, "account", r.message);
+				}
+			},
+		});
+	},
 });
