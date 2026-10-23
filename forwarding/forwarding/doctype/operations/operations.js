@@ -458,7 +458,7 @@ function refuse_future_actual(frm, fieldname, label) {
 // (M-04); the user can still change it. A customer with none leaves it alone.
 async function fill_salesman_from_customer(frm) {
 	const customer = frm.doc.customer;
-	if (!customer || frm.doc.docstatus !== 0) return;
+	if (!customer || cint(frm.doc.docstatus) > 0) return;
 	const r = await frappe.call({
 		method: "forwarding.api.customer_360.default_salesperson",
 		args: { customer },
