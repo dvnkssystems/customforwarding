@@ -73,12 +73,24 @@ def invoice_overdue(job, ctx):
 	return bool(ctx.get("overdue_invoices"))
 
 
+def _offers(job, ctx, service_type):
+	"""Whether the job holds a service of this type within its scope (M-05,
+	M-06). ctx carries the job's service types (forwarding.services); without
+	them the Activity & Services tick-box decides."""
+	types = ctx.get("service_types")
+	if types is None:
+		from forwarding.services import SERVICE_TYPE_FIELD
+
+		return bool(cint(job.get(SERVICE_TYPE_FIELD[service_type])))
+	return service_type in types
+
+
 def customs_missing(job, ctx):
-	"""Customs Clearance is ticked under Activity & Services, but no Custom
-	Clearance record has been created for the job yet."""
+	"""The job holds a Customs Clearance service, but no Custom Clearance
+	record has been created for it yet."""
 	return bool(
 		_active(job)
-		and cint(job.get("svc_customs_clearance"))
+		and _offers(job, ctx, "Customs Clearance")
 		and not cint(ctx.get("custom_clearance_count"))
 	)
 

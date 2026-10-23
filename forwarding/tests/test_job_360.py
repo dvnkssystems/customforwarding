@@ -27,6 +27,19 @@ def _first(doctype, filters=None):
 	return name
 
 
+TEST_SCOPE = "_Test Scope Any Service"
+
+
+def any_service_scope():
+	"""A Scope of Work with no Allowed Service Types, so it allows every
+	service: a new job needs a scope (M-06)."""
+	if not frappe.db.exists("Scope Of Work", TEST_SCOPE):
+		frappe.get_doc({"doctype": "Scope Of Work", "scope_of_work": TEST_SCOPE, "abbreviation": "TSA"}).insert(
+			ignore_permissions=True
+		)
+	return TEST_SCOPE
+
+
 def make(**values):
 	"""An Operations job with the site's first branch / mode / job type."""
 	job = frappe.get_doc(
@@ -37,6 +50,7 @@ def make(**values):
 			"branch": _first("Branch", {"abbreviation": ["is", "set"]}),
 			"job_type": values.pop("job_type", "Import"),
 			"mode_of_shipment": values.pop("mode_of_shipment", "Air"),
+			"scope_of_work": values.pop("scope_of_work", None) or any_service_scope(),
 			"date": nowdate(),
 			**values,
 		}
@@ -238,7 +252,8 @@ class TestJob360(IntegrationTestCase):
 		self.assertEqual(set(payload["linked"]), {"transportation", "custom_clearance"})
 		self.assertEqual(set(payload["invoices"]), {"sales", "purchase", "payments"})
 		self.assertEqual(
-			set(payload["job"]), {*job_360.JOB_FIELDS, "shipping_line_supplier", "carrier_supplier"}
+			set(payload["job"]),
+			{*job_360.JOB_FIELDS, "shipping_line_supplier", "carrier_supplier", "services", "service_types"},
 		)
 
 		kpis = payload["kpis"]

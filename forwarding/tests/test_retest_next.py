@@ -14,7 +14,7 @@ from forwarding.api import job_360
 from forwarding.patches.v1_0 import backfill_export_cutoffs
 from forwarding.quote_to_job import make_operations_from_quote
 from forwarding.tests.test_customer_360 import fresh, make_quote
-from forwarding.tests.test_job_360 import CUSTOMER, make, make_sales_invoice
+from forwarding.tests.test_job_360 import CUSTOMER, any_service_scope, make, make_sales_invoice
 
 
 def _port(**filters):
@@ -55,7 +55,7 @@ class TestQuoteToJob(RetestCase):
 		# Picking the quote adds nothing; saving the job adds and links the commodity.
 		self.assertFalse(job.commodity)
 		self.assertFalse(frappe.db.exists("Commodity", "Retest Widgets"))
-		job.update({"company": frappe.db.get_value("Company", {}, "name"), "branch": frappe.db.get_value("Branch", {"abbreviation": ["is", "set"]}), "job_type": "Import"})
+		job.update({"company": frappe.db.get_value("Company", {}, "name"), "branch": frappe.db.get_value("Branch", {"abbreviation": ["is", "set"]}), "job_type": "Import", "scope_of_work": any_service_scope()})
 		job.insert(ignore_permissions=True)
 		self.assertEqual(job.commodity, "Retest Widgets")
 

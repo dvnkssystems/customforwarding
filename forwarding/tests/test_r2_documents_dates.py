@@ -18,7 +18,7 @@ from forwarding.party_360 import date_range, in_range, ranged_cache_key
 from forwarding.quote_to_job import make_operations_from_quote
 from forwarding.tests.test_customer_360 import make_customer as _make_customer
 from forwarding.tests.test_customer_360 import make_invoice, make_quote
-from forwarding.tests.test_job_360 import _first, make, submit_job
+from forwarding.tests.test_job_360 import _first, any_service_scope, make, submit_job
 from forwarding.tests.test_supplier_360 import make_bill, make_clearance, make_supplier
 
 TODAY = nowdate()
@@ -220,6 +220,7 @@ class TestQuoteToJob(R2Case):
 				"company": _first("Company"),
 				"branch": _first("Branch", {"abbreviation": ["is", "set"]}),
 				"job_type": "Import",
+				"scope_of_work": any_service_scope(),
 				"port_of_loading": None,
 				"port_of_destination": None,
 			}
