@@ -40,3 +40,6 @@ forwarding.patches.v1_0.job_actions_amend_delete
 forwarding.patches.v1_0.r2_default_salesperson_and_documents
 forwarding.patches.v1_0.r2_estimate_banner_rule
 forwarding.patches.v1_0.r2_services_and_scopes
+forwarding.patches.v1_0.r2_quote_submittable
+forwarding.patches.v1_0.r2_customs_banner_services
+forwarding.patches.v1_0.r2_job_types
