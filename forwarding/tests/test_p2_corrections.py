@@ -53,8 +53,8 @@ class TestJobLayout(P2TestCase):
 			self.assertFalse(_field("Operations", fieldname).depends_on, fieldname)
 			self.assertFalse(_field("Operations", fieldname).hidden, fieldname)
 		chargeable = _field("Operations", "chargable_weight").depends_on
-		self.assertIn("mode_of_shipment==\"Air\"", chargeable)
-		self.assertIn("doc.chargable_weight", chargeable)
+		# Round 2 (R2-22): Air jobs only, even when a value was kept.
+		self.assertEqual(chargeable, 'eval:doc.mode_of_shipment=="Air"')
 		# C6 still locks the measures while package rows exist.
 		for fieldname in ("packages", "gross_weight", "cbm"):
 			self.assertIn("package_details", _field("Operations", fieldname).read_only_depends_on)

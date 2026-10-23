@@ -16,6 +16,10 @@ from forwarding.child_tables import (
 )
 
 
+# Before the declaration is filed there is no Bayan yet.
+BAYAN_OPTIONAL_STATUS = "Draft"
+
+
 class CustomClearance(Document):
 	def after_insert(self):
 		# Only the job's documents for the customs stage belong to the clearance.
@@ -25,9 +29,31 @@ class CustomClearance(Document):
 		copy_from_job(self, "clearance_documents")
 
 	def validate(self):
+		self.validate_bayan()
 		# The job keeps a copy of every cost row (forwarding.child_tables).
 		sync_costs_to_job(self)
 		self.add_job_containers()
+
+	def validate_bayan(self):
+		"""The Bayan is issued once the declaration is filed: Bayan No. and
+		Bayan Date are required from Clearance Status Submitted on (the
+		form's mandatory_depends_on), not on a Draft clearance (M-11)."""
+		if (self.clearance_status or BAYAN_OPTIONAL_STATUS) == BAYAN_OPTIONAL_STATUS:
+			return
+		missing = [
+			_(self.meta.get_label(fieldname))
+			for fieldname in ("bayyan_number", "bayyan_date")
+			if not self.get(fieldname)
+		]
+		if missing:
+			frappe.throw(
+				_("Enter {0}: the Bayan is required once Clearance Status is {1}.").format(
+					", ".join(missing),
+					frappe.bold(_(self.clearance_status)),
+				),
+				frappe.MandatoryError,
+				title=_("Bayan details missing"),
+			)
 
 	def add_job_containers(self):
 		"""List every container of the job, Pending until cleared. A job's

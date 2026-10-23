@@ -422,6 +422,57 @@ frappe.ui.form.on("Document Table", {
 			if (!row.date) frappe.model.set_value(cdt, cdn, "date", frappe.datetime.get_today());
 		}
 	},
+	// Date is the day the document was received: today when Received is
+	// set, cleared when it is unset (R2-15).
+	received(frm, cdt, cdn) {
+		const row = locals[cdt][cdn];
+		if (row.received === "Yes") {
+			if (!row.date) frappe.model.set_value(cdt, cdn, "date", frappe.datetime.get_today());
+		} else if (row.date) {
+			frappe.model.set_value(cdt, cdn, "date", null);
+		}
+	},
+});
+
+// ---------------------------------------------------------------------------
+// ATD / ATA record what has happened: neither can be after today (R2-19).
+// The server refuses one too (Operations.validate_actual_dates).
+// ---------------------------------------------------------------------------
+
+function refuse_future_actual(frm, fieldname, label) {
+	const value = frm.doc[fieldname];
+	const today = frappe.datetime.get_today();
+	if (!value || String(value).slice(0, 10) <= today) return;
+	frm.set_value(fieldname, null);
+	frappe.msgprint({
+		title: __("Date in the future"),
+		message: __("{0} cannot be after today ({1}): it records what has already happened.", [
+			label,
+			frappe.datetime.str_to_user ? frappe.datetime.str_to_user(today) : today,
+		]),
+		indicator: "red",
+	});
+}
+
+// Picking a customer fills Salesman with the customer's Default Salesperson
+// (M-04); the user can still change it. A customer with none leaves it alone.
+async function fill_salesman_from_customer(frm) {
+	const customer = frm.doc.customer;
+	if (!customer || frm.doc.docstatus !== 0) return;
+	const r = await frappe.call({
+		method: "forwarding.api.customer_360.default_salesperson",
+		args: { customer },
+	});
+	const salesman = r && r.message;
+	if (salesman && frm.doc.customer === customer && frm.doc.salesman !== salesman) {
+		frm.set_value("salesman", salesman);
+	}
+}
+
+frappe.ui.form.on("Operations", {
+	atd_date: (frm) => refuse_future_actual(frm, "atd_date", __("ATD")),
+	ata_date: (frm) => refuse_future_actual(frm, "ata_date", __("ATA")),
+	customer: fill_salesman_from_customer,
 });
 
 frappe.ui.form.on("Activity Template Table", {

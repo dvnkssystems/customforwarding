@@ -419,6 +419,7 @@
   },
   {
    "allow_on_submit": 1,
+   "depends_on": "eval:doc.mode_of_shipment!=\"Air\"",
    "fieldname": "carrier",
    "fieldtype": "Link",
    "label": "Carrier",
@@ -584,7 +585,7 @@
    "read_only_depends_on": "eval:(doc.package_details||[]).length"
   },
   {
-   "depends_on": "eval:doc.mode_of_shipment==\"Air\" || doc.chargable_weight",
+   "depends_on": "eval:doc.mode_of_shipment==\"Air\"",
    "description": "From the package rows when there are any; otherwise, for Air, the greater of gross weight and CBM x 167",
    "fieldname": "chargable_weight",
    "fieldtype": "Float",
@@ -700,7 +701,7 @@
   },
   {
    "allow_on_submit": 1,
-   "depends_on": "eval:doc.mode_of_shipment==\"Sea\" || doc.shipping_line",
+   "depends_on": "eval:doc.mode_of_shipment!=\"Air\"",
    "fieldname": "shipping_line",
    "fieldtype": "Link",
    "label": "Shipping Line",
@@ -715,7 +716,7 @@
   },
   {
    "allow_on_submit": 1,
-   "depends_on": "eval:doc.mode_of_shipment==\"Air\" || doc.air_line",
+   "depends_on": "eval:doc.mode_of_shipment==\"Air\"",
    "fieldname": "air_line",
    "fieldtype": "Data",
    "label": "Air Line"
@@ -1419,7 +1420,7 @@
    "read_only": 1
   },
   {
-   "depends_on": "eval:(doc.package_details||[]).length",
+   "depends_on": "eval:doc.mode_of_shipment==\"Air\" && (doc.package_details||[]).length",
    "fieldname": "total_chargeable_weight",
    "fieldtype": "Float",
    "label": "Total Chargeable Weight (Kg)",
@@ -1515,7 +1516,7 @@
    "link_fieldname": "operations"
   }
  ],
- "modified": "2026-10-23 10:00:00.000000",
+ "modified": "2026-10-23 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Forwarding",
  "name": "Operations",

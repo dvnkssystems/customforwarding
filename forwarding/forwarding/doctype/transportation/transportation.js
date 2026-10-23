@@ -47,6 +47,16 @@ frappe.ui.form.on("Document Table", {
 			if (!row.date) frappe.model.set_value(cdt, cdn, "date", frappe.datetime.get_today());
 		}
 	},
+	// Date is the day the document was received: today when Received is
+	// set, cleared when it is unset (R2-15).
+	received(frm, cdt, cdn) {
+		const row = locals[cdt][cdn];
+		if (row.received === "Yes") {
+			if (!row.date) frappe.model.set_value(cdt, cdn, "date", frappe.datetime.get_today());
+		} else if (row.date) {
+			frappe.model.set_value(cdt, cdn, "date", null);
+		}
+	},
 });
 
 frappe.ui.form.on("Activity Template Table", {

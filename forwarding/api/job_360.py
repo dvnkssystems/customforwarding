@@ -110,6 +110,14 @@ def record_actual(job, field, value=None):
 		frappe.throw(_("Job {0} is cancelled.").format(frappe.bold(job)))
 
 	value = getdate(value) if value else None
+	today = getdate(nowdate())
+	if value and value > today:
+		frappe.throw(
+			_("{0} cannot be after today ({1}): it records what has already happened.").format(
+				field.upper(), frappe.format(today, "Date")
+			),
+			title=_("Date in the future"),
+		)
 	if doc.docstatus == 0:
 		doc.set(fieldname, value)
 		doc.save()

@@ -98,7 +98,8 @@ class TestSubmittedJobStaysEditable(BlockerTestCase):
 
 		job.reload()
 		job.atd_date = nowdate()
-		job.ata_date = add_days(nowdate(), 2)
+		# An actual date cannot be after today (R2-19).
+		job.ata_date = nowdate()
 		job.vessel_name = "MSC TEST"
 		job.cutoffs[0].latest = f"{add_days(nowdate(), -1)} 10:00:00"
 		job.append("container_details", {"container_no": "MSCU1234567", "size": "20", "container_type": "GP"})
@@ -106,7 +107,7 @@ class TestSubmittedJobStaysEditable(BlockerTestCase):
 
 		job.reload()
 		self.assertEqual(job.vessel_name, "MSC TEST")
-		self.assertEqual(str(job.free_time_expiry), add_days(nowdate(), 7))
+		self.assertEqual(str(job.free_time_expiry), add_days(nowdate(), 5))
 		self.assertEqual(job.cutoffs[0].cutoff_status, "Passed")
 
 	def test_locked_field_still_refused(self):

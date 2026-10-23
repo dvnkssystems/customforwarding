@@ -102,6 +102,26 @@ DOCUMENT_SOURCES = (
 DOCUMENT_TEMPLATE_DOCTYPE = "Activity Template"
 
 
+ACTUAL_DATE_FIELDS = ("atd_date", "ata_date")
+
+
+def validate_actual_dates(doc, fields=ACTUAL_DATE_FIELDS):
+	"""Refuse an actual date after today in the site's time zone."""
+	today = getdate(nowdate())
+	for fieldname in fields:
+		value = doc.get(fieldname)
+		if not value or getdate(value) <= today:
+			continue
+		if not (doc.is_new() or doc.has_value_changed(fieldname)):
+			continue
+		frappe.throw(
+			_("{0} cannot be after today ({1}): it records what has already happened.").format(
+				_(doc.meta.get_label(fieldname)), frappe.format(today, "Date")
+			),
+			title=_("Date in the future"),
+		)
+
+
 def document_table_field(doctype):
 	"""Fieldname of the doctype's Document Table, or None."""
 	if not frappe.db.exists("DocType", doctype):
@@ -187,9 +207,10 @@ class Operations(Document):
 			self.append("document_table", {"document": document, "stage": stage or None, "received": "No"})
 
 	def before_validate(self):
-		from forwarding.quote_to_job import commodity_from_quote
+		from forwarding.quote_to_job import commodity_from_quote, parties_from_quote
 
 		commodity_from_quote(self)
+		parties_from_quote(self)
 
 	def validate(self):
 		self.set_company()
@@ -198,6 +219,9 @@ class Operations(Document):
 		self.set_services_from_activity_code()
 		self.validate_ports()
 		self.calculate_package_totals()
+		self.validate_weights()
+		self.validate_actual_dates()
+		self.set_default_salesman()
 		self.set_free_time_expiry()
 		self.set_chargeable_weight()
 		self.validate_cutoffs()
@@ -211,6 +235,7 @@ class Operations(Document):
 		"""Ops keep a submitted job current (schedule, cut-offs, containers,
 		documents): those fields are Allow on Submit. Re-derive what follows
 		from them, as validate does for a draft."""
+		self.validate_actual_dates()
 		self.set_free_time_expiry()
 		self.validate_cutoffs()
 		self.set_cutoff_status()
@@ -300,6 +325,41 @@ class Operations(Document):
 			),
 			title=_("Same origin and destination"),
 		)
+
+	def validate_actual_dates(self):
+		"""ATD and ATA record what has happened, so neither can be after today
+		(the site's day, System Settings time zone).
+
+		Only a date set or changed in this save is checked: a job saved before
+		this rule is not blocked over a date nobody touched."""
+		validate_actual_dates(self)
+
+	def validate_weights(self):
+		"""Gross weight includes the packing, so it cannot be below the net
+		weight. Checked only when both are filled, and only when one of them
+		changed in this save."""
+		gross, net = flt(self.gross_weight), flt(self.net_weight)
+		if not (gross > 0 and net > 0) or gross >= net:
+			return
+		if not (self.is_new() or self.has_value_changed("gross_weight") or self.has_value_changed("net_weight")):
+			return
+		frappe.throw(
+			_("Gross weight ({0}) cannot be less than net weight ({1}). Gross weight includes the packing.").format(
+				frappe.format(gross, "Float"), frappe.format(net, "Float")
+			),
+			title=_("Check the cargo weights"),
+		)
+
+	def set_default_salesman(self):
+		"""A new job, or one whose customer changed, with no Salesman takes the
+		customer's Default Salesperson. One chosen on the job is kept."""
+		if self.salesman or not self.customer:
+			return
+		if not (self.is_new() or self.has_value_changed("customer")):
+			return
+		from forwarding.api.customer_360 import customer_default_salesperson
+
+		self.salesman = customer_default_salesperson(self.customer)
 
 	def validate_shipment_type(self):
 		"""Shipment Type must be one offered for the job's Mode of Shipment.
