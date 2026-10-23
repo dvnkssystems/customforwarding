@@ -199,7 +199,7 @@ class TestQuoteToJob(R2Case):
 		first, _second = sales_people()
 		customer = make_customer(default_salesperson=first)
 		commodity = _first("Commodity")
-		quote = make_quote(customer.name, mode="AIR", carrier="Saudia Cargo", cargo_details=commodity)
+		quote = make_quote(customer.name, mode="AIR", carrier="Saudia Cargo", cargo_details=commodity, submit=True)
 
 		job = make_operations_from_quote(quote.name)
 		self.assertEqual(job.mode_of_shipment, "Air")
@@ -211,7 +211,7 @@ class TestQuoteToJob(R2Case):
 
 	def test_saving_adds_the_consignee(self):
 		customer = make_customer()
-		quote = make_quote(customer.name, mode="SEA")
+		quote = make_quote(customer.name, mode="SEA", submit=True)
 		job = make_operations_from_quote(quote.name)
 		self.assertFalse(job.consignee, "no Consignee record yet")
 

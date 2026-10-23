@@ -370,7 +370,8 @@ def _quotes(customer, today, days=None, date_range=None):
 	all of them, since that alert is about today."""
 	rows = frappe.get_all(
 		"Quote",
-		filters={"consignee": customer},
+		# A cancelled quote is no longer on offer (M-08).
+		filters={"consignee": customer, "docstatus": ["<", 2]},
 		fields=["name", "date", "validity", "mode", "pol", "pod", "total"],
 		order_by="date desc, creation desc",
 	)

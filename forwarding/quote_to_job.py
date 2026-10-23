@@ -66,6 +66,10 @@ def duplicate_quote(source_name):
 		span = max(date_diff(source.validity, source.date), 1)
 
 	copy = frappe.copy_doc(source)
+	# The copy is a new draft to approve again, whatever state the original is in.
+	copy.docstatus = 0
+	copy.amended_from = None
+	copy.status = "Draft"
 	copy.date = nowdate()
 	copy.validity = add_days(copy.date, span)
 	copy.insert()
@@ -75,7 +79,12 @@ def duplicate_quote(source_name):
 
 @frappe.whitelist()
 def make_operations_from_quote(source_name, target_doc=None):
-	"""Map a Quote onto a new, unsaved Operations document."""
+	"""Map a Quote onto a new, unsaved Operations document.
+
+	Only a submitted quote that has not expired makes a job (M-07, M-08)."""
+	from forwarding.quote import assert_can_make_job
+
+	assert_can_make_job(source_name)
 
 	def update_item(source, target, source_parent):
 		target.rate = flt(source.amount) or flt(source.rate) * flt(source.units or 1)

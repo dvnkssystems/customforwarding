@@ -75,6 +75,7 @@ class TestCostSheetIsTheEstimate(EstimateCase):
 				],
 			}
 		).insert(ignore_permissions=True)
+		quote.submit()
 
 		job = make_operations_from_quote(quote.name)
 		self.assertEqual([(r.item_name, r.rate) for r in job.cost_table], [("Air Freight", 300), ("Handling", 50)])
