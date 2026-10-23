@@ -81,7 +81,7 @@ def job_row(job, estimate, actual):
 		"mode_of_shipment": job.mode_of_shipment,
 		# A cancelled job reads as Cancelled whatever its operations status
 		# said when it was cancelled (M-19).
-		"status": "Cancelled" if cint(job.docstatus) == 2 else job.operations_status,
+		"status": "Cancelled" if is_cancelled(job) else job.operations_status,
 		"docstatus": cint(job.docstatus),
 		"estimated_income": est_income,
 		"estimated_expense": est_expense,
@@ -108,6 +108,10 @@ def job_row(job, estimate, actual):
 	}
 
 
+def is_cancelled(job):
+	return cint(job.docstatus) == 2 or (job.operations_status or "") == "Cancelled"
+
+
 def get_jobs(filters):
 	"""Jobs in scope, before any ledger is looked at.
 
@@ -120,8 +124,10 @@ def get_jobs(filters):
 	conditions = ["ops.is_trashed != 1"]
 	values = {}
 
+	# Cancelled is the document cancelled, or its status set to Cancelled — the
+	# worklist leaves out both too.
 	if not filters.get("include_cancelled"):
-		conditions.append("ops.docstatus != 2")
+		conditions.append("ops.docstatus != 2 AND IFNULL(ops.operations_status, '') != 'Cancelled'")
 
 	if filters.get("company"):
 		conditions.append("ops.company = %(company)s")

@@ -195,6 +195,11 @@ class TestReportRules(EstimateCase):
 		# The job's own page still shows its figures.
 		self.assertEqual(job_figures(job.name)["status"], "Cancelled")
 
+	def test_cancelled_status_is_left_out_too(self):
+		job = make(operations_status="Cancelled")
+		self.assertEqual(report_rows(job), [])
+		self.assertEqual(report_rows(job, include_cancelled=1)[0]["status"], "Cancelled")
+
 	def test_var_pct_only_when_est_profit_is_positive(self):
 		loss = make(cost_table=[{"item_name": "Freight", "cost": 2000, "rate": 1000}])
 		level = make(cost_table=[{"item_name": "Freight", "cost": 1000, "rate": 1000}])
