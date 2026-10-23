@@ -23,6 +23,7 @@ from frappe.utils import cint, cstr, date_diff, flt, get_datetime, getdate, nowd
 
 from forwarding import banners as job_banners
 from forwarding import party_360
+from forwarding.estimation import job_figures
 from forwarding.forwarding.doctype.operations.operations import default_cutoff_milestones, get_cutoff_status
 from forwarding.job_events import cache_key, clear_job_cache, worklist_version
 
@@ -246,6 +247,9 @@ def build(job):
 		"units": _units(doc),
 		"documents": documents,
 		"charges": charges,
+		# Est. and actual income, expense, profit and variance: the job's row of
+		# the Estimation vs Actual report, from the same function (M-03).
+		"estimate": job_figures(doc.name),
 		"milestones": _milestones(doc, submitted_si, today),
 		"cutoffs": cutoffs,
 		"invoices": {

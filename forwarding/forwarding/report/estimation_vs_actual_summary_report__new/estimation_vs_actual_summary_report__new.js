@@ -79,6 +79,12 @@ frappe.query_reports["Estimation VS Actual Summary Report_-NEW"] = {
 			default: 1,
 		},
 		{
+			fieldname: "include_cancelled",
+			label: __("Include Cancelled Jobs"),
+			fieldtype: "Check",
+			// Off by default (M-19); when on, a cancelled job's Status reads Cancelled.
+		},
+		{
 			fieldname: "only_with_variance",
 			label: __("Only Jobs With A Variance"),
 			fieldtype: "Check",
