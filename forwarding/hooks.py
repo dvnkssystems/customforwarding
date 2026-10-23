@@ -87,6 +87,13 @@ app_license = "MIT"
 # 	"ToDo": "custom_app.overrides.CustomToDo"
 # }
 
+# Jinja
+# -----
+# Used by the "Freight Tax Invoice" print format.
+jinja = {
+	"methods": ["forwarding.invoice_print.get_tax_invoice_context"],
+}
+
 # Fixtures
 # --------
 fixtures = [
