@@ -36,6 +36,7 @@ The job comes back unsaved, as a draft for someone to complete.
 import frappe
 from frappe import _
 from frappe.model.mapper import get_mapped_doc
+from frappe.query_builder.functions import Lower
 from frappe.utils import add_days, date_diff, flt, nowdate
 
 # Quote spells its modes in upper case; the Mode Of Shipment master in title case.
@@ -140,11 +141,22 @@ SAUDI_ARABIA = "Saudi Arabia"
 
 
 def _match(doctype, text):
-	"""The record named `text`, ignoring case, or None."""
-	text = (text or "").strip()
+	"""The record named `text`, ignoring case and spacing ("Socks" finds
+	"SOCKS", "  sunflower   oil " finds "SUNFLOWER OIL"), or None. Exact
+	otherwise: no LIKE wildcards, so "SOCK_" never matches "SOCKS"."""
+	text = " ".join((text or "").split())
 	if not text:
 		return None
-	return frappe.db.get_value(doctype, {"name": ["like", text.replace("%", "")]}, "name")
+	table = frappe.qb.DocType(doctype)
+	rows = (
+		frappe.qb.from_(table)
+		.select(table.name)
+		.where(Lower(table.name) == text.lower())
+		.orderby(table.creation)
+		.limit(1)
+		.run()
+	)
+	return rows[0][0] if rows else None
 
 
 def _set_carrier(target, text, mode):
