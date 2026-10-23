@@ -36,3 +36,4 @@ forwarding.patches.v1_0.backfill_cost_row_suppliers
 forwarding.patches.v1_0.supplier_tile_cost_variance
 forwarding.patches.v1_0.fix_address_template_none
 forwarding.patches.v1_0.default_sales_invoice_print_format
+forwarding.patches.v1_0.job_actions_amend_delete
