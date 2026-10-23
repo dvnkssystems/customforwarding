@@ -93,10 +93,7 @@ def make_operations_from_quote(source_name, target_doc=None):
 			target.dg_status = 1
 
 		_set_carrier(target, source.get("carrier"), mode)
-		# The quote's consignee is the customer (mapped above); the job's own
-		# Consignee field links a Consignee record, which a customer is not.
-		if target.get("consignee") and not frappe.db.exists("Consignee", target.consignee):
-			target.consignee = None
+		_set_parties(target, source)
 
 		_set_place(target, "port_of_loading", "place_of_loading", source.pol, mode)
 		_set_place(target, "port_of_destination", "place_of_delivery", source.pod, mode)
@@ -167,11 +164,46 @@ def _set_carrier(target, text, mode):
 		return
 	if mode == "Air":
 		target.air_line = text
-	elif mode == "Sea":
+		# An Air job shows Air Line only (R2-25): the same airline is not
+		# kept in Carrier as well.
+		target.carrier = None
+		return
+	if mode == "Sea":
 		target.shipping_line = _match("Shipping Line", text)
 	# Same fieldname, so the mapper copied the text as is; keep it only when it
 	# names a Carrier record.
 	target.carrier = _match("Carrier", text)
+
+
+def _set_parties(target, source):
+	"""Consignee, Shipper and Salesman (R2-24, M-04).
+
+	The quote's Consignee is a Customer (mapped to the job's customer); the
+	job's Consignee links a Consignee record, so it takes the one named like
+	the customer, and a new one is added when the job is saved
+	(parties_from_quote). Shipper and Salesman are copied when the quote has
+	them; Salesman otherwise comes from the customer's Default Salesperson.
+	"""
+	target.consignee = _consignee_for(source.get("consignee"))
+
+	shipper = (source.get("shipper") or "").strip()
+	target.shipper = _match("Shipper", shipper) if shipper else None
+
+	salesman = (source.get("salesman") or "").strip()
+	if salesman and frappe.db.exists("Sales Person", salesman):
+		target.salesman = salesman
+	else:
+		from forwarding.api.customer_360 import customer_default_salesperson
+
+		target.salesman = customer_default_salesperson(target.get("customer"))
+
+
+def _consignee_for(customer):
+	"""The Consignee record named like the customer (its ID or its name)."""
+	if not customer:
+		return None
+	name = frappe.db.get_value("Customer", customer, "customer_name") or customer
+	return _match("Consignee", customer) or _match("Consignee", name)
 
 
 def _shipment_type(source, mode):
@@ -197,6 +229,22 @@ def _commodity(text):
 	is added only when the job is saved (commodity_from_quote), so picking a
 	quote and walking away leaves no trace."""
 	return _match("Commodity", text) if text else None
+
+
+def parties_from_quote(job):
+	"""On saving a new job made from a quote with no Consignee, add the
+	quote's customer to the Consignee master and link it (as commodity_from_quote
+	does for the cargo)."""
+	if job.get("consignee") or not job.get("from_quotation") or not job.is_new():
+		return
+	customer = frappe.db.get_value("Quote", job.from_quotation, "consignee")
+	if not customer:
+		return
+	found = _consignee_for(customer)
+	if not found and frappe.has_permission("Consignee", "create"):
+		name = frappe.db.get_value("Customer", customer, "customer_name") or customer
+		found = frappe.get_doc({"doctype": "Consignee", "consignee": " ".join(name.split())}).insert().name
+	job.consignee = found
 
 
 def commodity_from_quote(job):
