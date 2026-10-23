@@ -16,17 +16,8 @@ from erpnext.stock.doctype.item.item import get_item_defaults
 from erpnext.setup.doctype.item_group.item_group import get_item_group_defaults
 
 from forwarding.child_tables import undate_unreceived_documents, job_containers, add_clearance_containers
-
-
-# Freight Activity Code.service_type -> the service checkbox it switches on.
-# Mirrors how Bridge LCS derives a job's Services from its Activity Code.
-SERVICE_TYPE_FIELD = {
-	"Freight Forwarding": "svc_freight_forwarding",
-	"Customs Clearance": "svc_customs_clearance",
-	"Transportation": "svc_transportation",
-	"Trading": "svc_trading",
-	"Value Added Services": "svc_packing_relocation",
-}
+# A job's Services, its tick-boxes and which codes it may hold (M-05, M-06).
+from forwarding.services import apply_services
 
 # kg per cubic metre for air freight volumetric weight (IATA 1:6000)
 AIR_VOLUMETRIC_FACTOR = 167
@@ -216,7 +207,7 @@ class Operations(Document):
 		self.set_company()
 		self.set_operation_id()
 		self.validate_shipment_type()
-		self.set_services_from_activity_code()
+		apply_services(self)
 		self.validate_ports()
 		self.calculate_package_totals()
 		self.validate_weights()
@@ -390,26 +381,6 @@ class Operations(Document):
 		if mode and mode != self.mode_of_shipment:
 			frappe.throw(_("Shipment Type {0} is for {1} shipments, not {2}.").format(
 				frappe.bold(self.shipment_type), frappe.bold(mode), frappe.bold(self.mode_of_shipment)))
-
-	def set_services_from_activity_code(self):
-		"""Default the service checkboxes from the chosen Activity Code.
-
-		Only applied when the activity code actually changes, so an operator can
-		still tick extra services (or untick a default) and have it stick.
-		"""
-		if not self.activity_code:
-			return
-
-		previous = None if self.is_new() else frappe.db.get_value(
-			"Operations", self.name, "activity_code")
-		if previous == self.activity_code:
-			return
-
-		service_type = frappe.db.get_value(
-			"Freight Activity Code", self.activity_code, "service_type")
-		field = SERVICE_TYPE_FIELD.get(service_type)
-		if field:
-			self.set(field, 1)
 
 	def calculate_package_totals(self):
 		"""Roll the package grid up into the Package tab totals.

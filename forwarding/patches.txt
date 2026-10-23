@@ -39,3 +39,4 @@ forwarding.patches.v1_0.default_sales_invoice_print_format
 forwarding.patches.v1_0.job_actions_amend_delete
 forwarding.patches.v1_0.r2_default_salesperson_and_documents
 forwarding.patches.v1_0.r2_estimate_banner_rule
+forwarding.patches.v1_0.r2_services_and_scopes

@@ -10,7 +10,9 @@
   "abbreviation",
   "freight_forwarding",
   "custom_clearance",
-  "transport"
+  "transport",
+  "services_section",
+  "allowed_service_types"
  ],
  "fields": [
   {
@@ -44,11 +46,23 @@
    "fieldname": "freight_forwarding",
    "fieldtype": "Check",
    "label": "Freight Forwarding"
+  },
+  {
+   "fieldname": "services_section",
+   "fieldtype": "Section Break",
+   "label": "Services"
+  },
+  {
+   "description": "The service types a job with this scope can hold. Warehousing, Packing & Relocation, Value Added Services, Cargo Insurance and Documentation & Certification are allowed with every scope. Leave empty to allow every service type.",
+   "fieldname": "allowed_service_types",
+   "fieldtype": "Table",
+   "label": "Allowed Service Types",
+   "options": "Scope Of Work Service Type"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2021-01-25 17:58:44.880466",
+ "modified": "2026-10-23 14:00:00.000000",
  "modified_by": "Administrator",
  "module": "Forwarding",
  "name": "Scope Of Work",

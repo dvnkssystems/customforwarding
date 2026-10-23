@@ -188,7 +188,17 @@ WIZARDS = {
 				"label": "Basics",
 				"icon": "layers",
 				"hint": "What kind of job this is. Branch, type and mode decide its number.",
-				"fields": ["branch", "job_type", "mode_of_shipment", "shipment_type", "activity_code", "inco_terms"],
+				# M-06: Scope of Work decides which Services are offered, so it
+				# comes first.
+				"fields": [
+					"branch",
+					"job_type",
+					"mode_of_shipment",
+					"shipment_type",
+					"scope_of_work",
+					"services",
+					"inco_terms",
+				],
 			},
 			{
 				"key": "parties",
@@ -233,7 +243,7 @@ WIZARDS = {
 			},
 		],
 		# Labels the wizard shows in place of the DocType's own.
-		"labels": {"activity_code": "Service Type"},
+		"labels": {"services": "Services"},
 	},
 }
 

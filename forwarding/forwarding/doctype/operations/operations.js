@@ -104,18 +104,50 @@ frappe.ui.form.on('Operations', {
 });
 // ---------------------------------------------------------------------------
 // Job form behaviour ported from the Bridge LCS job screen:
-//   - Activity Code seeds the service checkboxes (which gate the tabs)
+//   - Services tick the service checkboxes (which gate the tabs), and the
+//     Services picker offers only codes that suit the job (M-05, M-06, R2-23)
 //   - the Package grid derives volume / total weight and rolls up to totals
 //   - the Container grid gets bulk-create and paste-import helpers
 // ---------------------------------------------------------------------------
 
+// As forwarding.services.SERVICE_TYPE_FIELD; the server sets the same boxes on save.
 const SERVICE_TYPE_FIELD = {
 	"Freight Forwarding": "svc_freight_forwarding",
 	"Customs Clearance": "svc_customs_clearance",
 	"Transportation": "svc_transportation",
 	"Trading": "svc_trading",
-	"Value Added Services": "svc_packing_relocation",
+	"Warehousing": "svc_warehousing",
+	"Packing & Relocation": "svc_packing_relocation",
 };
+
+// Codes that suit the job's mode, job type and scope of work.
+function services_query(doc) {
+	return {
+		query: "forwarding.services.activity_code_query",
+		filters: {
+			mode_of_shipment: doc.mode_of_shipment || "",
+			job_type: doc.job_type || "",
+			scope_of_work: doc.scope_of_work || "",
+		},
+	};
+}
+
+// Tick each service box exactly when a chosen code is of its type.
+function tick_service_boxes(frm) {
+	const codes = (frm.doc.services || []).map(r => r.activity_code).filter(Boolean);
+	if (!codes.length) return;
+	frappe.db.get_list("Freight Activity Code", {
+		filters: { name: ["in", codes] },
+		fields: ["name", "service_type"],
+	}).then(r => {
+		const rows = Array.isArray(r) ? r : (r && r.message) || [];
+		const types = new Set(rows.map(row => row.service_type));
+		Object.entries(SERVICE_TYPE_FIELD).forEach(([type, field]) => {
+			const value = types.has(type) ? 1 : 0;
+			if (cint(frm.doc[field]) !== value) frm.set_value(field, value);
+		});
+	});
+}
 
 // kg per cubic metre for volumetric weight (IATA 1:6000), as on the server.
 const VOLUMETRIC_FACTOR = 167;
@@ -153,20 +185,14 @@ function calculate_package_totals(frm) {
 }
 
 frappe.ui.form.on("Operations", {
-	activity_code: function (frm) {
-		if (!frm.doc.activity_code) return;
-
-		frappe.db.get_value("Freight Activity Code", frm.doc.activity_code, "service_type")
-			.then(r => {
-				const field = SERVICE_TYPE_FIELD[r.message && r.message.service_type];
-				if (field) frm.set_value(field, 1);
-			});
-	},
+	services: tick_service_boxes,
 
 	// row deletions fire on the parent form, not on the child doctype
 	package_details_remove: calculate_package_totals,
 
 	refresh: function (frm) {
+		frm.set_query("services", services_query);
+		frm.set_query("activity_code", "services", services_query);
 		frm.add_custom_button(__("Add Containers"), () => bulk_add_containers(frm), __("Container"));
 		frm.add_custom_button(__("Import Containers"), () => import_containers(frm), __("Container"));
 	},
