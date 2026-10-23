@@ -23,8 +23,10 @@ from frappe.utils import cint, cstr, date_diff, flt, get_datetime, getdate, nowd
 
 from forwarding import banners as job_banners
 from forwarding import party_360
+from forwarding.estimation import job_figures
 from forwarding.forwarding.doctype.operations.operations import default_cutoff_milestones, get_cutoff_status
 from forwarding.job_events import cache_key, clear_job_cache, worklist_version
+from forwarding.services import job_service_types, job_services
 
 CACHE_SECONDS = 60
 LINKED = ("Transportation", "Custom Clearance")
@@ -45,6 +47,8 @@ JOB_FIELDS = (
 	"inco_terms",
 	"activity_code",
 	"activity_service_type",
+	"scope_of_work",
+	"service_list",
 	"salesman",
 	"awb_number",
 	"house_number",
@@ -110,6 +114,14 @@ def record_actual(job, field, value=None):
 		frappe.throw(_("Job {0} is cancelled.").format(frappe.bold(job)))
 
 	value = getdate(value) if value else None
+	today = getdate(nowdate())
+	if value and value > today:
+		frappe.throw(
+			_("{0} cannot be after today ({1}): it records what has already happened.").format(
+				field.upper(), frappe.format(today, "Date")
+			),
+			title=_("Date in the future"),
+		)
 	if doc.docstatus == 0:
 		doc.set(fieldname, value)
 		doc.save()
@@ -169,11 +181,17 @@ def job_kpis(doc, documents, charges, linked, submitted_si, today):
 		"margin_pct": flt((revenue_total - cost_total) / revenue_total * 100, 2) if revenue_total and cost_total else None,
 		"billed": flt(sum(flt(si.grand_total) for si in submitted_si), 2),
 		"collected": flt(sum(flt(si.grand_total) - flt(si.outstanding_amount) for si in submitted_si), 2),
-		"free_days_left": date_diff(doc.free_time_expiry, today) if doc.free_time_expiry else None,
+		# A cancelled job has no free time to run out (R2-10).
+		"free_days_left": date_diff(doc.free_time_expiry, today)
+		if doc.free_time_expiry and cint(doc.docstatus) != 2
+		else None,
 	}
 
 	ctx = dict(
 		kpis,
+		# What the job offers work for, within its scope (M-05, M-06): a
+		# service it does not hold raises no alert.
+		service_types=job_service_types(doc),
 		custom_clearance_count=len(linked["Custom Clearance"]),
 		overdue_invoices=[
 			si.name
@@ -215,6 +233,9 @@ def build(job):
 	)
 	# The Supplier that bills for the job's Shipping Line / Carrier, so their
 	# names can open the supplier page (Phase 2 §4). None when not linked.
+	# Every service on the job, and the service types it offers (M-05, M-06).
+	job_fields["services"] = job_services(doc)
+	job_fields["service_types"] = ctx["service_types"]
 	job_fields["shipping_line_supplier"] = (
 		frappe.db.get_value("Shipping Line", doc.shipping_line, "supplier") if doc.get("shipping_line") else None
 	)
@@ -235,7 +256,10 @@ def build(job):
 		"units": _units(doc),
 		"documents": documents,
 		"charges": charges,
-		"milestones": _milestones(doc, cutoffs, submitted_si, today),
+		# Est. and actual income, expense, profit and variance: the job's row of
+		# the Estimation vs Actual report, from the same function (M-03).
+		"estimate": job_figures(doc.name),
+		"milestones": _milestones(doc, submitted_si, today),
 		"cutoffs": cutoffs,
 		"invoices": {
 			"sales": [_pick(si, INVOICE_FIELDS) for si in invoices["sales"]],
@@ -311,8 +335,9 @@ def _linked_records(job):
 
 
 def _child_rows(parents):
-	"""Document Table and Cost Table rows of the linked records, two queries
-	in all, grouped as {(parenttype, parent): {"document_table": [...], ...}}."""
+	"""Document Table and Cost Table rows of the linked records, and the jobs'
+	Services rows, one query per table, grouped as
+	{(parenttype, parent): {"Document Table": [...], ...}}."""
 	grouped = {}
 	if not parents:
 		return grouped
@@ -354,6 +379,7 @@ def _child_rows(parents):
 				"idx",
 			],
 		),
+		("Operations Service", ["name", "parent", "parenttype", "activity_code", "idx"]),
 	):
 		table = frappe.qb.DocType(child)
 		rows = (
@@ -561,7 +587,7 @@ def _milestone_status(planned, actual, today):
 	return "upcoming"
 
 
-def _milestones(doc, cutoffs, submitted_si, today):
+def _milestones(doc, submitted_si, today):
 	def ms(key, label, planned=None, actual=None, status=None):
 		return {
 			"key": key,
@@ -577,21 +603,12 @@ def _milestones(doc, cutoffs, submitted_si, today):
 	# The job's own Date, as the header shows it; creation only if it has none.
 	rows = [ms("created", _("Job created"), actual=getdate(doc.get("date") or doc.creation))]
 
-	cutoff_state = {"Passed": "overdue", "Due Today": "due", "Upcoming": "upcoming"}
-	for i, c in enumerate(cutoffs):
-		rows.append(
-			ms(
-				f"cutoff_{i + 1}",
-				c["milestone"],
-				planned=c["latest"],
-				status=cutoff_state.get(c["cutoff_status"], "upcoming"),
-			)
-		)
+	# Cut-offs are listed once, in the payload's own cutoffs table (R2-27).
 
 	rows.append(ms("departure", _("Departure (ETD / ATD)"), planned=doc.etd_date, actual=doc.atd_date))
 	rows.append(ms("arrival", _("Arrival (ETA / ATA)"), planned=doc.eta_date, actual=doc.ata_date))
 
-	if doc.free_time_expiry:
+	if doc.free_time_expiry and cint(doc.docstatus) != 2:
 		days = date_diff(doc.free_time_expiry, today)
 		status = "done" if finished else ("overdue" if days < 0 else "due" if days <= 3 else "upcoming")
 		rows.append(ms("free_time", _("Free time expires"), planned=doc.free_time_expiry, status=status))
@@ -648,7 +665,18 @@ WORKLIST_JOB_FIELDS = [
 	"eta_date",
 	"ata_date",
 	"free_time_expiry",
+	# What job_service_types reads, with the job's Services rows (M-05, M-06).
+	"scope_of_work",
+	"activity_code",
+	"svc_freight_forwarding",
 	"svc_customs_clearance",
+	"svc_transportation",
+	"svc_packing_relocation",
+	"svc_trading",
+	"svc_warehousing",
+	"freight_forwarding",
+	"custom_clearance",
+	"transport",
 ]
 
 
@@ -697,6 +725,7 @@ def build_worklist(user, scope):
 			own = children.get(("Operations", job.name), {})
 			job.document_table = own.get("Document Table", [])
 			job.cost_table = own.get("Cost Table", [])
+			job.services = own.get("Operations Service", [])
 			job_linked = linked.get(job.name) or {dt: [] for dt in LINKED}
 
 			documents = _documents(job, job_linked, children)

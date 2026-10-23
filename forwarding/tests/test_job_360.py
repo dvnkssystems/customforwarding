@@ -27,6 +27,35 @@ def _first(doctype, filters=None):
 	return name
 
 
+TEST_SCOPE = "_Test Scope Any Service"
+
+
+def any_service_scope():
+	"""A Scope of Work with no Allowed Service Types, so it allows every
+	service: a new job needs a scope (M-06). The site's own such scope is used
+	when it has one, so a test record that outlives a run (something in the
+	suite commits mid-run) is not left in every user's Scope picker."""
+	unrestricted = frappe.qb.DocType("Scope Of Work")
+	rows = frappe.qb.DocType("Scope Of Work Service Type")
+	existing = (
+		frappe.qb.from_(unrestricted)
+		.left_join(rows)
+		.on(rows.parent == unrestricted.name)
+		.select(unrestricted.name)
+		.where(rows.name.isnull())
+		.orderby(unrestricted.name)
+		.limit(1)
+		.run(pluck=True)
+	)
+	if existing:
+		return existing[0]
+	if not frappe.db.exists("Scope Of Work", TEST_SCOPE):
+		frappe.get_doc({"doctype": "Scope Of Work", "scope_of_work": TEST_SCOPE, "abbreviation": "TSA"}).insert(
+			ignore_permissions=True
+		)
+	return TEST_SCOPE
+
+
 def make(**values):
 	"""An Operations job with the site's first branch / mode / job type."""
 	job = frappe.get_doc(
@@ -37,11 +66,27 @@ def make(**values):
 			"branch": _first("Branch", {"abbreviation": ["is", "set"]}),
 			"job_type": values.pop("job_type", "Import"),
 			"mode_of_shipment": values.pop("mode_of_shipment", "Air"),
+			"scope_of_work": values.pop("scope_of_work", None) or any_service_scope(),
 			"date": nowdate(),
 			**values,
 		}
 	)
 	job.insert(ignore_permissions=True)
+	return job
+
+
+def add_estimate(job, selling=1000, cost=0):
+	"""Give a draft job the estimate it needs before it can be submitted (M-02)."""
+	job.append("cost_table", {"item_name": "Estimate", "rate": selling, "cost": cost})
+	job.save(ignore_permissions=True)
+	return job
+
+
+def submit_job(job):
+	"""Submit a job, adding an estimate row first when it has none."""
+	if not any((row.rate or 0) > 0 for row in job.cost_table):
+		add_estimate(job)
+	job.submit()
 	return job
 
 
@@ -155,7 +200,7 @@ class TestJob360(IntegrationTestCase):
 
 	def test_record_actual_on_submitted_job_moves_free_time(self):
 		job = make(eta_date=add_days(nowdate(), -3), free_time_days=5)
-		job.submit()
+		submit_job(job)
 		self.assertEqual(str(job.free_time_expiry), add_days(nowdate(), 2))
 
 		payload = job_360.record_actual(job.name, "ata", nowdate())
@@ -199,6 +244,7 @@ class TestJob360(IntegrationTestCase):
 				"units",
 				"documents",
 				"charges",
+				"estimate",
 				"milestones",
 				"cutoffs",
 				"invoices",
@@ -222,7 +268,8 @@ class TestJob360(IntegrationTestCase):
 		self.assertEqual(set(payload["linked"]), {"transportation", "custom_clearance"})
 		self.assertEqual(set(payload["invoices"]), {"sales", "purchase", "payments"})
 		self.assertEqual(
-			set(payload["job"]), {*job_360.JOB_FIELDS, "shipping_line_supplier", "carrier_supplier"}
+			set(payload["job"]),
+			{*job_360.JOB_FIELDS, "shipping_line_supplier", "carrier_supplier", "services", "service_types"},
 		)
 
 		kpis = payload["kpis"]

@@ -65,8 +65,9 @@ def make_invoice(customer, amount, due_in_days=0, job=None, submit=True):
 	return si
 
 
-def make_quote(customer, validity_in_days=None, **values):
-	return frappe.get_doc(
+def make_quote(customer, validity_in_days=None, submit=False, **values):
+	"""A quote; `submit` approves it, which a job needs (M-08)."""
+	quote = frappe.get_doc(
 		{
 			"doctype": "Quote",
 			"consignee": customer,
@@ -76,6 +77,9 @@ def make_quote(customer, validity_in_days=None, **values):
 			**values,
 		}
 	).insert(ignore_permissions=True)
+	if submit:
+		quote.submit()
+	return quote
 
 
 def fresh(customer):

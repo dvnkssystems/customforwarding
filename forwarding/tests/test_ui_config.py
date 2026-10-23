@@ -251,15 +251,18 @@ class TestUIConfig(IntegrationTestCase):
 		self.assertEqual(got, want)
 		basics = got["steps"][0]
 		self.assertEqual(
-			next(f for f in basics["fields"] if f["fieldname"] == "activity_code")["label"], "Service Type"
+			next(f for f in basics["fields"] if f["fieldname"] == "services")["label"], "Services"
 		)
+		# M-06: Scope of Work comes before Services.
+		order = [f["fieldname"] for f in basics["fields"]]
+		self.assertLess(order.index("scope_of_work"), order.index("services"))
 
 	def test_wizard_defaults_without_a_layout(self):
 		frappe.db.set_value("Custom UI Wizard Layout", "New Job", "is_active", 0)
 		ui_config.clear_cache()
 		wizard = ui_config.get_wizard()
 		self.assertEqual(wizard["source"], "default")
-		self.assertEqual(keys(wizard["steps"]), ["basics", "parties", "route", "cargo"])
+		self.assertEqual(keys(wizard["steps"]), ["basics", "parties", "route", "cargo", "estimate"])
 
 	def test_wizard_reflects_field_edits(self):
 		ui_config.get_wizard()  # warm the cache: the save must drop it
@@ -282,7 +285,7 @@ class TestUIConfig(IntegrationTestCase):
 
 		wizard = ui_config.get_wizard()
 		self.assertEqual(wizard["save_from_step"], 2)
-		self.assertEqual(keys(wizard["steps"]), ["basics", "parties", "route", "cargo"])
+		self.assertEqual(keys(wizard["steps"]), ["basics", "parties", "route", "cargo", "estimate"])
 		self.assertEqual(wizard["steps"][3]["label"], "Goods")
 		parties = {f["fieldname"]: f for f in wizard["steps"][1]["fields"]}
 		self.assertEqual(wizard["steps"][1]["fields"][0]["fieldname"], "salesman")

@@ -16,17 +16,8 @@ from erpnext.stock.doctype.item.item import get_item_defaults
 from erpnext.setup.doctype.item_group.item_group import get_item_group_defaults
 
 from forwarding.child_tables import undate_unreceived_documents, job_containers, add_clearance_containers
-
-
-# Freight Activity Code.service_type -> the service checkbox it switches on.
-# Mirrors how Bridge LCS derives a job's Services from its Activity Code.
-SERVICE_TYPE_FIELD = {
-	"Freight Forwarding": "svc_freight_forwarding",
-	"Customs Clearance": "svc_customs_clearance",
-	"Transportation": "svc_transportation",
-	"Trading": "svc_trading",
-	"Value Added Services": "svc_packing_relocation",
-}
+# A job's Services, its tick-boxes and which codes it may hold (M-05, M-06).
+from forwarding.services import apply_services
 
 # kg per cubic metre for air freight volumetric weight (IATA 1:6000)
 AIR_VOLUMETRIC_FACTOR = 167
@@ -102,6 +93,26 @@ DOCUMENT_SOURCES = (
 DOCUMENT_TEMPLATE_DOCTYPE = "Activity Template"
 
 
+ACTUAL_DATE_FIELDS = ("atd_date", "ata_date")
+
+
+def validate_actual_dates(doc, fields=ACTUAL_DATE_FIELDS):
+	"""Refuse an actual date after today in the site's time zone."""
+	today = getdate(nowdate())
+	for fieldname in fields:
+		value = doc.get(fieldname)
+		if not value or getdate(value) <= today:
+			continue
+		if not (doc.is_new() or doc.has_value_changed(fieldname)):
+			continue
+		frappe.throw(
+			_("{0} cannot be after today ({1}): it records what has already happened.").format(
+				_(doc.meta.get_label(fieldname)), frappe.format(today, "Date")
+			),
+			title=_("Date in the future"),
+		)
+
+
 def document_table_field(doctype):
 	"""Fieldname of the doctype's Document Table, or None."""
 	if not frappe.db.exists("DocType", doctype):
@@ -139,6 +150,25 @@ def expected_documents(job):
 	return out
 
 
+@frappe.whitelist()
+def default_expense_account(item, company=None):
+	"""The expense account a cost row for `item` books to: the item's default
+	for the company, else its item group's, else the company's default
+	expense account. None when there is none."""
+	if not item:
+		return None
+	company = company or frappe.defaults.get_user_default("Company") or frappe.db.get_single_value(
+		"Global Defaults", "default_company"
+	)
+	if not company:
+		return None
+	return (
+		get_item_defaults(item, company).get("expense_account")
+		or get_item_group_defaults(item, company).get("expense_account")
+		or frappe.get_cached_value("Company", company, "default_expense_account")
+	)
+
+
 class Operations(Document):
 	def before_insert(self):
 		self.set_default_cutoffs()
@@ -168,29 +198,46 @@ class Operations(Document):
 			self.append("document_table", {"document": document, "stage": stage or None, "received": "No"})
 
 	def before_validate(self):
-		from forwarding.quote_to_job import commodity_from_quote
+		from forwarding.quote_to_job import commodity_from_quote, parties_from_quote
 
 		commodity_from_quote(self)
+		parties_from_quote(self)
 
 	def validate(self):
 		self.set_company()
 		self.set_operation_id()
 		self.validate_shipment_type()
-		self.set_services_from_activity_code()
+		apply_services(self)
 		self.validate_ports()
 		self.calculate_package_totals()
+		self.validate_weights()
+		self.validate_actual_dates()
+		self.set_default_salesman()
 		self.set_free_time_expiry()
 		self.set_chargeable_weight()
 		self.validate_cutoffs()
 		self.set_cutoff_status()
 		self.sync_container_rows()
 		self.set_billing_status()
+		self.set_cost_accounts()
 		self.warn_missing_documents()
+
+	def before_submit(self):
+		self.validate_estimate()
+
+	def validate_estimate(self):
+		"""A job is submitted with its estimate (M-02): at least one cost sheet
+		row with an Est. Selling above zero. A draft saves without one."""
+		from forwarding.banners import has_estimate
+
+		if not has_estimate(self):
+			frappe.throw(_("Add an estimate before submitting"), title=_("Estimate missing"))
 
 	def before_update_after_submit(self):
 		"""Ops keep a submitted job current (schedule, cut-offs, containers,
 		documents): those fields are Allow on Submit. Re-derive what follows
 		from them, as validate does for a draft."""
+		self.validate_actual_dates()
 		self.set_free_time_expiry()
 		self.validate_cutoffs()
 		self.set_cutoff_status()
@@ -281,6 +328,41 @@ class Operations(Document):
 			title=_("Same origin and destination"),
 		)
 
+	def validate_actual_dates(self):
+		"""ATD and ATA record what has happened, so neither can be after today
+		(the site's day, System Settings time zone).
+
+		Only a date set or changed in this save is checked: a job saved before
+		this rule is not blocked over a date nobody touched."""
+		validate_actual_dates(self)
+
+	def validate_weights(self):
+		"""Gross weight includes the packing, so it cannot be below the net
+		weight. Checked only when both are filled, and only when one of them
+		changed in this save."""
+		gross, net = flt(self.gross_weight), flt(self.net_weight)
+		if not (gross > 0 and net > 0) or gross >= net:
+			return
+		if not (self.is_new() or self.has_value_changed("gross_weight") or self.has_value_changed("net_weight")):
+			return
+		frappe.throw(
+			_("Gross weight ({0}) cannot be less than net weight ({1}). Gross weight includes the packing.").format(
+				frappe.format(gross, "Float"), frappe.format(net, "Float")
+			),
+			title=_("Check the cargo weights"),
+		)
+
+	def set_default_salesman(self):
+		"""A new job, or one whose customer changed, with no Salesman takes the
+		customer's Default Salesperson. One chosen on the job is kept."""
+		if self.salesman or not self.customer:
+			return
+		if not (self.is_new() or self.has_value_changed("customer")):
+			return
+		from forwarding.api.customer_360 import customer_default_salesperson
+
+		self.salesman = customer_default_salesperson(self.customer)
+
 	def validate_shipment_type(self):
 		"""Shipment Type must be one offered for the job's Mode of Shipment.
 
@@ -299,26 +381,6 @@ class Operations(Document):
 		if mode and mode != self.mode_of_shipment:
 			frappe.throw(_("Shipment Type {0} is for {1} shipments, not {2}.").format(
 				frappe.bold(self.shipment_type), frappe.bold(mode), frappe.bold(self.mode_of_shipment)))
-
-	def set_services_from_activity_code(self):
-		"""Default the service checkboxes from the chosen Activity Code.
-
-		Only applied when the activity code actually changes, so an operator can
-		still tick extra services (or untick a default) and have it stick.
-		"""
-		if not self.activity_code:
-			return
-
-		previous = None if self.is_new() else frappe.db.get_value(
-			"Operations", self.name, "activity_code")
-		if previous == self.activity_code:
-			return
-
-		service_type = frappe.db.get_value(
-			"Freight Activity Code", self.activity_code, "service_type")
-		field = SERVICE_TYPE_FIELD.get(service_type)
-		if field:
-			self.set(field, 1)
 
 	def calculate_package_totals(self):
 		"""Roll the package grid up into the Package tab totals.
@@ -438,6 +500,13 @@ class Operations(Document):
 			clearance = frappe.get_doc("Custom Clearance", name)
 			for row in add_clearance_containers(clearance, containers):
 				row.db_insert()
+
+	def set_cost_accounts(self):
+		"""A cost row with an item and no account books to the item's default
+		expense account for the job's company (R2-28)."""
+		for row in self.get("cost_table") or []:
+			if row.item and not row.account:
+				row.account = default_expense_account(row.item, self.company)
 
 	def set_billing_status(self):
 		"""How far the job's submitted Sales Invoices have been paid.

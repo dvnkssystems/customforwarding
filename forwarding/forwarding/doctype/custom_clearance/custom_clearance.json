@@ -84,13 +84,13 @@
    "fieldname": "bayyan_number",
    "fieldtype": "Data",
    "label": "Bayan No.",
-   "reqd": 1
+   "mandatory_depends_on": "eval:doc.clearance_status && doc.clearance_status!=\"Draft\""
   },
   {
    "fieldname": "bayyan_date",
    "fieldtype": "Date",
    "label": "Bayan Date",
-   "reqd": 1
+   "mandatory_depends_on": "eval:doc.clearance_status && doc.clearance_status!=\"Draft\""
   },
   {
    "fieldname": "column_break_8",
@@ -283,7 +283,7 @@
    "link_fieldname": "custom_clearance_id"
   }
  ],
- "modified": "2026-10-21 12:05:00.000000",
+ "modified": "2026-10-23 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Forwarding",
  "name": "Custom Clearance",

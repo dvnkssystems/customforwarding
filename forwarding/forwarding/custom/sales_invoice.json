@@ -3127,7 +3127,7 @@
    "doctype_or_field": "DocType",
    "field_name": null,
    "idx": 0,
-   "modified": "2021-08-12 09:19:22.384985",
+   "modified": "2026-10-23 00:00:00.000000",
    "modified_by": "Administrator",
    "name": "Sales Invoice-main-default_print_format",
    "owner": "Administrator",
@@ -3137,7 +3137,7 @@
    "property": "default_print_format",
    "property_type": "Data",
    "row_name": null,
-   "value": "Pre-printed Format"
+   "value": "Freight Tax Invoice"
   },
   {
    "_assign": null,

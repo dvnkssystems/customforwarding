@@ -72,13 +72,18 @@ PAYMENT_FIELDS = [
 ]
 
 @frappe.whitelist(methods=["GET"])
-def get(customer):
+def get(customer, from_date=None, to_date=None):
+	"""The page's payload. from_date / to_date (optional, M-18) narrow the job,
+	quote, invoice and payment lists and the job and quote counts to that
+	range; outstanding, overdue and credit stay as of today."""
 	frappe.has_permission("Customer", "read", customer, throw=True)
 
-	payload = frappe.cache.get_value(customer_cache_key(customer))
+	date_range = party_360.date_range(from_date, to_date)
+	key = party_360.ranged_cache_key(customer_cache_key(customer), date_range)
+	payload = frappe.cache.get_value(key)
 	if payload is None:
-		payload = build(customer)
-		frappe.cache.set_value(customer_cache_key(customer), payload, expires_in_sec=CACHE_SECONDS)
+		payload = build(customer, date_range)
+		frappe.cache.set_value(key, payload, expires_in_sec=CACHE_SECONDS)
 
 	return _for_user(payload)
 
@@ -91,7 +96,7 @@ def _for_user(payload):
 # -- Building the payload -----------------------------------------------------------
 
 
-def build(customer):
+def build(customer, date_range=None):
 	doc = frappe.get_doc("Customer", customer)
 	today = getdate(nowdate())
 	company = default_company()
@@ -100,15 +105,15 @@ def build(customer):
 	contacts = _linked_party_records("Contact", customer, CONTACT_FIELDS, "is_primary_contact")
 	addresses = _linked_party_records("Address", customer, ADDRESS_FIELDS, "is_primary_address")
 
-	invoices, receivable = _invoices(customer, company, currency, today)
+	invoices, receivable = _invoices(customer, company, currency, today, date_range)
 	quote_days = customer_banners.quote_expiry_days()
-	quotes, quote_counts = _quotes(customer, today, quote_days)
+	quotes, quote_counts = _quotes(customer, today, quote_days, date_range)
 	documents, documents_on_file, documents_total = _documents(customer)
 	credit_limit = _credit_limit(doc, company)
 	credit_used = receivable["outstanding"]
 
 	kpis = {
-		"active_jobs": _active_job_count(customer),
+		"active_jobs": _active_job_count(customer, date_range),
 		"open_quotes": quote_counts["open"],
 		"outstanding": flt(receivable["outstanding"], 2),
 		"overdue": flt(receivable["overdue"], 2),
@@ -126,7 +131,7 @@ def build(customer):
 		"overdue": receivable["overdue_rows"],
 		"expiring_quotes": quote_counts["expiring"],
 		"quote_expiry_days": quote_days,
-		"not_invoiced_jobs": _not_invoiced_jobs(customer, today),
+		"not_invoiced_jobs": _not_invoiced_jobs(customer, today, date_range),
 		"today": today,
 	}
 
@@ -138,7 +143,7 @@ def build(customer):
 		"banners": customer_banners.evaluate(ctx),
 		"jobs": frappe.get_all(
 			"Operations",
-			filters={"customer": customer},
+			filters={"customer": customer, **party_360.range_filter("date", date_range)},
 			fields=JOB_FIELDS,
 			order_by="creation desc",
 			limit=LIST_LIMIT,
@@ -147,7 +152,12 @@ def build(customer):
 		"invoices": invoices,
 		"payments": frappe.get_all(
 			"Payment Entry",
-			filters={"party_type": "Customer", "party": customer, "docstatus": ["<", 2]},
+			filters={
+				"party_type": "Customer",
+				"party": customer,
+				"docstatus": ["<", 2],
+				**party_360.range_filter("posting_date", date_range),
+			},
 			fields=PAYMENT_FIELDS,
 			order_by="posting_date desc, creation desc",
 			limit=LIST_LIMIT,
@@ -199,14 +209,43 @@ def _customer_header(doc, company, credit_limit, contacts, addresses):
 	}
 
 
-def _salesman(doc):
-	"""First Sales Team row, else the free-text Sales Person1 field, else
-	the salesman on the customer's latest job."""
+@frappe.whitelist()
+def default_salesperson(customer):
+	"""The Sales Person a new job for this customer starts with (M-04): the
+	customer's Default Salesperson, else its first Sales Team row, else the
+	free-text Sales Person1 when it names a Sales Person. None otherwise."""
+	if not customer:
+		return None
+	frappe.has_permission("Customer", "read", customer, throw=True)
+	return customer_default_salesperson(customer)
+
+
+def customer_default_salesperson(customer):
+	"""default_salesperson without the permission check, for server code."""
+	if not customer or not frappe.db.exists("Customer", customer):
+		return None
+	doc = frappe.get_doc("Customer", customer)
+	for candidate in _salesman_candidates(doc):
+		if frappe.db.exists("Sales Person", candidate):
+			return candidate
+	return None
+
+
+def _salesman_candidates(doc):
+	if doc.get("default_salesperson"):
+		yield doc.default_salesperson
 	for row in sorted(doc.get("sales_team") or [], key=lambda r: r.idx):
 		if row.sales_person:
-			return row.sales_person
+			yield row.sales_person
 	if cstr(doc.get("sales_person_1")).strip():
-		return doc.sales_person_1.strip()
+		yield doc.sales_person_1.strip()
+
+
+def _salesman(doc):
+	"""Default Salesperson, else the first Sales Team row, else the free-text
+	Sales Person1 field, else the salesman on the customer's latest job."""
+	for candidate in _salesman_candidates(doc):
+		return candidate
 	return frappe.db.get_value(
 		"Operations",
 		{"customer": doc.name, "salesman": ["is", "set"], "docstatus": ["<", 2]},
@@ -229,9 +268,9 @@ def _linked_party_records(doctype, customer, fields, primary_field):
 	return party_360.linked_party_records(doctype, "Customer", customer, fields, primary_field, LIST_LIMIT)
 
 
-def _active_job_count(customer):
+def _active_job_count(customer, date_range=None):
 	ops = frappe.qb.DocType("Operations")
-	return (
+	query = (
 		frappe.qb.from_(ops)
 		.select(Count(ops.name))
 		.where(
@@ -239,11 +278,14 @@ def _active_job_count(customer):
 			& (ops.docstatus < 2)
 			& Coalesce(ops.operations_status, "").notin(INACTIVE_JOB_STATUSES)
 		)
-		.run()[0][0]
 	)
+	in_range = party_360.range_condition(ops.date, date_range)
+	if in_range is not None:
+		query = query.where(in_range)
+	return query.run()[0][0]
 
 
-def _invoices(customer, company, currency, today):
+def _invoices(customer, company, currency, today, date_range=None):
 	"""The invoice list, and the receivable totals in company currency.
 
 	Outstanding is over every submitted invoice of the company (credit notes
@@ -300,17 +342,17 @@ def _invoices(customer, company, currency, today):
 			"operations": r.operations,
 			"overdue": is_overdue(r),
 		}
-		for r in rows[:LIST_LIMIT]
+		for r in party_360.in_range(rows, "posting_date", date_range)[:LIST_LIMIT]
 	]
 	return listed, {"outstanding": outstanding, "overdue": overdue, "overdue_rows": overdue_rows}
 
 
-def _not_invoiced_jobs(customer, today):
+def _not_invoiced_jobs(customer, today, date_range=None):
 	"""The customer's jobs raising job banner B5 (delivered or ops completed,
 	no invoice): the same check Job 360 makes, banners.not_invoiced."""
 	rows = frappe.get_all(
 		"Operations",
-		filters={"customer": customer, "docstatus": ["<", 2]},
+		filters={"customer": customer, "docstatus": ["<", 2], **party_360.range_filter("date", date_range)},
 		fields=["name", "operations_status", "billing_status", "docstatus"],
 		order_by="creation desc",
 	)
@@ -322,23 +364,26 @@ def _not_invoiced_jobs(customer, today):
 	]
 
 
-def _quotes(customer, today, days=None):
+def _quotes(customer, today, days=None, date_range=None):
+	"""The quote list and the open count, both within date_range (by
+	Quote.date) when one is given; quotes about to expire are counted over
+	all of them, since that alert is about today."""
 	rows = frappe.get_all(
 		"Quote",
-		filters={"consignee": customer},
+		# A cancelled quote is no longer on offer (M-08).
+		filters={"consignee": customer, "docstatus": ["<", 2]},
 		fields=["name", "date", "validity", "mode", "pol", "pod", "total"],
 		order_by="date desc, creation desc",
 	)
 	soon = add_days(today, customer_banners.QUOTE_EXPIRY_DAYS if days is None else days)
-	open_count = 0
 	expiring = []
 	for r in rows:
 		validity = getdate(r.validity) if r.validity else None
 		r.status = "Open" if (validity is None or validity >= today) else "Expired"
-		if r.status == "Open":
-			open_count += 1
-			if validity and validity <= getdate(soon):
-				expiring.append({"name": r.name, "validity": validity})
+		if r.status == "Open" and validity and validity <= getdate(soon):
+			expiring.append({"name": r.name, "validity": validity})
+	rows = party_360.in_range(rows, "date", date_range)
+	open_count = sum(1 for r in rows if r.status == "Open")
 	return rows[:LIST_LIMIT], {"open": open_count, "expiring": expiring}
 
 

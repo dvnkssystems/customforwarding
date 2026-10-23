@@ -87,6 +87,13 @@ app_license = "MIT"
 # 	"ToDo": "custom_app.overrides.CustomToDo"
 # }
 
+# Jinja
+# -----
+# Used by the "Freight Tax Invoice" print format.
+jinja = {
+	"methods": ["forwarding.invoice_print.get_tax_invoice_context"],
+}
+
 # Fixtures
 # --------
 fixtures = [
@@ -186,7 +193,14 @@ doc_events = {
 		"on_trash": "forwarding.job_events.on_customer_change",
 	},
 	"Quote": {
+		# Submit approves the quote (M-08); status follows docstatus.
+		"validate": "forwarding.quote.set_status",
+		"before_submit": "forwarding.quote.before_submit",
+		"before_cancel": "forwarding.quote.before_cancel",
 		"on_update": "forwarding.job_events.on_quote_change",
+		"on_submit": "forwarding.job_events.on_quote_change",
+		"on_cancel": "forwarding.job_events.on_quote_change",
+		"on_update_after_submit": "forwarding.job_events.on_quote_change",
 		"on_trash": "forwarding.job_events.on_quote_change",
 	},
 	"Contact": {

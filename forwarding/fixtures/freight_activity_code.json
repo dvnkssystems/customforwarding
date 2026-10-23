@@ -4,112 +4,128 @@
   "name": "Sea Freight Export",
   "activity_name": "Sea Freight Export",
   "mode": "Sea",
-  "service_type": "Freight Forwarding"
+  "service_type": "Freight Forwarding",
+  "job_type": "Export"
  },
  {
   "doctype": "Freight Activity Code",
   "name": "Sea Freight Import",
   "activity_name": "Sea Freight Import",
   "mode": "Sea",
-  "service_type": "Freight Forwarding"
+  "service_type": "Freight Forwarding",
+  "job_type": "Import"
  },
  {
   "doctype": "Freight Activity Code",
   "name": "Air Freight Export",
   "activity_name": "Air Freight Export",
   "mode": "Air",
-  "service_type": "Freight Forwarding"
+  "service_type": "Freight Forwarding",
+  "job_type": "Export"
  },
  {
   "doctype": "Freight Activity Code",
   "name": "Air Freight Import",
   "activity_name": "Air Freight Import",
   "mode": "Air",
-  "service_type": "Freight Forwarding"
+  "service_type": "Freight Forwarding",
+  "job_type": "Import"
  },
  {
   "doctype": "Freight Activity Code",
   "name": "Land Freight Export",
   "activity_name": "Land Freight Export",
   "mode": "Land",
-  "service_type": "Freight Forwarding"
+  "service_type": "Freight Forwarding",
+  "job_type": "Export"
  },
  {
   "doctype": "Freight Activity Code",
   "name": "Land Freight Import",
   "activity_name": "Land Freight Import",
   "mode": "Land",
-  "service_type": "Freight Forwarding"
+  "service_type": "Freight Forwarding",
+  "job_type": "Import"
  },
  {
   "doctype": "Freight Activity Code",
   "name": "Sea Export Clearance",
   "activity_name": "Sea Export Clearance",
   "mode": "Sea",
-  "service_type": "Customs Clearance"
+  "service_type": "Customs Clearance",
+  "job_type": "Export"
  },
  {
   "doctype": "Freight Activity Code",
   "name": "Air Export Clearance",
   "activity_name": "Air Export Clearance",
   "mode": "Air",
-  "service_type": "Customs Clearance"
+  "service_type": "Customs Clearance",
+  "job_type": "Export"
  },
  {
   "doctype": "Freight Activity Code",
   "name": "Land Export Clearance",
   "activity_name": "Land Export Clearance",
   "mode": "Land",
-  "service_type": "Customs Clearance"
+  "service_type": "Customs Clearance",
+  "job_type": "Export"
  },
  {
   "doctype": "Freight Activity Code",
   "name": "Sea Import Clearance",
   "activity_name": "Sea Import Clearance",
   "mode": "Sea",
-  "service_type": "Customs Clearance"
+  "service_type": "Customs Clearance",
+  "job_type": "Import"
  },
  {
   "doctype": "Freight Activity Code",
   "name": "Air Import Clearance",
   "activity_name": "Air Import Clearance",
   "mode": "Air",
-  "service_type": "Customs Clearance"
+  "service_type": "Customs Clearance",
+  "job_type": "Import"
  },
  {
   "doctype": "Freight Activity Code",
   "name": "Land Import Clearance",
   "activity_name": "Land Import Clearance",
   "mode": "Land",
-  "service_type": "Customs Clearance"
+  "service_type": "Customs Clearance",
+  "job_type": "Import"
  },
  {
   "doctype": "Freight Activity Code",
   "name": "Air Import Freehand",
   "activity_name": "Air Import Freehand",
   "mode": "Air",
-  "service_type": "Freight Forwarding"
+  "service_type": "Freight Forwarding",
+  "job_type": "Import"
  },
  {
   "doctype": "Freight Activity Code",
   "name": "Sea Import Freehand",
   "activity_name": "Sea Import Freehand",
   "mode": "Sea",
-  "service_type": "Freight Forwarding"
+  "service_type": "Freight Forwarding",
+  "job_type": "Import"
  },
  {
   "doctype": "Freight Activity Code",
   "name": "Sea Import Console",
   "activity_name": "Sea Import Console",
   "mode": "Sea",
-  "service_type": "Freight Forwarding"
+  "service_type": "Freight Forwarding",
+  "job_type": "Import"
  },
  {
   "doctype": "Freight Activity Code",
   "name": "Air Export Handling",
   "activity_name": "Air Export Handling",
   "mode": "Air",
-  "service_type": "Value Added Services"
+  "service_type": "Value Added Services",
+  "job_type": "Export"
  },
  {
   "doctype": "Freight Activity Code",
@@ -152,5 +168,40 @@
   "activity_name": "Trading Goods & Services",
   "mode": "Other",
   "service_type": "Trading"
+ },
+ {
+  "doctype": "Freight Activity Code",
+  "name": "Warehousing",
+  "activity_name": "Warehousing",
+  "mode": "Other",
+  "service_type": "Warehousing"
+ },
+ {
+  "doctype": "Freight Activity Code",
+  "name": "Packing & Relocation",
+  "activity_name": "Packing & Relocation",
+  "mode": "Other",
+  "service_type": "Packing & Relocation"
+ },
+ {
+  "doctype": "Freight Activity Code",
+  "name": "Cargo Insurance",
+  "activity_name": "Cargo Insurance",
+  "mode": "Other",
+  "service_type": "Cargo Insurance"
+ },
+ {
+  "doctype": "Freight Activity Code",
+  "name": "SABER Certification",
+  "activity_name": "SABER Certification",
+  "mode": "Other",
+  "service_type": "Documentation & Certification"
+ },
+ {
+  "doctype": "Freight Activity Code",
+  "name": "Certificate of Origin",
+  "activity_name": "Certificate of Origin",
+  "mode": "Other",
+  "service_type": "Documentation & Certification"
  }
 ]

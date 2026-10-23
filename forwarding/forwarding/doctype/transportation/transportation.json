@@ -9,27 +9,28 @@
   "assignment_section",
   "operations",
   "customer",
-  "transport_status",
-  "transportation_by",
   "transporter",
+  "transportation_by",
   "column_break_6",
   "vehicle",
   "driver",
+  "transport_status",
   "delivery_trip",
   "trip_mon",
   "location",
   "departure_location",
-  "column_break_from",
   "departure_location_address",
-  "to_section",
+  "pickup_date",
+  "column_break_from",
   "destination_location",
-  "column_break_to",
   "destination_location_address",
+  "delivery_date",
   "section_break_7",
   "container_details",
-  "cost_table",
   "section_break_3",
   "document_table",
+  "costs_section",
+  "cost_table",
   "section_break_5",
   "activity_template",
   "data_20",
@@ -57,24 +58,15 @@
    "read_only": 1
   },
   {
-   "default": "Planned",
-   "fieldname": "transport_status",
-   "fieldtype": "Select",
-   "in_list_view": 1,
-   "in_standard_filter": 1,
-   "label": "Transport Status",
-   "options": "Planned\nDispatched\nDelivered\nContainer Returned"
+   "fieldname": "transporter",
+   "fieldtype": "Link",
+   "label": "Transporter",
+   "options": "Supplier"
   },
   {
    "fieldname": "transportation_by",
    "fieldtype": "Data",
    "label": "Transportation By"
-  },
-  {
-   "fieldname": "transporter",
-   "fieldtype": "Link",
-   "label": "Transporter",
-   "options": "Supplier"
   },
   {
    "fieldname": "column_break_6",
@@ -93,6 +85,15 @@
    "options": "Driver"
   },
   {
+   "default": "Planned",
+   "fieldname": "transport_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Transport Status",
+   "options": "Planned\nDispatched\nDelivered\nContainer Returned"
+  },
+  {
    "fieldname": "delivery_trip",
    "fieldtype": "Link",
    "label": "Delivery Trip",
@@ -106,7 +107,7 @@
   {
    "fieldname": "location",
    "fieldtype": "Section Break",
-   "label": "From"
+   "label": "Route"
   },
   {
    "fieldname": "departure_location",
@@ -114,18 +115,18 @@
    "label": "Departure Location"
   },
   {
-   "fieldname": "column_break_from",
-   "fieldtype": "Column Break"
-  },
-  {
    "fieldname": "departure_location_address",
    "fieldtype": "Small Text",
    "label": "Departure Location Address"
   },
   {
-   "fieldname": "to_section",
-   "fieldtype": "Section Break",
-   "label": "To"
+   "fieldname": "pickup_date",
+   "fieldtype": "Date",
+   "label": "Pickup Date"
+  },
+  {
+   "fieldname": "column_break_from",
+   "fieldtype": "Column Break"
   },
   {
    "fieldname": "destination_location",
@@ -133,30 +134,25 @@
    "label": "Destination Location"
   },
   {
-   "fieldname": "column_break_to",
-   "fieldtype": "Column Break"
-  },
-  {
    "fieldname": "destination_location_address",
    "fieldtype": "Small Text",
    "label": "Destination Location Address"
   },
   {
+   "fieldname": "delivery_date",
+   "fieldtype": "Date",
+   "label": "Delivery Date"
+  },
+  {
    "fieldname": "section_break_7",
    "fieldtype": "Section Break",
-   "label": "Containers & Charges"
+   "label": "Containers"
   },
   {
    "fieldname": "container_details",
    "fieldtype": "Table",
    "label": "Container Details",
    "options": "Container Details"
-  },
-  {
-   "fieldname": "cost_table",
-   "fieldtype": "Table",
-   "label": "Cost Table",
-   "options": "Cost Table"
   },
   {
    "fieldname": "section_break_3",
@@ -170,9 +166,20 @@
    "options": "Document Table"
   },
   {
+   "fieldname": "costs_section",
+   "fieldtype": "Section Break",
+   "label": "Costs"
+  },
+  {
+   "fieldname": "cost_table",
+   "fieldtype": "Table",
+   "label": "Cost Table",
+   "options": "Cost Table"
+  },
+  {
    "fieldname": "section_break_5",
    "fieldtype": "Section Break",
-   "label": "Activities"
+   "label": "Activity"
   },
   {
    "fieldname": "activity_template",
@@ -200,7 +207,7 @@
    "link_fieldname": "transportation"
   }
  ],
- "modified": "2026-10-20 12:00:00.000000",
+ "modified": "2026-10-23 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Forwarding",
  "name": "Transportation",

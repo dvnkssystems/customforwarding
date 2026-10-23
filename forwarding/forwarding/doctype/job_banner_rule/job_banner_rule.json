@@ -70,14 +70,14 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Condition",
-   "options": "docs_pending\natd_missing\nata_missing\nfree_time_expiring\nnot_invoiced\ninvoice_overdue\ncustoms_missing\ncredit_hold\nover_credit_limit\noverdue_invoices\nquote_expiring\noverdue_payables\nunbilled_services\non_hold_or_blocked\njob_not_invoiced\nrate_expiring\nover_estimate",
+   "options": "docs_pending\natd_missing\nata_missing\nfree_time_expiring\nnot_invoiced\ninvoice_overdue\ncustoms_missing\ncredit_hold\nover_credit_limit\noverdue_invoices\nquote_expiring\noverdue_payables\nunbilled_services\non_hold_or_blocked\njob_not_invoiced\nrate_expiring\nover_estimate\nestimate_missing",
    "reqd": 1
   },
   {
    "fieldname": "action",
    "fieldtype": "Select",
    "label": "Action",
-   "options": "\nupload_documents\nrecord_atd\nrecord_ata\ncreate_sales_invoice\ncreate_custom_clearance\nview_invoice\nview_milestones\nrequest_override\nview_invoices\nview_quotes\nview_services\nedit\nview_jobs\nview_rates"
+   "options": "\nupload_documents\nrecord_atd\nrecord_ata\ncreate_sales_invoice\ncreate_custom_clearance\nview_invoice\nview_milestones\nrequest_override\nview_invoices\nview_quotes\nview_services\nedit\nview_jobs\nview_rates\nadd_estimate"
   },
   {
    "default": "info",
@@ -108,7 +108,7 @@
   }
  ],
  "links": [],
- "modified": "2026-10-22 10:00:00.000000",
+ "modified": "2026-10-23 11:47:45.998723",
  "modified_by": "Administrator",
  "module": "Forwarding",
  "name": "Job Banner Rule",

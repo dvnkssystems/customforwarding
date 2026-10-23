@@ -17,7 +17,7 @@ dict from forwarding.api.job_360 plus:
 """
 
 import frappe
-from frappe.utils import cint, getdate, nowdate
+from frappe.utils import cint, flt, getdate, nowdate
 
 # Statuses compared in lower case, so "OPEN" and "Open" match.
 FINISHED = {"delivered", "ops completed", "closed"}
@@ -73,18 +73,42 @@ def invoice_overdue(job, ctx):
 	return bool(ctx.get("overdue_invoices"))
 
 
+def _offers(job, ctx, service_type):
+	"""Whether the job holds a service of this type within its scope (M-05,
+	M-06). ctx carries the job's service types (forwarding.services); without
+	them the Activity & Services tick-box decides."""
+	types = ctx.get("service_types")
+	if types is None:
+		from forwarding.services import SERVICE_TYPE_FIELD
+
+		return bool(cint(job.get(SERVICE_TYPE_FIELD[service_type])))
+	return service_type in types
+
+
 def customs_missing(job, ctx):
-	"""Customs Clearance is ticked under Activity & Services, but no Custom
-	Clearance record has been created for the job yet."""
+	"""The job holds a Customs Clearance service, but no Custom Clearance
+	record has been created for it yet."""
 	return bool(
 		_active(job)
-		and cint(job.get("svc_customs_clearance"))
+		and _offers(job, ctx, "Customs Clearance")
 		and not cint(ctx.get("custom_clearance_count"))
 	)
 
 
 def credit_hold(job, ctx):
 	return _status(job) == "on hold"
+
+
+def has_estimate(job):
+	"""At least one cost sheet row with an Est. Selling above zero (M-02)."""
+	return any(flt(row.get("rate")) > 0 for row in job.get("cost_table") or [])
+
+
+def estimate_missing(job, ctx):
+	"""A draft job with no estimate yet. It cannot be submitted until it has
+	one (Operations.before_submit); a submitted job's cost sheet is locked, so
+	there is nothing left to prompt for there."""
+	return cint(job.get("docstatus")) == 0 and _active(job) and not has_estimate(job)
 
 
 CONDITIONS = {
@@ -96,6 +120,7 @@ CONDITIONS = {
 	"invoice_overdue": invoice_overdue,
 	"customs_missing": customs_missing,
 	"credit_hold": credit_hold,
+	"estimate_missing": estimate_missing,
 }
 
 
@@ -152,7 +177,11 @@ def get_rules(applies_to="Operations"):
 
 
 def evaluate(job, ctx, rules=None):
-	"""Every enabled rule whose condition holds, lowest priority first."""
+	"""Every enabled rule whose condition holds, lowest priority first.
+	A cancelled job has nothing left to act on: no banners (R2-10), and so
+	no worklist entries either (R2-12)."""
+	if cint(job.get("docstatus")) == 2:
+		return []
 	banners = []
 	for rule in get_rules() if rules is None else rules:
 		condition = CONDITIONS.get(rule.condition_key)

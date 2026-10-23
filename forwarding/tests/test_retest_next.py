@@ -14,7 +14,7 @@ from forwarding.api import job_360
 from forwarding.patches.v1_0 import backfill_export_cutoffs
 from forwarding.quote_to_job import make_operations_from_quote
 from forwarding.tests.test_customer_360 import fresh, make_quote
-from forwarding.tests.test_job_360 import CUSTOMER, make, make_sales_invoice
+from forwarding.tests.test_job_360 import CUSTOMER, any_service_scope, make, make_sales_invoice
 
 
 def _port(**filters):
@@ -43,6 +43,7 @@ class TestQuoteToJob(RetestCase):
 			cargo_details="Retest Widgets",
 			date=add_days(nowdate(), -18),
 			items=[{"description": "Air freight", "rate": 10, "units": 1, "amount": 10}],
+			submit=True,
 		)
 		job = make_operations_from_quote(quote.name)
 		self.assertEqual(str(job.date), nowdate())
@@ -55,12 +56,12 @@ class TestQuoteToJob(RetestCase):
 		# Picking the quote adds nothing; saving the job adds and links the commodity.
 		self.assertFalse(job.commodity)
 		self.assertFalse(frappe.db.exists("Commodity", "Retest Widgets"))
-		job.update({"company": frappe.db.get_value("Company", {}, "name"), "branch": frappe.db.get_value("Branch", {"abbreviation": ["is", "set"]}), "job_type": "Import"})
+		job.update({"company": frappe.db.get_value("Company", {}, "name"), "branch": frappe.db.get_value("Branch", {"abbreviation": ["is", "set"]}), "job_type": "Import", "scope_of_work": any_service_scope()})
 		job.insert(ignore_permissions=True)
 		self.assertEqual(job.commodity, "Retest Widgets")
 
 	def test_sea_quote(self):
-		quote = make_quote(CUSTOMER, mode="SEA", sea_shipment_type="FCL", cargo="Dg Goods", carrier="Nobody Lines")
+		quote = make_quote(CUSTOMER, mode="SEA", sea_shipment_type="FCL", cargo="Dg Goods", carrier="Nobody Lines", submit=True)
 		job = make_operations_from_quote(quote.name)
 		self.assertFalse(job.vessel_name)
 		self.assertFalse(job.air_line)
@@ -72,7 +73,7 @@ class TestQuoteToJob(RetestCase):
 		existing = frappe.db.get_value("Commodity", {}, "name")
 		if not existing:
 			self.skipTest("needs a Commodity")
-		quote = make_quote(CUSTOMER, mode="SEA", cargo_details=existing.lower())
+		quote = make_quote(CUSTOMER, mode="SEA", cargo_details=existing.lower(), submit=True)
 		before = frappe.db.count("Commodity")
 		self.assertEqual(make_operations_from_quote(quote.name).commodity, existing)
 		self.assertEqual(frappe.db.count("Commodity"), before)

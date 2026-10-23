@@ -98,8 +98,10 @@ PAGES = {
 			{"key": "custom_clearance", "label": "Custom Clearance", "group": "create", "icon": "shield-check"},
 			{"key": "expense_claim", "label": "Expense Claim", "group": "create", "icon": "wallet"},
 			{"key": "cancel", "label": "Cancel job", "group": "more", "icon": "ban"},
+			{"key": "amend", "label": "Amend", "group": "more", "icon": "file-pen"},
 			{"key": "duplicate", "label": "Duplicate", "group": "more", "icon": "copy"},
 			{"key": "audit_log", "label": "Audit log", "group": "more", "icon": "history"},
+			{"key": "delete", "label": "Delete job", "group": "more", "icon": "trash-2"},
 			{"key": "edit", "label": "Edit", "group": None, "icon": "pencil"},
 		],
 		"banners": {"max_visible": 3},
@@ -186,7 +188,17 @@ WIZARDS = {
 				"label": "Basics",
 				"icon": "layers",
 				"hint": "What kind of job this is. Branch, type and mode decide its number.",
-				"fields": ["branch", "job_type", "mode_of_shipment", "shipment_type", "activity_code", "inco_terms"],
+				# M-06: Scope of Work decides which Services are offered, so it
+				# comes first.
+				"fields": [
+					"branch",
+					"job_type",
+					"mode_of_shipment",
+					"shipment_type",
+					"scope_of_work",
+					"services",
+					"inco_terms",
+				],
 			},
 			{
 				"key": "parties",
@@ -220,9 +232,18 @@ WIZARDS = {
 				"hint": "What is shipped. Containers are added on the job once it is saved.",
 				"fields": ["commodity", "packages", "net_weight", "gross_weight", "weight_uom", "cbm", "cargo_description"],
 			},
+			{
+				# M-01: the estimate is typed in when the job is opened. Its rows
+				# are the cost sheet; submit needs one with Est. Selling (M-02).
+				"key": "estimate",
+				"label": "Estimate",
+				"icon": "calculator",
+				"hint": "One row per charge: estimated cost and selling. The job cannot be submitted without one.",
+				"fields": ["cost_table"],
+			},
 		],
 		# Labels the wizard shows in place of the DocType's own.
-		"labels": {"activity_code": "Service Type"},
+		"labels": {"services": "Services"},
 	},
 }
 

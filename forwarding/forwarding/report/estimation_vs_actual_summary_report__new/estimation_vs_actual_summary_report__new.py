@@ -26,82 +26,26 @@ came with it, each fixed here and each changing the numbers:
 3.  **No company, no date, no filters at all.** The report returned every job
     ever, from every company. Filters are below.
 
+Cancelled jobs are left out unless Include Cancelled Jobs is ticked, and then
+read as Cancelled (M-19). Var % shows only when the estimated profit is above
+zero (M-20).
+
 `is_cancelled` was also being tested inside the `tabAccount` sub-query rather
 than against the ledger rows; it is a plain condition on the join here.
 """
 
 import frappe
 from frappe import _
-from frappe.utils import flt
 
-# The account types that make up a job's revenue and its cost of sale. Kept
-# exactly as the original report had them so the figures stay comparable —
-# widening this to include every Expense Account would change every row.
-INCOME_ACCOUNT_TYPES = ("Income Account",)
-EXPENSE_ACCOUNT_TYPES = ("Cost of Goods Sold",)
+# The figures themselves live in forwarding.estimation, shared with the
+# Charges tab on Job 360 so the two always agree (M-03).
+from forwarding.estimation import figures
 
 
 def execute(filters=None):
-	filters = frappe._dict(filters or {})
-	jobs = get_jobs(filters)
-	if not jobs:
+	data = figures(filters)
+	if not data:
 		return get_columns(), [], ""
-
-	names = [job.name for job in jobs]
-	estimates = get_estimates(names)
-	actuals = get_actuals(names, filters)
-
-	data = []
-	for job in jobs:
-		estimate = estimates.get(job.name, {})
-		actual = actuals.get(job.name, {})
-
-		est_income = flt(estimate.get("income"))
-		est_expense = flt(estimate.get("expense"))
-		act_income = flt(actual.get("income"))
-		act_expense = flt(actual.get("expense"))
-		est_profit = est_income - est_expense
-		act_profit = act_income - act_expense
-
-		last_posting = actual.get("last_posting")
-		row = {
-			"operation": job.name,
-			"date": job.date,
-			"customer": job.customer,
-			"branch": job.branch,
-			"mode_of_shipment": job.mode_of_shipment,
-			"status": job.operations_status,
-			"estimated_income": est_income,
-			"estimated_expense": est_expense,
-			"estimated_profit": est_profit,
-			"actual_income": act_income,
-			"actual_expense": act_expense,
-			"actual_profit": act_profit,
-			# Positive means the job beat its estimate.
-			"variance": act_profit - est_profit,
-			# Whether anything has been billed at all. Without this a job that has
-			# cost booked and no invoice yet shows a large red loss, and reads
-			# identically to one that was billed and genuinely lost money — the
-			# two need entirely different follow-up. 19 of 262 rows in a recent
-			# period were the first kind.
-			"billed": 1 if act_income else 0,
-			"variance_pct": (
-				(act_profit - est_profit) / abs(est_profit) * 100 if est_profit else None
-			),
-			"last_posting": last_posting,
-			# A job whose ledger caught up after the job's own date. Not an
-			# error — it is normal, and it is what makes a period's actuals move
-			# after the fact.
-			"late_posting": 1 if (last_posting and job.date and last_posting > job.date) else 0,
-		}
-
-		if filters.get("only_with_variance") and not row["variance"]:
-			continue
-		if filters.get("only_untagged") and (act_income or act_expense):
-			continue
-
-		data.append(row)
-
 	return get_columns(), data, get_message(data)
 
 
@@ -131,135 +75,6 @@ def get_message(data):
 		return ""
 
 	return _("Of {0} jobs: ").format(len(data)) + " ".join(parts)
-
-
-def get_jobs(filters):
-	"""Jobs in scope, before any ledger is looked at.
-
-	On a Job Date basis the period selects the jobs. On a Posting Date basis it
-	does not — the postings do — so the job set is left unbounded here and the
-	period is applied to the ledger instead.
-	"""
-	conditions = ["ops.is_trashed != 1"]
-	values = {}
-
-	if filters.get("company"):
-		conditions.append("ops.company = %(company)s")
-		values["company"] = filters.company
-
-	if filters.get("branch"):
-		conditions.append("ops.branch = %(branch)s")
-		values["branch"] = filters.branch
-
-	# LIKE rather than `=` on these two so a caller can pass a partial. A Link
-	# filter from the desk sends an exact value, and LIKE with no wildcard is an
-	# exact match, so both callers get what they expect.
-	if filters.get("customer"):
-		conditions.append("ops.customer LIKE %(customer)s")
-		values["customer"] = filters.customer
-
-	if filters.get("job"):
-		conditions.append("ops.name LIKE %(job)s")
-		values["job"] = filters.job
-
-	if filters.get("mode_of_shipment"):
-		conditions.append("ops.mode_of_shipment = %(mode_of_shipment)s")
-		values["mode_of_shipment"] = filters.mode_of_shipment
-
-	if not filters.get("include_open"):
-		conditions.append("ops.operations_status != 'Open'")
-
-	if filters.get("date_basis") != "Posting Date":
-		if filters.get("from_date"):
-			conditions.append("ops.date >= %(from_date)s")
-			values["from_date"] = filters.from_date
-		if filters.get("to_date"):
-			conditions.append("ops.date <= %(to_date)s")
-			values["to_date"] = filters.to_date
-
-	return frappe.db.sql(
-		"""
-		SELECT ops.name, ops.date, ops.customer, ops.branch,
-		       ops.operations_status, ops.mode_of_shipment
-		FROM `tabOperations` ops
-		WHERE {conditions}
-		ORDER BY ops.date DESC, ops.name DESC
-		""".format(conditions=" AND ".join(conditions)),
-		values,
-		as_dict=True,
-	)
-
-
-def get_estimates(names):
-	"""Estimated income and expense, from the job's own cost sheet.
-
-	`rate` is the sell side of a `Cost Table` row and `cost` the buy side.
-	"""
-	rows = frappe.db.sql(
-		"""
-		SELECT ct.parent AS job, SUM(ct.rate) AS income, SUM(ct.cost) AS expense
-		FROM `tabCost Table` ct
-		WHERE ct.parenttype = 'Operations' AND ct.parent IN %(names)s
-		GROUP BY ct.parent
-		""",
-		{"names": names},
-		as_dict=True,
-	)
-	return {row.job: row for row in rows}
-
-
-def get_actuals(names, filters):
-	"""Actual income and expense, from the ledger, matched by Project.
-
-	A GL Entry with no job in its `project` field never reaches this report —
-	the job then shows a blank actual, which is indistinguishable from one that
-	genuinely earned nothing. Check the tagging before reading a blank as a loss.
-	"""
-	conditions = [
-		"gle.is_cancelled = 0",
-		"gle.project IN %(names)s",
-		"acc.account_type IN %(account_types)s",
-	]
-	values = {
-		"names": names,
-		"account_types": INCOME_ACCOUNT_TYPES + EXPENSE_ACCOUNT_TYPES,
-		"income_types": INCOME_ACCOUNT_TYPES,
-		"expense_types": EXPENSE_ACCOUNT_TYPES,
-	}
-
-	if filters.get("company"):
-		conditions.append("gle.company = %(company)s")
-		values["company"] = filters.company
-
-	# On a Posting Date basis the period bounds the ledger. On a Job Date basis
-	# it does not — clipping the postings would hide exactly the late ones the
-	# comparison exists to show.
-	if filters.get("date_basis") == "Posting Date":
-		if filters.get("from_date"):
-			conditions.append("gle.posting_date >= %(from_date)s")
-			values["from_date"] = filters.from_date
-		if filters.get("to_date"):
-			conditions.append("gle.posting_date <= %(to_date)s")
-			values["to_date"] = filters.to_date
-
-	rows = frappe.db.sql(
-		"""
-		SELECT
-			gle.project AS job,
-			SUM(CASE WHEN acc.account_type IN %(income_types)s
-			         THEN gle.credit - gle.debit ELSE 0 END) AS income,
-			SUM(CASE WHEN acc.account_type IN %(expense_types)s
-			         THEN gle.debit - gle.credit ELSE 0 END) AS expense,
-			MAX(gle.posting_date) AS last_posting
-		FROM `tabGL Entry` gle
-		INNER JOIN `tabAccount` acc ON acc.name = gle.account
-		WHERE {conditions}
-		GROUP BY gle.project
-		""".format(conditions=" AND ".join(conditions)),
-		values,
-		as_dict=True,
-	)
-	return {row.job: row for row in rows}
 
 
 def get_columns():

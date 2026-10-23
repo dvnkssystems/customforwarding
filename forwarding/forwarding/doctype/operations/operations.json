@@ -32,7 +32,6 @@
   "mode_of_shipment",
   "mos_abb",
   "movement_type",
-  "scope_of_work",
   "sow_abb",
   "freight_forwarding",
   "custom_clearance",
@@ -42,6 +41,9 @@
   "shipment_type",
   "cargo_layout",
   "job_classification_section",
+  "scope_of_work",
+  "services",
+  "service_list",
   "activity_code",
   "activity_mode",
   "activity_service_type",
@@ -262,7 +264,9 @@
    "in_filter": 1,
    "label": "Scope Of Work",
    "options": "Scope Of Work",
-   "set_only_once": 1
+   "mandatory_depends_on": "eval:doc.__islocal",
+   "description": "Decides which services the job can hold.",
+   "in_standard_filter": 1
   },
   {
    "fetch_from": "country.abbreviation",
@@ -419,6 +423,7 @@
   },
   {
    "allow_on_submit": 1,
+   "depends_on": "eval:doc.mode_of_shipment!=\"Air\"",
    "fieldname": "carrier",
    "fieldtype": "Link",
    "label": "Carrier",
@@ -584,7 +589,7 @@
    "read_only_depends_on": "eval:(doc.package_details||[]).length"
   },
   {
-   "depends_on": "eval:doc.mode_of_shipment==\"Air\" || doc.chargable_weight",
+   "depends_on": "eval:doc.mode_of_shipment==\"Air\"",
    "description": "From the package rows when there are any; otherwise, for Air, the greater of gross weight and CBM x 167",
    "fieldname": "chargable_weight",
    "fieldtype": "Float",
@@ -700,7 +705,7 @@
   },
   {
    "allow_on_submit": 1,
-   "depends_on": "eval:doc.mode_of_shipment==\"Sea\" || doc.shipping_line",
+   "depends_on": "eval:doc.mode_of_shipment!=\"Air\"",
    "fieldname": "shipping_line",
    "fieldtype": "Link",
    "label": "Shipping Line",
@@ -715,7 +720,7 @@
   },
   {
    "allow_on_submit": 1,
-   "depends_on": "eval:doc.mode_of_shipment==\"Air\" || doc.air_line",
+   "depends_on": "eval:doc.mode_of_shipment==\"Air\"",
    "fieldname": "air_line",
    "fieldtype": "Data",
    "label": "Air Line"
@@ -831,6 +836,7 @@
    "default": "0",
    "fieldname": "is_favorite",
    "fieldtype": "Check",
+   "hidden": 1,
    "in_standard_filter": 1,
    "label": "Is Favorite"
   },
@@ -839,6 +845,7 @@
    "default": "0",
    "fieldname": "is_trashed",
    "fieldtype": "Check",
+   "hidden": 1,
    "in_standard_filter": 1,
    "label": "Is Trashed"
   },
@@ -878,28 +885,46 @@
    "label": "Activity & Services"
   },
   {
-   "description": "Sets the default services for this job.",
+   "description": "Every service on the job, e.g. Sea Import Freehand, Sea Import Clearance and Land Local Freight on a door-to-door import. Offered by the job's mode, job type and scope of work.",
+   "fieldname": "services",
+   "fieldtype": "Table MultiSelect",
+   "label": "Services",
+   "options": "Operations Service"
+  },
+  {
+   "fieldname": "service_list",
+   "fieldtype": "Small Text",
+   "hidden": 1,
+   "in_list_view": 1,
+   "label": "Services",
+   "no_copy": 0,
+   "read_only": 1
+  },
+  {
+   "description": "The first of the job's Services, kept for prints and older reports.",
    "fieldname": "activity_code",
    "fieldtype": "Link",
-   "in_list_view": 1,
-   "in_standard_filter": 1,
-   "label": "Activity Code",
+   "label": "Primary Service",
    "link_filters": "[[\"Freight Activity Code\", \"mode\", \"=\", \"eval:(doc.mode_of_shipment||\\\"\\\").replace(/^sea.*/i,\\\"Sea\\\").replace(/^others$/i,\\\"Other\\\")\"]]",
-   "options": "Freight Activity Code"
+   "options": "Freight Activity Code",
+   "hidden": 1,
+   "read_only": 1
   },
   {
    "fetch_from": "activity_code.mode",
    "fieldname": "activity_mode",
    "fieldtype": "Data",
    "label": "Mode",
-   "read_only": 1
+   "read_only": 1,
+   "hidden": 1
   },
   {
    "fetch_from": "activity_code.service_type",
    "fieldname": "activity_service_type",
    "fieldtype": "Data",
    "label": "Primary Service",
-   "read_only": 1
+   "read_only": 1,
+   "hidden": 1
   },
   {
    "fieldname": "column_break_services",
@@ -908,32 +933,38 @@
   {
    "fieldname": "svc_freight_forwarding",
    "fieldtype": "Check",
-   "label": "Freight Forwarding"
+   "label": "Freight Forwarding",
+   "read_only_depends_on": "eval:(doc.services||[]).length"
   },
   {
    "fieldname": "svc_customs_clearance",
    "fieldtype": "Check",
-   "label": "Customs Clearance"
+   "label": "Customs Clearance",
+   "read_only_depends_on": "eval:(doc.services||[]).length"
   },
   {
    "fieldname": "svc_transportation",
    "fieldtype": "Check",
-   "label": "Transportation"
+   "label": "Transportation",
+   "read_only_depends_on": "eval:(doc.services||[]).length"
   },
   {
    "fieldname": "svc_packing_relocation",
    "fieldtype": "Check",
-   "label": "Packing & Relocation"
+   "label": "Packing & Relocation",
+   "read_only_depends_on": "eval:(doc.services||[]).length"
   },
   {
    "fieldname": "svc_trading",
    "fieldtype": "Check",
-   "label": "Trading"
+   "label": "Trading",
+   "read_only_depends_on": "eval:(doc.services||[]).length"
   },
   {
    "fieldname": "svc_warehousing",
    "fieldtype": "Check",
-   "label": "Warehousing"
+   "label": "Warehousing",
+   "read_only_depends_on": "eval:(doc.services||[]).length"
   },
   {
    "fieldname": "secondary_customers",
@@ -1134,7 +1165,7 @@
    "read_only_depends_on": "eval:(doc.package_details||[]).length"
   },
   {
-   "depends_on": "eval:doc.svc_customs_clearance || doc.custom_clearance==1",
+   "depends_on": "eval:doc.svc_customs_clearance || (doc.custom_clearance==1 && !(doc.services||[]).length)",
    "fieldname": "tab_clearance",
    "fieldtype": "Tab Break",
    "label": "Clearance"
@@ -1417,7 +1448,7 @@
    "read_only": 1
   },
   {
-   "depends_on": "eval:(doc.package_details||[]).length",
+   "depends_on": "eval:doc.mode_of_shipment==\"Air\" && (doc.package_details||[]).length",
    "fieldname": "total_chargeable_weight",
    "fieldtype": "Float",
    "label": "Total Chargeable Weight (Kg)",
@@ -1430,7 +1461,7 @@
    "label": "Container"
   },
   {
-   "depends_on": "eval:doc.svc_transportation || doc.transport==1",
+   "depends_on": "eval:doc.svc_transportation || (doc.transport==1 && !(doc.services||[]).length)",
    "fieldname": "tab_transportation",
    "fieldtype": "Tab Break",
    "label": "Transportation"
@@ -1513,7 +1544,7 @@
    "link_fieldname": "operations"
   }
  ],
- "modified": "2026-10-21 18:00:00.000000",
+ "modified": "2026-10-23 14:00:00.000000",
  "modified_by": "Administrator",
  "module": "Forwarding",
  "name": "Operations",
