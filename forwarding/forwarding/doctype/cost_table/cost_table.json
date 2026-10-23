@@ -57,7 +57,7 @@
    "fieldname": "cost",
    "fieldtype": "Currency",
    "in_list_view": 1,
-   "label": "Cost (Buying)"
+   "label": "Est. Cost"
   },
   {
    "fetch_from": "item.standard_rate",
@@ -65,7 +65,7 @@
    "fieldname": "rate",
    "fieldtype": "Currency",
    "in_list_view": 1,
-   "label": "Selling Amount"
+   "label": "Est. Selling"
   },
   {
    "description": "Equals Cost: the buying amount of the row.",
@@ -115,7 +115,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-10-23 10:00:00.000000",
+ "modified": "2026-10-23 11:48:03.035103",
  "modified_by": "Administrator",
  "module": "Forwarding",
  "name": "Cost Table",

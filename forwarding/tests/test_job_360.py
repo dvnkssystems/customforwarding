@@ -45,6 +45,21 @@ def make(**values):
 	return job
 
 
+def add_estimate(job, selling=1000, cost=0):
+	"""Give a draft job the estimate it needs before it can be submitted (M-02)."""
+	job.append("cost_table", {"item_name": "Estimate", "rate": selling, "cost": cost})
+	job.save(ignore_permissions=True)
+	return job
+
+
+def submit_job(job):
+	"""Submit a job, adding an estimate row first when it has none."""
+	if not any((row.rate or 0) > 0 for row in job.cost_table):
+		add_estimate(job)
+	job.submit()
+	return job
+
+
 def make_sales_invoice(job, amount=1000, submit=True):
 	si = frappe.get_doc(
 		{
@@ -155,7 +170,7 @@ class TestJob360(IntegrationTestCase):
 
 	def test_record_actual_on_submitted_job_moves_free_time(self):
 		job = make(eta_date=add_days(nowdate(), -3), free_time_days=5)
-		job.submit()
+		submit_job(job)
 		self.assertEqual(str(job.free_time_expiry), add_days(nowdate(), 2))
 
 		payload = job_360.record_actual(job.name, "ata", nowdate())
@@ -199,6 +214,7 @@ class TestJob360(IntegrationTestCase):
 				"units",
 				"documents",
 				"charges",
+				"estimate",
 				"milestones",
 				"cutoffs",
 				"invoices",

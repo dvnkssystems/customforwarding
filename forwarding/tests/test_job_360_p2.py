@@ -20,7 +20,7 @@ from forwarding.forwarding.doctype.operations.operations import (
 )
 from forwarding.patches.v1_0.map_activity_statuses import map_status
 from forwarding.patches.v1_0.set_service_statuses import clearance_status
-from forwarding.tests.test_job_360 import make
+from forwarding.tests.test_job_360 import add_estimate, make
 
 TEST_USER = "worklist-p2@example.com"
 
@@ -231,6 +231,9 @@ class TestWorklist(P2TestCase):
 
 	def test_shape_and_counters_match_job_banners(self):
 		job = job_with_rows(etd_date=add_days(nowdate(), -1))
+		# With an estimate, so its entries are not B9's: every draft on the site
+		# without one fills the end of the list, where WORKLIST_LIMIT cuts it.
+		add_estimate(job)
 		result = job_360.worklist(scope="all")
 
 		self.assertEqual(

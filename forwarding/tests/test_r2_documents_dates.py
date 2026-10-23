@@ -18,7 +18,7 @@ from forwarding.party_360 import date_range, in_range, ranged_cache_key
 from forwarding.quote_to_job import make_operations_from_quote
 from forwarding.tests.test_customer_360 import make_customer as _make_customer
 from forwarding.tests.test_customer_360 import make_invoice, make_quote
-from forwarding.tests.test_job_360 import _first, make
+from forwarding.tests.test_job_360 import _first, make, submit_job
 from forwarding.tests.test_supplier_360 import make_bill, make_clearance, make_supplier
 
 TODAY = nowdate()
@@ -120,7 +120,7 @@ class TestActualDates(R2Case):
 
 	def test_future_ata_on_a_submitted_job_is_refused(self):
 		job = make()
-		job.submit()
+		submit_job(job)
 		job.ata_date = add_days(TODAY, 3)
 		with self.assertRaisesRegex(frappe.ValidationError, "cannot be after today"):
 			job.save()
@@ -138,7 +138,7 @@ class TestActualDates(R2Case):
 			job_360.record_actual(draft.name, "atd", add_days(TODAY, 1))
 
 		submitted = make()
-		submitted.submit()
+		submit_job(submitted)
 		with self.assertRaisesRegex(frappe.ValidationError, "cannot be after today"):
 			job_360.record_actual(submitted.name, "ata", add_days(TODAY, 1))
 		self.assertIsNone(frappe.db.get_value("Operations", submitted.name, "ata_date"))

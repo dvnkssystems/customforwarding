@@ -17,7 +17,7 @@ dict from forwarding.api.job_360 plus:
 """
 
 import frappe
-from frappe.utils import cint, getdate, nowdate
+from frappe.utils import cint, flt, getdate, nowdate
 
 # Statuses compared in lower case, so "OPEN" and "Open" match.
 FINISHED = {"delivered", "ops completed", "closed"}
@@ -87,6 +87,18 @@ def credit_hold(job, ctx):
 	return _status(job) == "on hold"
 
 
+def has_estimate(job):
+	"""At least one cost sheet row with an Est. Selling above zero (M-02)."""
+	return any(flt(row.get("rate")) > 0 for row in job.get("cost_table") or [])
+
+
+def estimate_missing(job, ctx):
+	"""A draft job with no estimate yet. It cannot be submitted until it has
+	one (Operations.before_submit); a submitted job's cost sheet is locked, so
+	there is nothing left to prompt for there."""
+	return cint(job.get("docstatus")) == 0 and _active(job) and not has_estimate(job)
+
+
 CONDITIONS = {
 	"docs_pending": docs_pending,
 	"atd_missing": atd_missing,
@@ -96,6 +108,7 @@ CONDITIONS = {
 	"invoice_overdue": invoice_overdue,
 	"customs_missing": customs_missing,
 	"credit_hold": credit_hold,
+	"estimate_missing": estimate_missing,
 }
 
 

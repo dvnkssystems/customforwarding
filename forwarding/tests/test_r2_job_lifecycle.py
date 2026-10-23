@@ -17,13 +17,13 @@ from forwarding.api import job_360, job_lifecycle
 from forwarding.forwarding.doctype.operations.operations import default_expense_account
 from forwarding.patches.v1_0 import job_actions_amend_delete
 from forwarding.quote_to_job import _match
-from forwarding.tests.test_job_360 import ITEM, make, make_sales_invoice
+from forwarding.tests.test_job_360 import ITEM, make, make_sales_invoice, submit_job
 from forwarding.tests.test_job_360_p2 import make_transportation
 
 
 def submitted(**values):
 	job = make(**values)
-	job.submit()
+	submit_job(job)
 	return job
 
 

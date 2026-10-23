@@ -222,6 +222,15 @@ WIZARDS = {
 				"hint": "What is shipped. Containers are added on the job once it is saved.",
 				"fields": ["commodity", "packages", "net_weight", "gross_weight", "weight_uom", "cbm", "cargo_description"],
 			},
+			{
+				# M-01: the estimate is typed in when the job is opened. Its rows
+				# are the cost sheet; submit needs one with Est. Selling (M-02).
+				"key": "estimate",
+				"label": "Estimate",
+				"icon": "calculator",
+				"hint": "One row per charge: estimated cost and selling. The job cannot be submitted without one.",
+				"fields": ["cost_table"],
+			},
 		],
 		# Labels the wizard shows in place of the DocType's own.
 		"labels": {"activity_code": "Service Type"},

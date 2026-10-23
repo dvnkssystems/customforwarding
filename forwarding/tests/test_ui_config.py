@@ -259,7 +259,7 @@ class TestUIConfig(IntegrationTestCase):
 		ui_config.clear_cache()
 		wizard = ui_config.get_wizard()
 		self.assertEqual(wizard["source"], "default")
-		self.assertEqual(keys(wizard["steps"]), ["basics", "parties", "route", "cargo"])
+		self.assertEqual(keys(wizard["steps"]), ["basics", "parties", "route", "cargo", "estimate"])
 
 	def test_wizard_reflects_field_edits(self):
 		ui_config.get_wizard()  # warm the cache: the save must drop it
@@ -282,7 +282,7 @@ class TestUIConfig(IntegrationTestCase):
 
 		wizard = ui_config.get_wizard()
 		self.assertEqual(wizard["save_from_step"], 2)
-		self.assertEqual(keys(wizard["steps"]), ["basics", "parties", "route", "cargo"])
+		self.assertEqual(keys(wizard["steps"]), ["basics", "parties", "route", "cargo", "estimate"])
 		self.assertEqual(wizard["steps"][3]["label"], "Goods")
 		parties = {f["fieldname"]: f for f in wizard["steps"][1]["fields"]}
 		self.assertEqual(wizard["steps"][1]["fields"][0]["fieldname"], "salesman")

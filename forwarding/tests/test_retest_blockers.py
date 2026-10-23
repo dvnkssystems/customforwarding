@@ -11,7 +11,7 @@ from frappe.utils import add_days, nowdate
 
 from forwarding import print_pdf
 from forwarding.job_events import get_billing_status
-from forwarding.tests.test_job_360 import job_billing, make, make_sales_invoice
+from forwarding.tests.test_job_360 import job_billing, make, make_sales_invoice, submit_job
 
 OPS_FIELDS = ("etd_date", "atd_date", "eta_date", "ata_date", "vessel_name", "flight_number", "cutoffs", "operations_status")
 
@@ -93,7 +93,7 @@ class TestSubmittedJobStaysEditable(BlockerTestCase):
 
 	def test_update_after_submit(self):
 		job = make(job_type="Export", mode_of_shipment="Sea", free_time_days=5, eta_date=nowdate())
-		job.submit()
+		submit_job(job)
 		self.assertTrue(job.cutoffs)
 
 		job.reload()
@@ -112,7 +112,7 @@ class TestSubmittedJobStaysEditable(BlockerTestCase):
 
 	def test_locked_field_still_refused(self):
 		job = make()
-		job.submit()
+		submit_job(job)
 		job.reload()
 		job.port_of_loading = frappe.db.get_value("Port", {"name": ["!=", job.port_of_loading or ""]}, "name")
 		self.assertRaises(frappe.UpdateAfterSubmitError, job.save)

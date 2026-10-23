@@ -231,6 +231,17 @@ class Operations(Document):
 		self.set_cost_accounts()
 		self.warn_missing_documents()
 
+	def before_submit(self):
+		self.validate_estimate()
+
+	def validate_estimate(self):
+		"""A job is submitted with its estimate (M-02): at least one cost sheet
+		row with an Est. Selling above zero. A draft saves without one."""
+		from forwarding.banners import has_estimate
+
+		if not has_estimate(self):
+			frappe.throw(_("Add an estimate before submitting"), title=_("Estimate missing"))
+
 	def before_update_after_submit(self):
 		"""Ops keep a submitted job current (schedule, cut-offs, containers,
 		documents): those fields are Allow on Submit. Re-derive what follows
