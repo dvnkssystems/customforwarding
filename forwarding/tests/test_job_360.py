@@ -32,7 +32,23 @@ TEST_SCOPE = "_Test Scope Any Service"
 
 def any_service_scope():
 	"""A Scope of Work with no Allowed Service Types, so it allows every
-	service: a new job needs a scope (M-06)."""
+	service: a new job needs a scope (M-06). The site's own such scope is used
+	when it has one, so a test record that outlives a run (something in the
+	suite commits mid-run) is not left in every user's Scope picker."""
+	unrestricted = frappe.qb.DocType("Scope Of Work")
+	rows = frappe.qb.DocType("Scope Of Work Service Type")
+	existing = (
+		frappe.qb.from_(unrestricted)
+		.left_join(rows)
+		.on(rows.parent == unrestricted.name)
+		.select(unrestricted.name)
+		.where(rows.name.isnull())
+		.orderby(unrestricted.name)
+		.limit(1)
+		.run(pluck=True)
+	)
+	if existing:
+		return existing[0]
 	if not frappe.db.exists("Scope Of Work", TEST_SCOPE):
 		frappe.get_doc({"doctype": "Scope Of Work", "scope_of_work": TEST_SCOPE, "abbreviation": "TSA"}).insert(
 			ignore_permissions=True
