@@ -152,7 +152,11 @@ def get_rules(applies_to="Operations"):
 
 
 def evaluate(job, ctx, rules=None):
-	"""Every enabled rule whose condition holds, lowest priority first."""
+	"""Every enabled rule whose condition holds, lowest priority first.
+	A cancelled job has nothing left to act on: no banners (R2-10), and so
+	no worklist entries either (R2-12)."""
+	if cint(job.get("docstatus")) == 2:
+		return []
 	banners = []
 	for rule in get_rules() if rules is None else rules:
 		condition = CONDITIONS.get(rule.condition_key)

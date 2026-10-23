@@ -169,7 +169,10 @@ def job_kpis(doc, documents, charges, linked, submitted_si, today):
 		"margin_pct": flt((revenue_total - cost_total) / revenue_total * 100, 2) if revenue_total and cost_total else None,
 		"billed": flt(sum(flt(si.grand_total) for si in submitted_si), 2),
 		"collected": flt(sum(flt(si.grand_total) - flt(si.outstanding_amount) for si in submitted_si), 2),
-		"free_days_left": date_diff(doc.free_time_expiry, today) if doc.free_time_expiry else None,
+		# A cancelled job has no free time to run out (R2-10).
+		"free_days_left": date_diff(doc.free_time_expiry, today)
+		if doc.free_time_expiry and cint(doc.docstatus) != 2
+		else None,
 	}
 
 	ctx = dict(
@@ -235,7 +238,7 @@ def build(job):
 		"units": _units(doc),
 		"documents": documents,
 		"charges": charges,
-		"milestones": _milestones(doc, cutoffs, submitted_si, today),
+		"milestones": _milestones(doc, submitted_si, today),
 		"cutoffs": cutoffs,
 		"invoices": {
 			"sales": [_pick(si, INVOICE_FIELDS) for si in invoices["sales"]],
@@ -561,7 +564,7 @@ def _milestone_status(planned, actual, today):
 	return "upcoming"
 
 
-def _milestones(doc, cutoffs, submitted_si, today):
+def _milestones(doc, submitted_si, today):
 	def ms(key, label, planned=None, actual=None, status=None):
 		return {
 			"key": key,
@@ -577,21 +580,12 @@ def _milestones(doc, cutoffs, submitted_si, today):
 	# The job's own Date, as the header shows it; creation only if it has none.
 	rows = [ms("created", _("Job created"), actual=getdate(doc.get("date") or doc.creation))]
 
-	cutoff_state = {"Passed": "overdue", "Due Today": "due", "Upcoming": "upcoming"}
-	for i, c in enumerate(cutoffs):
-		rows.append(
-			ms(
-				f"cutoff_{i + 1}",
-				c["milestone"],
-				planned=c["latest"],
-				status=cutoff_state.get(c["cutoff_status"], "upcoming"),
-			)
-		)
+	# Cut-offs are listed once, in the payload's own cutoffs table (R2-27).
 
 	rows.append(ms("departure", _("Departure (ETD / ATD)"), planned=doc.etd_date, actual=doc.atd_date))
 	rows.append(ms("arrival", _("Arrival (ETA / ATA)"), planned=doc.eta_date, actual=doc.ata_date))
 
-	if doc.free_time_expiry:
+	if doc.free_time_expiry and cint(doc.docstatus) != 2:
 		days = date_diff(doc.free_time_expiry, today)
 		status = "done" if finished else ("overdue" if days < 0 else "due" if days <= 3 else "upcoming")
 		rows.append(ms("free_time", _("Free time expires"), planned=doc.free_time_expiry, status=status))
