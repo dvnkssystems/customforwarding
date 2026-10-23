@@ -9,9 +9,17 @@ from frappe.model.document import Document
 from frappe.utils import formatdate, getdate, nowdate
 
 from forwarding.child_tables import copy_from_job, sync_costs_to_job
+from forwarding.naming import service_name
 
 
 class Transportation(Document):
+	def autoname(self):
+		"""T + the job number without hyphens (TRIA2607014), a letter added
+		for a second one on the same job (M-13). With no job the DocType's own
+		format names it, as before."""
+		if self.operations:
+			self.name = service_name("Transportation", "T", self.operations)
+
 	def after_insert(self):
 		# The job's containers and documents travel with the transport leg.
 		copy_from_job(self, "container_details")

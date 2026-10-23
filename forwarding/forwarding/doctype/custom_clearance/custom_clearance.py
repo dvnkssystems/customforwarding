@@ -14,6 +14,7 @@ from forwarding.child_tables import (
 	job_containers,
 	sync_costs_to_job,
 )
+from forwarding.naming import service_name
 
 
 # Before the declaration is filed there is no Bayan yet.
@@ -21,6 +22,13 @@ BAYAN_OPTIONAL_STATUS = "Draft"
 
 
 class CustomClearance(Document):
+	def autoname(self):
+		"""C + the job number without hyphens (CRIA2607014), a letter added
+		for a second one on the same job (M-13). With no job the DocType's own
+		format names it, as before."""
+		if self.operations:
+			self.name = service_name("Custom Clearance", "C", self.operations)
+
 	def after_insert(self):
 		# Only the job's documents for the customs stage belong to the clearance.
 		copy_from_job(self, "document_table", is_customs_document)
