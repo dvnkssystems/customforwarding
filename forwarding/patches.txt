@@ -43,4 +43,5 @@ forwarding.patches.v1_0.r2_services_and_scopes
 forwarding.patches.v1_0.r2_quote_submittable
 forwarding.patches.v1_0.r2_customs_banner_services
 forwarding.patches.v1_0.r2_job_types
+forwarding.patches.v1_0.r2_job_types_revert
 forwarding.patches.v1_0.seed_party_document_banner_rules
