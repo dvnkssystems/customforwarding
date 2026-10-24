@@ -253,9 +253,10 @@ class TestUIConfig(IntegrationTestCase):
 		self.assertEqual(
 			next(f for f in basics["fields"] if f["fieldname"] == "services")["label"], "Services"
 		)
-		# M-06: Scope of Work comes before Services.
+		# M-06: the Scopes of Work come before Services.
 		order = [f["fieldname"] for f in basics["fields"]]
-		self.assertLess(order.index("scope_of_work"), order.index("services"))
+		self.assertLess(order.index("scopes_of_work"), order.index("services"))
+		self.assertNotIn("scope_of_work", order)
 
 	def test_wizard_defaults_without_a_layout(self):
 		frappe.db.set_value("Custom UI Wizard Layout", "New Job", "is_active", 0)

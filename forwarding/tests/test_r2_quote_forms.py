@@ -199,14 +199,16 @@ class TestTransportationLayout(R2Case):
 
 class TestJobTypesAndBanner(R2Case):
 	def test_job_types(self):
-		from forwarding.patches.v1_0 import r2_job_types
+		# M-14 withdrawn: LAND TRANSPORT and Others stay; Domestic is gone.
+		from forwarding.patches.v1_0 import r2_job_types, r2_job_types_revert
 
-		r2_job_types.execute()  # idempotent
+		r2_job_types.execute()  # a no-op now
+		r2_job_types_revert.execute()  # idempotent
 		types = set(frappe.get_all("Job Type", pluck="name"))
-		self.assertTrue({"Import", "Export", "Domestic"} <= types)
-		self.assertNotIn("LAND TRANSPORT", types)
-		if not frappe.db.count("Operations", {"job_type": "Others"}):
-			self.assertNotIn("Others", types)
+		self.assertTrue({"Import", "Export", "LAND TRANSPORT", "Others"} <= types)
+		self.assertNotIn("Domestic", types)
+		self.assertEqual(frappe.db.get_value("Job Type", "LAND TRANSPORT", "abbreviation"), "LT")
+		self.assertEqual(frappe.db.get_value("Job Type", "Others", "abbreviation"), "OT")
 
 	def test_b7_message_names_services(self):
 		from forwarding.patches.v1_0 import r2_customs_banner_services

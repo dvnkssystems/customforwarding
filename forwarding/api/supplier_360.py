@@ -49,8 +49,9 @@ access to its DocType.
 import json
 
 import frappe
+from frappe import _
 from frappe.query_builder.functions import Coalesce, Sum
-from frappe.utils import flt, get_datetime, getdate, nowdate
+from frappe.utils import date_diff, flt, get_datetime, getdate, nowdate
 
 from forwarding import party_360, party_documents, supplier_banners
 from forwarding.forwarding.doctype.party_alert_settings.party_alert_settings import get_settings
@@ -99,7 +100,13 @@ GUARDED = {
 	"documents": "Operations",
 	"contacts": "Contact",
 	"addresses": "Address",
+	"rates": "Item Price",
+	"vehicles": "Vehicle",
+	"drivers": "Driver",
 }
+
+# A supplier in one of these roles quotes rates (SU5): the Rates tab.
+RATE_ROLES = ("is_shipping_line", "is_airline", "is_transporter", "is_overseas_agent")
 
 JOB_FIELDS = [
 	"name",
@@ -178,6 +185,12 @@ def build(supplier, date_range=None):
 	own_documents = party_documents.rows(doc, today, settings.document_expiry_days)
 	document_kpis, expiring_documents, expired_documents = party_documents.summary(own_documents)
 	header = _supplier_header(doc, today, contacts, addresses)
+	# Rates and fleet describe the supplier, so the date range never narrows them.
+	show_rates = any(doc.get(field) for field in RATE_ROLES)
+	show_fleet = bool(doc.get("is_transporter"))
+	rates = _rates(supplier, today, settings.rate_expiry_days)
+	vehicles, drivers = _fleet(supplier, today, settings.document_expiry_days)
+	fleet = _fleet_alerts(vehicles, drivers) if show_fleet else {"expiring": [], "expired": []}
 
 	kpis = {
 		"active_jobs": active_jobs,
@@ -195,6 +208,12 @@ def build(supplier, date_range=None):
 		# Every listed document, received or not: the tile reads "1 / 4" as on a job.
 		"documents_total": documents_total + len(own_documents),
 		**document_kpis,
+		"rates_count": len(rates),
+		"rates_expiring": sum(1 for r in rates if r["status"] == party_documents.EXPIRING),
+		"rates_expired": sum(1 for r in rates if r["status"] == party_documents.EXPIRED),
+		"fleet_count": len(vehicles) + len(drivers),
+		"fleet_expiring": sum(1 for r in vehicles + drivers if r["expiry_status"] == party_documents.EXPIRING),
+		"fleet_expired": sum(1 for r in vehicles + drivers if r["expiry_status"] == party_documents.EXPIRED),
 	}
 
 	ctx = {
@@ -214,6 +233,9 @@ def build(supplier, date_range=None):
 		"expiring_documents": expiring_documents,
 		"expired_documents": expired_documents,
 		"document_expiry_days": settings.document_expiry_days,
+		"show_fleet": show_fleet,
+		"expiring_fleet": fleet["expiring"],
+		"expired_fleet": fleet["expired"],
 		"cost_variance": cost_variance,
 		"jobs_over": jobs_over,
 		"today": today,
@@ -244,6 +266,11 @@ def build(supplier, date_range=None):
 		"party_documents": own_documents,
 		"contacts": contacts,
 		"addresses": addresses,
+		"rates": rates,
+		"vehicles": vehicles,
+		"drivers": drivers,
+		"show_rates": show_rates,
+		"show_fleet": show_fleet,
 	}
 	# Dates and decimals to plain JSON types, so the cached copy and the
 	# response are the same thing.
@@ -570,6 +597,128 @@ def _expiring_rates(supplier, today, days):
 	)
 
 
+def _rates(supplier, today, days):
+	"""Every buying Item Price of the supplier (SU5, §5.7), expired first, then
+	expiring, valid and no expiry; within each, soonest valid_upto first.
+
+	status works like a party document's expiry: Expiring is valid_upto from
+	today up to Party Alert Settings' rate_expiry_days ahead (both ends
+	included, as S4 counts), Expired is valid_upto before today."""
+	meta = frappe.get_meta("Item Price")
+	# start_location / end_location are this app's custom fields (Port links).
+	lanes = [f for f in ("start_location", "end_location") if meta.has_field(f)]
+	rows = frappe.get_all(
+		"Item Price",
+		filters={"buying": 1, "supplier": supplier},
+		fields=[
+			"name",
+			"item_code",
+			"item_name",
+			"price_list",
+			"price_list_rate",
+			"currency",
+			"valid_from",
+			"valid_upto",
+			*lanes,
+		],
+		order_by="name asc",
+	)
+	out = []
+	for r in rows:
+		upto = getdate(r.valid_upto) if r.valid_upto else None
+		out.append(
+			{
+				"name": r.name,
+				"item_code": r.item_code,
+				"item_name": r.item_name,
+				"price_list": r.price_list,
+				"start_location": r.get("start_location") or None,
+				"end_location": r.get("end_location") or None,
+				"price_list_rate": flt(r.price_list_rate),
+				"currency": r.currency,
+				"valid_from": r.valid_from,
+				"valid_upto": upto,
+				"status": party_documents.expiry_status(upto, today, days),
+				"days_left": date_diff(upto, today) if upto else None,
+			}
+		)
+	return _by_expiry(out, "status", "valid_upto", today)
+
+
+def _by_expiry(rows, status_field, date_field, today):
+	"""Expired, Expiring, Valid, No expiry; within each, soonest date first
+	(the order rows came in breaks ties)."""
+	return sorted(
+		rows,
+		key=lambda r: (party_documents.STATUS_ORDER[r[status_field]], r[date_field] or today),
+	)
+
+
+def _fleet(supplier, today, days):
+	"""The transporter's Vehicles (by our Vehicle.transporter; insurance ends
+	on end_date) and Drivers (ERPNext's Driver.transporter; licence ends on
+	expiry_date), each ordered like the rates (SU6, §5.5)."""
+	vehicles = []
+	if frappe.get_meta("Vehicle").has_field("transporter"):
+		for r in frappe.get_all(
+			"Vehicle",
+			filters={"transporter": supplier},
+			fields=["name", "license_plate", "make", "model", "end_date"],
+			order_by="name asc",
+		):
+			end = getdate(r.end_date) if r.end_date else None
+			vehicles.append(
+				{
+					"name": r.name,
+					"license_plate": r.license_plate,
+					"make": r.make,
+					"model": r.model,
+					"insurance_end_date": end,
+					"expiry_status": party_documents.expiry_status(end, today, days),
+					"days_left": date_diff(end, today) if end else None,
+				}
+			)
+
+	drivers = []
+	for r in frappe.get_all(
+		"Driver",
+		filters={"transporter": supplier},
+		fields=["name", "full_name", "license_number", "expiry_date"],
+		order_by="name asc",
+	):
+		expiry = getdate(r.expiry_date) if r.expiry_date else None
+		drivers.append(
+			{
+				"name": r.name,
+				"full_name": r.full_name,
+				"license_number": r.license_number or None,
+				"expiry_date": expiry,
+				"expiry_status": party_documents.expiry_status(expiry, today, days),
+				"days_left": date_diff(expiry, today) if expiry else None,
+			}
+		)
+	return (
+		_by_expiry(vehicles, "expiry_status", "insurance_end_date", today),
+		_by_expiry(drivers, "expiry_status", "expiry_date", today),
+	)
+
+
+def _fleet_alerts(vehicles, drivers):
+	"""{expiring, expired}: [{kind, label, date}] for S5 / S9, soonest first.
+	A row is in one list or the other, never both."""
+	out = {"expiring": [], "expired": []}
+	rows = [("Vehicle", v["license_plate"] or v["name"], v["insurance_end_date"], v["expiry_status"]) for v in vehicles]
+	rows += [("Driver", d["full_name"] or d["name"], d["expiry_date"], d["expiry_status"]) for d in drivers]
+	for kind, label, date, status in rows:
+		if status == party_documents.EXPIRING:
+			out["expiring"].append({"kind": kind, "label": label, "date": date})
+		elif status == party_documents.EXPIRED:
+			out["expired"].append({"kind": kind, "label": label, "date": date})
+	for key in out:
+		out[key].sort(key=lambda r: r["date"])
+	return out
+
+
 # -- Purchase Invoices ----------------------------------------------------------------
 
 
@@ -698,3 +847,106 @@ def _documents(supplier, services):
 	on_file = sum(r["received"] for r in rows) + len(file_rows)
 	total = len(rows) + len(file_rows)
 	return (file_rows + rows)[:DOCUMENT_LIMIT], on_file, total
+
+
+# -- Record Payment (SU7) -------------------------------------------------------------
+
+
+@frappe.whitelist(methods=["POST"])
+def record_payment(supplier):
+	"""An unsaved Payment Entry paying the supplier's outstanding bills.
+
+	Pay from the company's default bank (else cash) account to the supplier's
+	payable account, with a reference per submitted Purchase Invoice still
+	outstanding (oldest due first), each allocated in full, and paid_amount
+	their total. With nothing outstanding the header comes back on its own
+	(amount 0). Built the way ERPNext's get_payment_entry builds one for a
+	single invoice, from its own helpers."""
+	from erpnext.accounts.doctype.payment_entry.payment_entry import (
+		get_bank_cash_account,
+		get_outstanding_reference_documents,
+		get_party_details,
+	)
+
+	if not frappe.has_permission("Payment Entry", "create"):
+		frappe.throw(_("You do not have permission to create a Payment Entry"), frappe.PermissionError)
+	frappe.has_permission("Supplier", "read", supplier, throw=True)
+
+	company = default_company()
+	if not company:
+		frappe.throw(_("Set a default company before recording a payment"))
+	today = nowdate()
+
+	pe = frappe.new_doc("Payment Entry")
+	pe.payment_type = "Pay"
+	pe.company = company
+	pe.posting_date = today
+	pe.reference_date = today
+	pe.party_type = "Supplier"
+	pe.party = supplier
+	pe.ensure_supplier_is_not_blocked()
+
+	party = get_party_details(company, "Supplier", supplier, today)
+	pe.party_name = party["party_name"]
+	pe.paid_to = party["party_account"]
+	pe.paid_to_account_currency = party["party_account_currency"]
+
+	bank = get_bank_cash_account(pe, None)
+	if bank:
+		pe.paid_from = bank.account
+		pe.paid_from_account_currency = bank.account_currency
+	pe.bank_account = party.get("bank_account") or None
+	pe.party_bank_account = party.get("party_bank_account") or None
+
+	refs = []
+	if party["party_account"]:
+		refs = get_outstanding_reference_documents(
+			{
+				"posting_date": today,
+				"company": company,
+				"party_type": "Supplier",
+				"party": supplier,
+				"party_account": party["party_account"],
+				"get_outstanding_invoices": True,
+			},
+			validate=True,
+		) or []
+	refs = sorted(
+		(r for r in refs if r.voucher_type == "Purchase Invoice" and flt(r.outstanding_amount) > 0),
+		key=lambda r: (getdate(r.due_date or r.posting_date), getdate(r.posting_date), r.voucher_no),
+	)
+	total = 0.0
+	for r in refs:
+		pe.append(
+			"references",
+			{
+				"reference_doctype": "Purchase Invoice",
+				"reference_name": r.voucher_no,
+				"bill_no": r.get("bill_no"),
+				"due_date": r.due_date,
+				"payment_term": r.get("payment_term"),
+				"total_amount": r.invoice_amount,
+				"outstanding_amount": r.outstanding_amount,
+				"allocated_amount": r.outstanding_amount,
+				"exchange_rate": r.get("exchange_rate") or 1,
+			},
+		)
+		total += flt(r.outstanding_amount)
+
+	pe.setup_party_account_field()
+	pe.set_missing_values()
+	pe.set_missing_ref_details()
+	if pe.paid_from and pe.paid_to:
+		pe.set_exchange_rate()
+		# The bills are owed in the party account's currency (received_amount);
+		# paid_amount is what leaves the bank, in its currency.
+		pe.received_amount = flt(total, pe.precision("received_amount"))
+		if pe.paid_from_account_currency == pe.paid_to_account_currency:
+			pe.paid_amount = pe.received_amount
+		else:
+			pe.paid_amount = flt(
+				total * flt(pe.target_exchange_rate) / (flt(pe.source_exchange_rate) or 1),
+				pe.precision("paid_amount"),
+			)
+		pe.set_amounts()
+	return pe.as_dict()

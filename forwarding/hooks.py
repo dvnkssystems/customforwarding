@@ -138,7 +138,11 @@ doc_events = {
 		"on_trash": "forwarding.job_events.on_sales_invoice_change",
 	},
     "Purchase Invoice": {
-		"validate": "forwarding.subscription.enforce_limit",
+		"before_validate": "forwarding.purchase_invoice.fill_from_job",
+		"validate": [
+			"forwarding.subscription.enforce_limit",
+			"forwarding.purchase_invoice.warn_unlinked",
+		],
 		"on_update": [
 			"forwarding.custom_methods.update_cost_table_in_operations",
 			"forwarding.job_events.on_linked_change",

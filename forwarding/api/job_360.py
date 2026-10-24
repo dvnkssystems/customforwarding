@@ -26,7 +26,7 @@ from forwarding import party_360
 from forwarding.estimation import job_figures
 from forwarding.forwarding.doctype.operations.operations import default_cutoff_milestones, get_cutoff_status
 from forwarding.job_events import cache_key, clear_job_cache, worklist_version
-from forwarding.services import job_service_types, job_services
+from forwarding.services import job_allowed_service_types, job_scopes, job_service_types, job_services
 
 CACHE_SECONDS = 60
 LINKED = ("Transportation", "Custom Clearance")
@@ -236,6 +236,10 @@ def build(job):
 	# Every service on the job, and the service types it offers (M-05, M-06).
 	job_fields["services"] = job_services(doc)
 	job_fields["service_types"] = ctx["service_types"]
+	# Its scopes, and the service types they allow between them (None: all).
+	# Nothing outside them is offered anywhere on the job page.
+	job_fields["scopes_of_work"] = job_scopes(doc)
+	job_fields["allowed_service_types"] = job_allowed_service_types(doc)
 	job_fields["shipping_line_supplier"] = (
 		frappe.db.get_value("Shipping Line", doc.shipping_line, "supplier") if doc.get("shipping_line") else None
 	)
@@ -336,7 +340,7 @@ def _linked_records(job):
 
 def _child_rows(parents):
 	"""Document Table and Cost Table rows of the linked records, and the jobs'
-	Services rows, one query per table, grouped as
+	Services and Scope Of Work rows, one query per table, grouped as
 	{(parenttype, parent): {"Document Table": [...], ...}}."""
 	grouped = {}
 	if not parents:
@@ -380,6 +384,7 @@ def _child_rows(parents):
 			],
 		),
 		("Operations Service", ["name", "parent", "parenttype", "activity_code", "idx"]),
+		("Job Scope Of Work", ["name", "parent", "parenttype", "scope_of_work", "idx"]),
 	):
 		table = frappe.qb.DocType(child)
 		rows = (
@@ -726,6 +731,7 @@ def build_worklist(user, scope):
 			job.document_table = own.get("Document Table", [])
 			job.cost_table = own.get("Cost Table", [])
 			job.services = own.get("Operations Service", [])
+			job.scopes_of_work = own.get("Job Scope Of Work", [])
 			job_linked = linked.get(job.name) or {dt: [] for dt in LINKED}
 
 			documents = _documents(job, job_linked, children)

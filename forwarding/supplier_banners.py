@@ -25,10 +25,15 @@ Every condition takes ctx, the dict built by forwarding.api.supplier_360:
 			documents expiring within document_expiry_days
 	expired_documents	the same for documents already expired
 	document_expiry_days	Party Alert Settings' Document Expiry Warning (Days)
+	show_fleet	the supplier is a transporter (has a Vehicles & Drivers tab)
+	expiring_fleet	[{kind, label, date}] Vehicles (insurance end) and Drivers
+			(licence expiry) expiring within document_expiry_days
+	expired_fleet	the same for those already expired
 	today		date the banners are worked out for
 
 S4 (rate_expiring), S6 (over_estimate) and S7 / S8 (party documents
-expiring / expired; the spec's S2 / S3) come from the Phase 2 spec §6.2;
+expiring / expired; the spec's S2 / S3) and S5 / S9 (fleet documents expiring
+/ expired) come from the Phase 2 spec §6.2;
 they are provisional, so their wording lives in Job Banner Rule and their
 thresholds in Party Alert Settings.
 """
@@ -65,6 +70,14 @@ def party_document_expired(ctx):
 	return bool(ctx.get("expired_documents"))
 
 
+def fleet_expiring(ctx):
+	return bool(ctx.get("show_fleet") and ctx.get("expiring_fleet"))
+
+
+def fleet_expired(ctx):
+	return bool(ctx.get("show_fleet") and ctx.get("expired_fleet"))
+
+
 CONDITIONS = {
 	"overdue_payables": overdue_payables,
 	"unbilled_services": unbilled_services,
@@ -73,6 +86,8 @@ CONDITIONS = {
 	"over_estimate": over_estimate,
 	"party_document_expiring": party_document_expiring,
 	"party_document_expired": party_document_expired,
+	"fleet_expiring": fleet_expiring,
+	"fleet_expired": fleet_expired,
 }
 
 

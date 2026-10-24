@@ -42,6 +42,7 @@
   "cargo_layout",
   "job_classification_section",
   "scope_of_work",
+  "scopes_of_work",
   "services",
   "service_list",
   "activity_code",
@@ -262,11 +263,19 @@
    "fieldname": "scope_of_work",
    "fieldtype": "Link",
    "in_filter": 1,
-   "label": "Scope Of Work",
+   "label": "Primary Scope Of Work",
    "options": "Scope Of Work",
+   "description": "The first of the job's Scopes of Work, kept for job numbers, prints and older reports.",
+   "hidden": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "scopes_of_work",
+   "fieldtype": "Table MultiSelect",
+   "label": "Scope Of Work",
+   "options": "Job Scope Of Work",
    "mandatory_depends_on": "eval:doc.__islocal",
-   "description": "Decides which services the job can hold.",
-   "in_standard_filter": 1
+   "description": "Decides which services the job can hold: those of any scope chosen."
   },
   {
    "fetch_from": "country.abbreviation",
@@ -1544,7 +1553,7 @@
    "link_fieldname": "operations"
   }
  ],
- "modified": "2026-10-23 14:00:00.000000",
+ "modified": "2026-10-24 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Forwarding",
  "name": "Operations",

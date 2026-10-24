@@ -120,16 +120,52 @@ const SERVICE_TYPE_FIELD = {
 	"Packing & Relocation": "svc_packing_relocation",
 };
 
-// Codes that suit the job's mode, job type and scope of work.
+// The job's chosen Scopes of Work, in order.
+function scope_names(doc) {
+	return (doc.scopes_of_work || []).map(r => r.scope_of_work).filter(Boolean);
+}
+
+// Codes that suit the job's mode, job type and scopes of work.
 function services_query(doc) {
-	return {
-		query: "forwarding.services.activity_code_query",
-		filters: {
-			mode_of_shipment: doc.mode_of_shipment || "",
-			job_type: doc.job_type || "",
-			scope_of_work: doc.scope_of_work || "",
-		},
+	const filters = {
+		mode_of_shipment: doc.mode_of_shipment || "",
+		job_type: doc.job_type || "",
+		scopes_of_work: JSON.stringify(scope_names(doc)),
 	};
+	// A form without the table (an older meta) still sends its one scope.
+	if (!doc.scopes_of_work) filters.scope_of_work = doc.scope_of_work || "";
+	return { query: "forwarding.services.activity_code_query", filters };
+}
+
+// As forwarding.services.SCOPE_FLAGS: the old flags the detail sections read.
+const SCOPE_FLAGS = {
+	freight_forwarding: "Freight Forwarding",
+	custom_clearance: "Customs Clearance",
+	transport: "Transportation",
+};
+
+// Only what the chosen scopes allow shows on the form: the service boxes and
+// the detail sections. The server sets the same flags on save; the form sets
+// them only when the scopes change, so opening a job leaves it unchanged.
+function apply_scopes(frm, set_flags) {
+	const scopes = scope_names(frm.doc);
+	if (!scopes.length && !frm.doc.scope_of_work) {
+		Object.values(SERVICE_TYPE_FIELD).forEach(field => frm.toggle_display(field, true));
+		return;
+	}
+	frappe.call({
+		method: "forwarding.services.scope_service_types",
+		args: { scopes: JSON.stringify(scopes.length ? scopes : [frm.doc.scope_of_work]) },
+	}).then(r => {
+		const allowed = r && r.message;
+		const offers = type => !Array.isArray(allowed) || allowed.includes(type);
+		Object.entries(SERVICE_TYPE_FIELD).forEach(([type, field]) => frm.toggle_display(field, offers(type)));
+		if (!set_flags || !Array.isArray(allowed)) return;
+		Object.entries(SCOPE_FLAGS).forEach(([field, type]) => {
+			const value = offers(type) ? "1" : "0";
+			if (String(frm.doc[field] ?? "") !== value) frm.set_value(field, value);
+		});
+	});
 }
 
 // Tick each service box exactly when a chosen code is of its type.
@@ -186,6 +222,7 @@ function calculate_package_totals(frm) {
 
 frappe.ui.form.on("Operations", {
 	services: tick_service_boxes,
+	scopes_of_work: frm => apply_scopes(frm, true),
 
 	// row deletions fire on the parent form, not on the child doctype
 	package_details_remove: calculate_package_totals,
@@ -193,6 +230,7 @@ frappe.ui.form.on("Operations", {
 	refresh: function (frm) {
 		frm.set_query("services", services_query);
 		frm.set_query("activity_code", "services", services_query);
+		apply_scopes(frm);
 		frm.add_custom_button(__("Add Containers"), () => bulk_add_containers(frm), __("Container"));
 		frm.add_custom_button(__("Import Containers"), () => import_containers(frm), __("Container"));
 	},

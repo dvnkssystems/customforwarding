@@ -188,14 +188,14 @@ WIZARDS = {
 				"label": "Basics",
 				"icon": "layers",
 				"hint": "What kind of job this is. Branch, type and mode decide its number.",
-				# M-06: Scope of Work decides which Services are offered, so it
-				# comes first.
+				# M-06: the Scopes of Work decide which Services are offered, so
+				# they come first.
 				"fields": [
 					"branch",
 					"job_type",
 					"mode_of_shipment",
 					"shipment_type",
-					"scope_of_work",
+					"scopes_of_work",
 					"services",
 					"inco_terms",
 				],
