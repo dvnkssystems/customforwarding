@@ -52,7 +52,7 @@ import frappe
 from frappe.query_builder.functions import Coalesce, Sum
 from frappe.utils import flt, get_datetime, getdate, nowdate
 
-from forwarding import party_360, supplier_banners
+from forwarding import party_360, party_documents, supplier_banners
 from forwarding.forwarding.doctype.party_alert_settings.party_alert_settings import get_settings
 from forwarding.job_events import supplier_cache_key
 from forwarding.party_360 import ADDRESS_FIELDS, CONTACT_FIELDS, default_company
@@ -173,6 +173,10 @@ def build(supplier, date_range=None):
 	cost_variance, jobs_over = _cost_variance(supplier, settings.cost_variance_threshold)
 	expiring_rates = _expiring_rates(supplier, today, settings.rate_expiry_days)
 	documents, documents_on_file, documents_total = _documents(supplier, all_services)
+	# The supplier's own licences, insurance, ... (SU9): about the party, so
+	# never narrowed by the date range.
+	own_documents = party_documents.rows(doc, today, settings.document_expiry_days)
+	document_kpis, expiring_documents, expired_documents = party_documents.summary(own_documents)
 	header = _supplier_header(doc, today, contacts, addresses)
 
 	kpis = {
@@ -185,9 +189,12 @@ def build(supplier, date_range=None):
 		"unbilled_services": sum(1 for s in services if s["docstatus"] < 2 and not s["billed"]),
 		"billed_this_year": flt(_billed_this_year(supplier, company, today), 2),
 		"cost_variance": cost_variance,
-		"documents_on_file": documents_on_file,
+		# Service documents received and files attached, plus the supplier's
+		# own documents that have a file or a number.
+		"documents_on_file": documents_on_file + sum(map(party_documents.on_file, own_documents)),
 		# Every listed document, received or not: the tile reads "1 / 4" as on a job.
-		"documents_total": documents_total,
+		"documents_total": documents_total + len(own_documents),
+		**document_kpis,
 	}
 
 	ctx = {
@@ -204,6 +211,9 @@ def build(supplier, date_range=None):
 		"release_date": doc.get("release_date"),
 		"expiring_rates": expiring_rates,
 		"rate_expiry_days": settings.rate_expiry_days,
+		"expiring_documents": expiring_documents,
+		"expired_documents": expired_documents,
+		"document_expiry_days": settings.document_expiry_days,
 		"cost_variance": cost_variance,
 		"jobs_over": jobs_over,
 		"today": today,
@@ -231,6 +241,7 @@ def build(supplier, date_range=None):
 			limit=LIST_LIMIT,
 		),
 		"documents": documents,
+		"party_documents": own_documents,
 		"contacts": contacts,
 		"addresses": addresses,
 	}

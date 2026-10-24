@@ -23,7 +23,7 @@ import frappe
 from frappe.query_builder.functions import Coalesce, Count
 from frappe.utils import add_days, cstr, flt, getdate, nowdate
 
-from forwarding import banners, customer_banners, party_360
+from forwarding import banners, customer_banners, party_360, party_documents
 from forwarding.job_events import customer_cache_key
 from forwarding.party_360 import ADDRESS_FIELDS, CONTACT_FIELDS, default_company
 
@@ -109,6 +109,11 @@ def build(customer, date_range=None):
 	quote_days = customer_banners.quote_expiry_days()
 	quotes, quote_counts = _quotes(customer, today, quote_days, date_range)
 	documents, documents_on_file, documents_total = _documents(customer)
+	# The customer's own CR, VAT certificate, ... (CU3): about the party, so
+	# never narrowed by the date range.
+	document_days = party_documents.expiry_days()
+	own_documents = party_documents.rows(doc, today, document_days)
+	document_kpis, expiring_documents, expired_documents = party_documents.summary(own_documents)
 	credit_limit = _credit_limit(doc, company)
 	credit_used = receivable["outstanding"]
 
@@ -120,9 +125,12 @@ def build(customer, date_range=None):
 		"credit_used": flt(credit_used, 2),
 		"credit_limit": flt(credit_limit, 2),
 		"credit_pct": flt(credit_used / credit_limit * 100, 2) if credit_limit else None,
-		"documents_on_file": documents_on_file,
+		# Job documents received and files attached, plus the customer's own
+		# documents that have a file or a number.
+		"documents_on_file": documents_on_file + sum(map(party_documents.on_file, own_documents)),
 		# Every listed document, received or not: the tile reads "1 / 4" as on a job.
-		"documents_total": documents_total,
+		"documents_total": documents_total + len(own_documents),
+		**document_kpis,
 	}
 
 	ctx = {
@@ -131,6 +139,9 @@ def build(customer, date_range=None):
 		"overdue": receivable["overdue_rows"],
 		"expiring_quotes": quote_counts["expiring"],
 		"quote_expiry_days": quote_days,
+		"expiring_documents": expiring_documents,
+		"expired_documents": expired_documents,
+		"document_expiry_days": document_days,
 		"not_invoiced_jobs": _not_invoiced_jobs(customer, today, date_range),
 		"today": today,
 	}
@@ -163,6 +174,7 @@ def build(customer, date_range=None):
 			limit=LIST_LIMIT,
 		),
 		"documents": documents,
+		"party_documents": own_documents,
 		"contacts": contacts,
 		"addresses": addresses,
 	}
