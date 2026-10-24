@@ -867,7 +867,6 @@ def record_payment(supplier):
 		get_outstanding_reference_documents,
 		get_party_details,
 	)
-	from erpnext.accounts.party import get_party_bank_account
 
 	if not frappe.has_permission("Payment Entry", "create"):
 		frappe.throw(_("You do not have permission to create a Payment Entry"), frappe.PermissionError)
@@ -897,7 +896,7 @@ def record_payment(supplier):
 		pe.paid_from = bank.account
 		pe.paid_from_account_currency = bank.account_currency
 	pe.bank_account = party.get("bank_account") or None
-	pe.party_bank_account = get_party_bank_account("Supplier", supplier)
+	pe.party_bank_account = party.get("party_bank_account") or None
 
 	refs = []
 	if party["party_account"]:
