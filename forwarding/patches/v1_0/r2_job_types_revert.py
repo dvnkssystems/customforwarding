@@ -16,7 +16,9 @@ OTHERS, OTHERS_ABBR = "Others", "OT"
 def execute():
 	if frappe.db.exists("Job Type", DOMESTIC) and not frappe.db.exists("Job Type", LAND):
 		frappe.rename_doc("Job Type", DOMESTIC, LAND, merge=False, force=True, show_alert=False)
-		frappe.db.set_value("Job Type", LAND, {"job_type": LAND, "abbreviation": LAND_ABBR}, update_modified=False)
+		frappe.db.set_value(
+			"Job Type", LAND, {"job_type": LAND, "abbreviation": LAND_ABBR}, update_modified=False
+		)
 
 	if not frappe.db.exists("Job Type", OTHERS):
 		frappe.get_doc({"doctype": "Job Type", "job_type": OTHERS, "abbreviation": OTHERS_ABBR}).insert(
