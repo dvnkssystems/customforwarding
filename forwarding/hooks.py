@@ -189,6 +189,7 @@ doc_events = {
 	},
 	"Customer": {
 		"before_insert": "forwarding.naming.set_customer_code",
+		"validate": "forwarding.party_documents.validate",
 		"on_update": "forwarding.job_events.on_customer_change",
 		"on_trash": "forwarding.job_events.on_customer_change",
 	},
@@ -217,7 +218,7 @@ doc_events = {
 	},
 	"Supplier": {
 		"before_insert": "forwarding.naming.set_supplier_code",
-		"validate": "forwarding.supplier.validate",
+		"validate": ["forwarding.supplier.validate", "forwarding.party_documents.validate"],
 		"on_update": "forwarding.job_events.on_supplier_change",
 		"on_trash": "forwarding.job_events.on_supplier_change",
 	},

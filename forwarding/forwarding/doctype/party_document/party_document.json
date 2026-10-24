@@ -1,0 +1,73 @@
+{
+ "actions": [],
+ "creation": "2026-10-24 12:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "document_type",
+  "document_no",
+  "issue_date",
+  "expiry_date",
+  "attach",
+  "expiry_status"
+ ],
+ "fields": [
+  {
+   "fieldname": "document_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Document Type",
+   "options": "CR\nVAT Certificate\nTrade Licence\nCustoms Broker Licence\nInsurance\nContract\nOther",
+   "reqd": 1
+  },
+  {
+   "fieldname": "document_no",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Document No."
+  },
+  {
+   "fieldname": "issue_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Issue Date"
+  },
+  {
+   "fieldname": "expiry_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Expiry Date"
+  },
+  {
+   "fieldname": "attach",
+   "fieldtype": "Attach",
+   "in_list_view": 1,
+   "label": "Attach"
+  },
+  {
+   "description": "Worked out from the expiry date and Party Alert Settings when the record is saved; Customer 360 and Supplier 360 work it out again for today.",
+   "fieldname": "expiry_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Expiry Status",
+   "no_copy": 1,
+   "options": "\nValid\nExpiring\nExpired\nNo expiry",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-10-24 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Forwarding",
+ "name": "Party Document",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}
