@@ -17,11 +17,15 @@ Every condition takes ctx, the dict built by forwarding.api.customer_360:
 	quote_expiry_days	Party Alert Settings' Quote Expiry Warning (Days), for message templates
 	not_invoiced_jobs	[{name, operations_status}] jobs raising job banner B5
 			(delivered or ops completed, no invoice)
+	expiring_documents	[{document_type, expiry_date, days_left, ...}] party
+			documents expiring within document_expiry_days
+	expired_documents	the same for documents already expired
+	document_expiry_days	Party Alert Settings' Document Expiry Warning (Days)
 	today		date the banners are worked out for
 
-C5 (job_not_invoiced) and the threshold settings come from the Phase 2
-spec §6.2; they are provisional and live in Job Banner Rule / Party Alert
-Settings, not in code.
+C5 (job_not_invoiced), C4 / C6 (party documents expiring / expired) and the
+threshold settings come from the Phase 2 spec §6.2; they are provisional and
+live in Job Banner Rule / Party Alert Settings, not in code.
 """
 
 from frappe.utils import flt
@@ -57,17 +61,31 @@ def job_not_invoiced(ctx):
 	return bool(ctx.get("not_invoiced_jobs"))
 
 
+def party_document_expiring(ctx):
+	return bool(ctx.get("expiring_documents"))
+
+
+def party_document_expired(ctx):
+	return bool(ctx.get("expired_documents"))
+
+
 CONDITIONS = {
 	"over_credit_limit": over_credit_limit,
 	"overdue_invoices": overdue_invoices,
 	"quote_expiring": quote_expiring,
 	"job_not_invoiced": job_not_invoiced,
+	"party_document_expiring": party_document_expiring,
+	"party_document_expired": party_document_expired,
 }
 
 
 def evaluate(ctx):
 	"""[{code, priority, colour, message, action}] for every enabled Customer
 	rule whose condition holds, lowest priority first."""
-	return evaluate_rules(
-		"Customer", CONDITIONS, {"quote_expiry_days": quote_expiry_days(), "not_invoiced_jobs": [], **ctx}
-	)
+	defaults = {
+		"quote_expiry_days": quote_expiry_days(),
+		"not_invoiced_jobs": [],
+		"expiring_documents": [],
+		"expired_documents": [],
+	}
+	return evaluate_rules("Customer", CONDITIONS, {**defaults, **ctx})
