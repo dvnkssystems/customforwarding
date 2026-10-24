@@ -161,7 +161,7 @@ class TestSupplier360(IntegrationTestCase):
 			set(data),
 			{
 				"currency", "supplier", "kpis", "banners", "jobs", "services", "invoices", "payments", "documents",
-				"contacts", "addresses",
+				"party_documents", "contacts", "addresses",
 			},
 		)
 		self.assertEqual(
@@ -176,6 +176,7 @@ class TestSupplier360(IntegrationTestCase):
 			{
 				"active_jobs", "open_services", "payable_outstanding", "overdue", "unbilled_services",
 				"billed_this_year", "cost_variance", "documents_on_file", "documents_total",
+				"party_documents_count", "party_documents_expiring", "party_documents_expired",
 			},
 		)
 		s = data["supplier"]

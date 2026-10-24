@@ -134,7 +134,7 @@ class TestCustomer360(IntegrationTestCase):
 			set(data),
 			{
 				"currency", "customer", "kpis", "banners", "jobs", "quotes", "invoices", "payments",
-				"documents", "contacts", "addresses",
+				"documents", "party_documents", "contacts", "addresses",
 			},
 		)
 		self.assertEqual(
@@ -150,7 +150,8 @@ class TestCustomer360(IntegrationTestCase):
 			set(data["kpis"]),
 			{
 				"active_jobs", "open_quotes", "outstanding", "overdue", "credit_used", "credit_limit",
-				"credit_pct", "documents_on_file", "documents_total",
+				"credit_pct", "documents_on_file", "documents_total", "party_documents_count",
+				"party_documents_expiring", "party_documents_expired",
 			},
 		)
 		c = data["customer"]

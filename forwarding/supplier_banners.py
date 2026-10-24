@@ -21,9 +21,14 @@ Every condition takes ctx, the dict built by forwarding.api.supplier_360:
 	rate_expiry_days	Party Alert Settings' Rate Expiry Warning (Days)
 	cost_variance	the Cost variance KPI dict (jobs_over_estimate, threshold, ...)
 	jobs_over	[{job, estimated, invoiced, variance_pct}] jobs over the threshold
+	expiring_documents	[{document_type, expiry_date, days_left, ...}] party
+			documents expiring within document_expiry_days
+	expired_documents	the same for documents already expired
+	document_expiry_days	Party Alert Settings' Document Expiry Warning (Days)
 	today		date the banners are worked out for
 
-S4 (rate_expiring) and S6 (over_estimate) come from the Phase 2 spec §6.2;
+S4 (rate_expiring), S6 (over_estimate) and S7 / S8 (party documents
+expiring / expired; the spec's S2 / S3) come from the Phase 2 spec §6.2;
 they are provisional, so their wording lives in Job Banner Rule and their
 thresholds in Party Alert Settings.
 """
@@ -52,12 +57,22 @@ def over_estimate(ctx):
 	return bool(ctx.get("jobs_over"))
 
 
+def party_document_expiring(ctx):
+	return bool(ctx.get("expiring_documents"))
+
+
+def party_document_expired(ctx):
+	return bool(ctx.get("expired_documents"))
+
+
 CONDITIONS = {
 	"overdue_payables": overdue_payables,
 	"unbilled_services": unbilled_services,
 	"on_hold_or_blocked": on_hold_or_blocked,
 	"rate_expiring": rate_expiring,
 	"over_estimate": over_estimate,
+	"party_document_expiring": party_document_expiring,
+	"party_document_expired": party_document_expired,
 }
 
 
