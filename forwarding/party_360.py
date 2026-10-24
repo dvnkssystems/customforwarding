@@ -256,8 +256,11 @@ def document_rows(parents):
 	]
 
 
-def attached_file_rows(doctype, name):
-	"""Files attached to the record, as document rows (always received)."""
+def attached_file_rows(doctype, name, skip_urls=()):
+	"""Files attached to the record, as document rows (always received).
+	Files at skip_urls are left out: a Party Document row's file is attached
+	to the party too, and already counts through that row."""
+	skip_urls = set(skip_urls or ())
 	files = frappe.get_all(
 		"File",
 		filters={"attached_to_doctype": doctype, "attached_to_name": name, "is_folder": 0},
@@ -276,6 +279,7 @@ def attached_file_rows(doctype, name):
 			"row_name": f.name,
 		}
 		for f in files
+		if f.file_url not in skip_urls
 	]
 
 

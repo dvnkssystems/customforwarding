@@ -96,6 +96,15 @@ def rows(doc, today=None, days=None):
 	return out
 
 
+def attached_urls(parenttype, parent):
+	"""File URLs on the party's Party Document rows."""
+	return frappe.get_all(
+		"Party Document",
+		filters={"parenttype": parenttype, "parent": parent, "parentfield": FIELD, "attach": ["is", "set"]},
+		pluck="attach",
+	)
+
+
 def on_file(row):
 	"""A row counts towards Documents on file when it has a file or a number."""
 	return bool(row.get("attach") or row.get("document_no"))

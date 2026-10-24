@@ -430,7 +430,7 @@ def _documents(customer):
 	rows = party_360.merge_documents(
 		party_360.document_rows(parents), lambda r: job_of.get((r["source_doctype"], r["source_name"]))
 	)
-	file_rows = party_360.attached_file_rows("Customer", customer)
+	file_rows = party_360.attached_file_rows("Customer", customer, party_documents.attached_urls("Customer", customer))
 
 	on_file = sum(r["received"] for r in rows) + len(file_rows)
 	total = len(rows) + len(file_rows)

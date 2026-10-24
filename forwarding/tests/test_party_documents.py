@@ -140,6 +140,25 @@ class TestPartyDocuments(IntegrationTestCase):
 		# On file: a file or a number (Contract, VAT, CR, Trade Licence).
 		self.assertEqual((kpis["documents_on_file"], kpis["documents_total"]), (4, 6))
 
+	def test_party_document_file_counts_once(self):
+		c = make_customer(party_documents=[{"document_type": "CR", "attach": "/files/pd-cr.pdf"}])
+		# The desk attaches a child row's file to the parent as well.
+		for url in ("/files/pd-cr.pdf", "/files/pd-other.pdf"):
+			frappe.get_doc(
+				{
+					"doctype": "File",
+					"file_name": url.rsplit("/", 1)[1],
+					"file_url": url,
+					"attached_to_doctype": "Customer",
+					"attached_to_name": c.name,
+					"is_private": 0,
+				}
+			).db_insert()
+
+		payload = fresh_customer(c.name)
+		self.assertEqual([d["attach"] for d in payload["documents"]], ["/files/pd-other.pdf"])
+		self.assertEqual((payload["kpis"]["documents_on_file"], payload["kpis"]["documents_total"]), (2, 2))
+
 	def test_customer_list_ignores_the_date_range(self):
 		c = make_customer(party_documents=[{"document_type": "CR", "expiry_date": in_days(-400)}])
 		from forwarding.api import customer_360

@@ -694,7 +694,7 @@ def _documents(supplier, services):
 	rows = party_360.merge_documents(
 		party_360.document_rows(parents), lambda r: job_of.get((r["source_doctype"], r["source_name"]))
 	)
-	file_rows = party_360.attached_file_rows("Supplier", supplier)
+	file_rows = party_360.attached_file_rows("Supplier", supplier, party_documents.attached_urls("Supplier", supplier))
 	on_file = sum(r["received"] for r in rows) + len(file_rows)
 	total = len(rows) + len(file_rows)
 	return (file_rows + rows)[:DOCUMENT_LIMIT], on_file, total
