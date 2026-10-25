@@ -181,6 +181,9 @@ def job_kpis(doc, documents, charges, linked, submitted_si, today):
 		"margin_pct": flt((revenue_total - cost_total) / revenue_total * 100, 2) if revenue_total and cost_total else None,
 		"billed": flt(sum(flt(si.grand_total) for si in submitted_si), 2),
 		"collected": flt(sum(flt(si.grand_total) - flt(si.outstanding_amount) for si in submitted_si), 2),
+		# The estimate (R3-35): the cost sheet's Est. Cost / Est. Selling. The
+		# actuals beside it are added by build().
+		**_estimate(charges),
 		# A cancelled job has no free time to run out (R2-10).
 		"free_days_left": date_diff(doc.free_time_expiry, today)
 		if doc.free_time_expiry and cint(doc.docstatus) != 2
@@ -203,6 +206,34 @@ def job_kpis(doc, documents, charges, linked, submitted_si, today):
 	return kpis, ctx
 
 
+def _margin(selling, cost):
+	"""Margin % of selling, or None while either side is still zero."""
+	return flt((selling - cost) / selling * 100, 2) if selling and cost else None
+
+
+def _estimate(charges):
+	estimate_cost = sum(flt(c["cost"]) for c in charges)
+	estimate_selling = sum(flt(c["rate"]) for c in charges)
+	return {
+		"estimate_cost": flt(estimate_cost, 2),
+		"estimate_selling": flt(estimate_selling, 2),
+		"estimate_margin_pct": _margin(estimate_selling, estimate_cost),
+	}
+
+
+def _actuals(invoices):
+	"""What has really been billed and booked (R3-35): submitted Sales
+	Invoices and Purchase Invoices for the job, net of VAT in the company
+	currency, credit / debit notes netted off (theirs is negative)."""
+	billed = sum(flt(si.base_net_total) for si in invoices["sales"] if si.docstatus == 1)
+	booked = sum(flt(pi.base_net_total) for pi in invoices["purchase"] if pi.docstatus == 1)
+	return {
+		"actual_billed": flt(billed, 2),
+		"actual_cost": flt(booked, 2),
+		"actual_margin_pct": _margin(billed, booked),
+	}
+
+
 def build(job):
 	doc = frappe.get_doc("Operations", job)
 	today = getdate(nowdate())
@@ -215,6 +246,7 @@ def build(job):
 	charges = _charges(doc, linked, children)
 	submitted_si = [si for si in invoices["sales"] if si.docstatus == 1 and not si.is_return]
 	kpis, ctx = job_kpis(doc, documents, charges, linked, submitted_si, today)
+	kpis.update(_actuals(invoices))
 
 	cutoffs = [
 		{
@@ -494,7 +526,7 @@ def _invoices(job):
 	pi = frappe.get_all(
 		"Purchase Invoice",
 		filters={"operations": job, "docstatus": ["<", 2]},
-		fields=[*INVOICE_FIELDS, *PURCHASE_FIELDS],
+		fields=[*INVOICE_FIELDS, *PURCHASE_FIELDS, "base_net_total", "is_return"],
 		order_by="posting_date asc, creation asc",
 	)
 

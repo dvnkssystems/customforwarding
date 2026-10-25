@@ -394,3 +394,22 @@ class TestFormCleanUp(R3Case):
 			self.assertTrue(meta.get_field(fieldname).hidden, fieldname)
 		for fieldname in ("operations_status", "billing_status"):
 			self.assertTrue(meta.get_field(fieldname).read_only, fieldname)
+
+
+class TestEstimateAndActual(R3Case):
+	# R3-35 --------------------------------------------------------------------
+
+	def test_payload_has_estimate_and_actuals(self):
+		from forwarding.api import job_360
+		from forwarding.tests.test_job_360 import make_sales_invoice
+		from forwarding.tests.test_r2_job_lifecycle import make_purchase_invoice
+
+		job = make(cost_table=[{"item_name": "Freight", "rate": 2000, "cost": 1500}])
+		make_sales_invoice(job, amount=2300)
+		make_purchase_invoice(job, amount=1600)
+		frappe.cache.delete_keys("job_360")
+		kpis = job_360.build(job.name)["kpis"]
+		self.assertEqual((kpis["estimate_selling"], kpis["estimate_cost"]), (2000, 1500))
+		self.assertEqual(kpis["estimate_margin_pct"], 25.0)
+		self.assertEqual((kpis["actual_billed"], kpis["actual_cost"]), (2300, 1600))
+		self.assertEqual(kpis["actual_margin_pct"], round((2300 - 1600) / 2300 * 100, 2))

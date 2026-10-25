@@ -276,6 +276,12 @@ class TestJob360(IntegrationTestCase):
 				"billed",
 				"collected",
 				"free_days_left",
+				"estimate_cost",
+				"estimate_selling",
+				"estimate_margin_pct",
+				"actual_billed",
+				"actual_cost",
+				"actual_margin_pct",
 			},
 		)
 		self.assertEqual(set(payload["linked"]), {"transportation", "custom_clearance"})
