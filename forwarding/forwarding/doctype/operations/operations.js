@@ -661,3 +661,14 @@ frappe.ui.form.on("Operations", {
 		frm.toggle_display("company", frm._company_count > 1 || !frm.doc.company);
 	},
 });
+
+// Weight UOM offers weight units only (R3-31), as Operations.WEIGHT_UOMS.
+const WEIGHT_UOMS = ["Kg", "Tonne", "Pound"];
+frappe.ui.form.on("Operations", {
+	setup(frm) {
+		frm.set_query("weight_uom", () => ({ filters: { name: ["in", WEIGHT_UOMS] } }));
+	},
+	refresh(frm) {
+		frm.set_query("weight_uom", () => ({ filters: { name: ["in", WEIGHT_UOMS] } }));
+	},
+});

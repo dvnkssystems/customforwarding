@@ -587,6 +587,8 @@
    "read_only_depends_on": "eval:(doc.package_details||[]).length"
   },
   {
+   "default": "Kg",
+   "description": "Kg, Tonne or Pound.",
    "fieldname": "weight_uom",
    "fieldtype": "Link",
    "label": "Weight UOM",
@@ -1579,7 +1581,7 @@
    "link_fieldname": "operations"
   }
  ],
- "modified": "2026-10-25 18:43:42.767089",
+ "modified": "2026-10-25 18:46:25.587768",
  "modified_by": "Administrator",
  "module": "Forwarding",
  "name": "Operations",

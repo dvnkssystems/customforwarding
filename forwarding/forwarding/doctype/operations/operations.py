@@ -54,6 +54,9 @@ HOME_SIDE = {
 	"Export": ("loading_country", "port_of_loading"),
 }
 
+# The units a job's weights may be in (R3-31), Kg first as the default.
+WEIGHT_UOMS = ("Kg", "Tonne", "Pound")
+
 # The Operations Status a closed job carries (R3-07).
 CLOSED_STATUS = "Closed"
 
@@ -237,6 +240,7 @@ class Operations(Document):
 		self.validate_ports()
 		self.calculate_package_totals()
 		self.validate_weights()
+		self.validate_weight_uom()
 		self.validate_actual_dates()
 		self.set_default_salesman()
 		self.set_free_time_expiry()
@@ -251,6 +255,19 @@ class Operations(Document):
 
 	def before_submit(self):
 		self.validate_submit()
+
+	def validate_weight_uom(self):
+		"""Weights are in Kg unless chosen otherwise, and only in a weight unit."""
+		if not self.weight_uom:
+			self.weight_uom = WEIGHT_UOMS[0]
+			return
+		if self.weight_uom not in WEIGHT_UOMS:
+			frappe.throw(
+				_("Weight UOM {0} is not a weight unit. Choose {1}.").format(
+					frappe.bold(self.weight_uom), ", ".join(WEIGHT_UOMS)
+				),
+				title=_("Weight UOM"),
+			)
 
 	def set_total_cost(self):
 		"""Total Cost is the estimate's: the Estimate rows' Cost added up
