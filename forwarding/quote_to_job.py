@@ -113,7 +113,16 @@ def make_operations_from_quote(source_name, target_doc=None):
 		if (source.get("cargo") or "").strip().lower() == "dg goods":
 			target.dg_status = 1
 
-		_set_carrier(target, source.get("carrier"), mode)
+		# Shipping Line / Airline by mode (R3-46); an older quote has free text.
+		if mode == "Sea" and source.get("shipping_line"):
+			target.shipping_line = source.shipping_line
+			target.air_line = None
+		elif mode == "Air" and source.get("air_line"):
+			target.air_line = source.air_line
+			target.shipping_line = None
+			target.carrier = None
+		else:
+			_set_carrier(target, source.get("carrier"), mode)
 		_set_parties(target, source)
 
 		_set_place(target, "port_of_loading", "place_of_loading", source.pol, mode)

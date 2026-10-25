@@ -33,7 +33,30 @@ VAT_RATE = 0.15
 def validate(doc, method=None):
 	set_status(doc)
 	set_party(doc)
+	set_mode(doc)
 	set_amounts(doc)
+
+
+def set_mode(doc):
+	"""mode_of_shipment (the job's Mode Of Shipment list) and the older
+	upper-case `mode` say the same thing (R3-45). mode_of_shipment wins when
+	both are set; "SEA-FCL" style variants count as their base mode."""
+	from forwarding.quote_to_job import MODES
+
+	by_master = {v.lower(): k for k, v in MODES.items()}
+	chosen = (doc.get("mode_of_shipment") or "").strip()
+	if chosen:
+		base = chosen.split("-")[0].strip().lower()
+		doc.mode = by_master.get(base, doc.get("mode"))
+	elif doc.get("mode"):
+		master = MODES.get(doc.mode.strip().upper())
+		if master and frappe.db.exists("Mode Of Shipment", master):
+			doc.mode_of_shipment = master
+	# A sea quote names a Shipping Line, an air quote an Airline; never both (R3-46).
+	if doc.get("mode") == "SEA":
+		doc.air_line = None
+	elif doc.get("mode") == "AIR":
+		doc.shipping_line = None
 
 
 def set_amounts(doc):

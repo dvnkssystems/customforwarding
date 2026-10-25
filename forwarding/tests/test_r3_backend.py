@@ -456,3 +456,68 @@ class TestQuoteJobBasics(R3BackendCase):
 		job = make_operations_from_quote(q.name)
 		self.assertEqual((job.branch, job.job_type, job.mode_of_shipment), (branch, "Export", "Air"))
 		self.assertEqual([r.scope_of_work for r in job.scopes_of_work], scopes)
+
+
+class TestQuoteLists(R3BackendCase):
+	# R3-46 (and mode_of_shipment for R3-45) ------------------------------------
+
+	def ports(self, mode):
+		ports = frappe.get_all("Port", filters={"mode_of_shipment": mode}, pluck="name", limit=2)
+		if len(ports) < 2:
+			self.skipTest(f"needs two {mode} ports")
+		return ports
+
+	def test_mode_and_mode_of_shipment_agree(self):
+		from forwarding.tests.test_job_360 import CUSTOMER
+
+		self.assertEqual(quote(customer=CUSTOMER, mode="AIR").mode_of_shipment, "Air")
+		self.assertEqual(quote(customer=CUSTOMER, mode="AIR", mode_of_shipment="Sea").mode, "SEA")
+
+	def test_sea_quote_carries_ports_incoterm_and_shipping_line_to_the_job(self):
+		from forwarding.quote_to_job import make_operations_from_quote
+		from forwarding.tests.test_job_360 import CUSTOMER
+
+		pol, pod = self.ports("Sea")
+		line = frappe.get_all("Shipping Line", pluck="name", limit=1)[0]
+		q = quote(
+			customer=CUSTOMER, mode="SEA", pol=pol, pod=pod, shipping_terms="DAP", shipping_line=line, air_line="Nobody Air"
+		)
+		self.assertIsNone(q.air_line, "a sea quote has no airline")
+		q.submit()
+		job = make_operations_from_quote(q.name)
+		self.assertEqual(
+			(job.port_of_loading, job.port_of_destination, job.inco_terms, job.shipping_line, job.mode_of_shipment),
+			(pol, pod, "DAP", line, "Sea"),
+		)
+
+	def test_air_quote_carries_the_airline(self):
+		from forwarding.quote_to_job import make_operations_from_quote
+		from forwarding.tests.test_job_360 import CUSTOMER
+
+		q = quote(customer=CUSTOMER, mode="AIR", air_line="Saudia Cargo")
+		q.submit()
+		job = make_operations_from_quote(q.name)
+		self.assertEqual((job.air_line, job.shipping_line), ("Saudia Cargo", None))
+
+	def test_old_free_text_is_matched_or_noted(self):
+		from forwarding.patches.v1_0.r3_quote_ports_incoterms import migrate_quote
+		from forwarding.tests.test_job_360 import CUSTOMER
+
+		pol, _ = self.ports("Sea")
+		port_name = frappe.db.get_value("Port", pol, "port_name")
+		q = quote(customer=CUSTOMER, mode="SEA")
+		frappe.db.set_value(
+			"Quote", q.name, {"pol": pol, "pod": "Atlantis Harbour", "shipping_terms": "C&F", "carrier": "No Such Line"}
+		)
+		row = frappe.db.get_value(
+			"Quote", q.name, ["name", "mode", "pol", "pod", "shipping_terms", "carrier", "unmatched_note", "mode_of_shipment"], as_dict=True
+		)
+		migrate_quote(row)
+		after = frappe.db.get_value("Quote", q.name, ["pol", "pod", "shipping_terms", "unmatched_note"], as_dict=True)
+		self.assertEqual((after.pol, after.pod, after.shipping_terms), (pol, None, "CFR"))
+		self.assertEqual(after.unmatched_note, "POD: Atlantis Harbour\nCarrier: No Such Line")
+		self.assertTrue(port_name)
+
+	def test_incoterms_are_codes(self):
+		self.assertFalse(frappe.db.exists("Inco Terms", "DELIVERED AT PLACE"))
+		self.assertEqual(frappe.get_meta("Quote").get_field("shipping_terms").label, "Incoterms")

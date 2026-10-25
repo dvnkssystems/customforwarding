@@ -59,3 +59,4 @@ forwarding.patches.v1_0.r3_clearance_documents_shared
 forwarding.patches.v1_0.r3_free_time_start
 forwarding.patches.v1_0.r3_quote_customer
 forwarding.patches.v1_0.r3_land_shipment_types
+forwarding.patches.v1_0.r3_quote_ports_incoterms
