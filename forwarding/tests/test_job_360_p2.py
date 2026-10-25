@@ -284,7 +284,10 @@ class TestWorklist(P2TestCase):
 		self.assertEqual({k: v for k, v in result["counters"].items() if v}, totals)
 
 	def test_closed_jobs_are_left_out(self):
-		job = job_with_rows(operations_status="Closed")
+		job = job_with_rows()
+		# Saving can't close a job with documents outstanding (R3-07); a job
+		# closed before that rule still has to stay off the worklist.
+		frappe.db.set_value("Operations", job.name, "operations_status", "Closed")
 		result = job_360.build_worklist("Administrator", "all")
 		self.assertNotIn(job.name, {i["job"] for i in result["items"]})
 

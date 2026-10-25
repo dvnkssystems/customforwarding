@@ -9,7 +9,8 @@ from frappe.tests import IntegrationTestCase
 from frappe.utils import nowdate
 
 from forwarding.forwarding.doctype.operations.operations import make_purchase_invoice, make_sales_invoice
-from forwarding.tests.test_job_360 import ITEM, make, submit_job
+from forwarding.tests.test_job_360 import ITEM, add_estimate, make, submit_job
+from forwarding.tests.test_job_360_p2 import job_with_rows
 
 
 class R3Case(IntegrationTestCase):
@@ -94,3 +95,34 @@ class TestInvoiceOnlyAfterSubmit(R3Case):
 			}
 		).insert(ignore_permissions=True)
 		self.assertTrue(si.name)
+
+
+class TestDocumentsAtClose(R3Case):
+	# R3-07 --------------------------------------------------------------------
+
+	def test_submit_is_not_held_by_documents(self):
+		job = add_estimate(job_with_rows())
+		frappe.clear_messages()
+		job.submit()
+		self.assertEqual(job.docstatus, 1)
+		self.assertNotIn("Documents outstanding", str(frappe.message_log))
+
+	def test_close_is_refused_with_documents_outstanding(self):
+		job = submit_job(job_with_rows())
+		job.operations_status = "Closed"
+		with self.assertRaisesRegex(frappe.ValidationError, "Not marked received"):
+			job.save()
+		self.assertNotEqual(frappe.db.get_value("Operations", job.name, "operations_status"), "Closed")
+
+	def test_close_through_set_value_is_refused(self):
+		job = submit_job(job_with_rows())
+		with self.assertRaisesRegex(frappe.ValidationError, "every document"):
+			frappe.client.set_value("Operations", job.name, "operations_status", "Closed")
+
+	def test_close_goes_through_once_everything_is_in(self):
+		job = submit_job(job_with_rows())
+		for row in job.document_table:
+			row.received = "Yes"
+		job.operations_status = "Closed"
+		job.save()
+		self.assertEqual(frappe.db.get_value("Operations", job.name, "operations_status"), "Closed")

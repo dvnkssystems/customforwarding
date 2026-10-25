@@ -41,6 +41,10 @@ AES_DEADLINE = "AES Deadline"
 SEA_CUTOFFS = ("Rail Cut-off", "Inland Cut-off", "Container Pickup", AES_DEADLINE, "SI Deadline", "Cargo Cut-off")
 AIR_CUTOFFS = ("SI Deadline", "Cargo Cut-off")
 
+# The Operations Status a closed job carries (R3-07).
+CLOSED_STATUS = "Closed"
+
+
 # destination_country links to Territory; these are the names the US goes by.
 US_NAMES = {"united states", "united states of america", "usa", "us"}
 
@@ -220,7 +224,12 @@ class Operations(Document):
 		self.sync_container_rows()
 		self.set_billing_status()
 		self.set_cost_accounts()
-		self.warn_missing_documents()
+		self.validate_close()
+		if self._action != "submit":
+			# On Submit the documents are not the question (R3-07): the warning
+			# came back as the first message of a refused submit and read as
+			# the reason for it.
+			self.warn_missing_documents()
 
 	def before_submit(self):
 		self.validate_estimate()
@@ -233,6 +242,46 @@ class Operations(Document):
 		if not has_estimate(self):
 			frappe.throw(_("Add an estimate before submitting"), title=_("Estimate missing"))
 
+	def outstanding_documents(self):
+		"""(missing, awaited): documents the Shipment Type expects that the job
+		does not list, and documents the job lists but has not marked received."""
+		listed = {}
+		for row in self.get("document_table") or []:
+			if row.document:
+				listed[row.document] = cstr(row.received).strip()
+
+		expected = []
+		if self.shipment_type:
+			# Read the type's own rows rather than querying the child table
+			# directly: that needs the parent doctype declared, and the keyword
+			# for it has moved between Frappe versions.
+			shipment_type = frappe.get_cached_doc("Shipment Type", self.shipment_type)
+			expected = [row.document for row in shipment_type.get("document_table") or [] if row.document]
+
+		missing = [name for name in expected if name and name not in listed]
+		awaited = [name for name, received in listed.items() if received != "Yes"]
+		return missing, awaited
+
+	def validate_close(self):
+		"""A job is closed only with its paperwork in (R3-07): every document it
+		lists marked received, and none its Shipment Type expects left off.
+		This used to sit on Submit, where it stopped work that had only begun."""
+		if self.docstatus == 2 or self.operations_status != CLOSED_STATUS:
+			return
+		if not (self.is_new() or self.has_value_changed("operations_status")):
+			return
+		missing, awaited = self.outstanding_documents()
+		lines = []
+		if missing:
+			lines.append(_("Not on the job yet: {0}").format(", ".join(frappe.bold(n) for n in missing)))
+		if awaited:
+			lines.append(_("Not marked received: {0}").format(", ".join(frappe.bold(n) for n in awaited)))
+		if lines:
+			frappe.throw(
+				_("Can't close the job until every document is in.") + "<br>" + "<br>".join(lines),
+				title=_("Documents outstanding"),
+			)
+
 	def before_update_after_submit(self):
 		"""Ops keep a submitted job current (schedule, cut-offs, containers,
 		documents): those fields are Allow on Submit. Re-derive what follows
@@ -242,6 +291,7 @@ class Operations(Document):
 		self.validate_cutoffs()
 		self.set_cutoff_status()
 		self.sync_container_rows()
+		self.validate_close()
 
 	def on_update_after_submit(self):
 		self.sync_clearance_containers()
@@ -268,21 +318,7 @@ class Operations(Document):
 		if self.docstatus == 2:
 			return
 
-		listed = {}
-		for row in self.get("document_table") or []:
-			if row.document:
-				listed[row.document] = cstr(row.received).strip()
-
-		expected = []
-		if self.shipment_type:
-			# Read the type's own rows rather than querying the child table
-			# directly: that needs the parent doctype declared, and the keyword
-			# for it has moved between Frappe versions.
-			shipment_type = frappe.get_cached_doc("Shipment Type", self.shipment_type)
-			expected = [row.document for row in shipment_type.get("document_table") or [] if row.document]
-
-		missing = [name for name in expected if name and name not in listed]
-		awaited = [name for name, received in listed.items() if received != "Yes"]
+		missing, awaited = self.outstanding_documents()
 
 		lines = []
 		if missing:
