@@ -66,7 +66,7 @@ class TestCostSheetIsTheEstimate(EstimateCase):
 		quote = frappe.get_doc(
 			{
 				"doctype": "Quote",
-				"consignee": customer,
+				"customer": customer,
 				"mode": "AIR",
 				"date": nowdate(),
 				"items": [
@@ -211,4 +211,6 @@ class TestReportRules(EstimateCase):
 		row = report_rows(gain)[0]
 		# Nothing posted yet: actual profit 0 against an estimated 400.
 		self.assertEqual(row["variance"], -400)
-		self.assertEqual(row["variance_pct"], -100)
+		# Not billed yet: no percentage, and the report says so (R3-59).
+		self.assertIsNone(row["variance_pct"])
+		self.assertEqual(row["variance_label"], "Not billed yet")

@@ -476,3 +476,24 @@ class TestFreeTimeStart(R3Case):
 		pickup.deadline = f"{add_days(nowdate(), -2)} 09:00:00"
 		job.save()
 		self.assertEqual(str(job.free_time_expiry), add_days(nowdate(), 8))
+
+
+class TestEstimationNotBilled(R3Case):
+	# R3-59 / R3-60 --------------------------------------------------------------
+
+	def test_unbilled_job_says_so(self):
+		from forwarding.estimation import job_figures
+
+		job = make(cost_table=[{"item_name": "Freight", "rate": 15000, "cost": 0}])
+		row = job_figures(job.name)
+		self.assertEqual(row["billed"], 0)
+		self.assertEqual(row["variance_label"], "Not billed yet")
+		self.assertIsNone(row["variance_pct"])
+
+	def test_message_is_plain(self):
+		from forwarding.forwarding.report.estimation_vs_actual_summary_report__new.estimation_vs_actual_summary_report__new import (
+			get_message,
+		)
+
+		rows = [{"billed": 0, "actual_income": 0, "actual_expense": 0}] * 32
+		self.assertIn("32 jobs have no invoices or bills linked yet.", get_message(rows))
