@@ -224,17 +224,49 @@ def submit_job_request(payload):
 	return {"name": doc.name}
 
 
-@frappe.whitelist()
-def share_invoice(invoice_name):
-	"""Generate (or return) a public token + link for a Sales Invoice."""
+# Who may publish an invoice to a no-login link (R3-51), and for how long.
+SHARE_ROLES = ("System Manager", "Freight Admin")
+SHARE_DAYS = 7
+
+
+@frappe.whitelist(methods=["POST"])
+def share_invoice(invoice_name, days=None):
+	"""Publish a submitted Sales Invoice to a no-login link that expires.
+
+	Off by default (is_public 0, the form section hidden). Only a System
+	Manager or Freight Admin who can edit the invoice may turn it on; the
+	link lasts `days` (default 7, at most 30) and /invoice refuses it after
+	that. Sharing again issues a new token, so an old link stops working.
+	Returns {public_link, public_token, expires_on}."""
 	import uuid
+
+	from frappe.utils import add_days, cint, now_datetime
+
+	if not set(SHARE_ROLES) & set(frappe.get_roles()):
+		frappe.throw(_("Only an administrator can share an invoice publicly."), frappe.PermissionError)
 	doc = frappe.get_doc("Sales Invoice", invoice_name)
-	if not doc.get("public_token"):
-		doc.db_set("public_token", uuid.uuid4().hex)
-	doc.db_set("is_public", 1)
-	link = f"/invoice?token={doc.public_token}"
-	doc.db_set("public_link", link)
-	return {"public_link": link, "public_token": doc.public_token}
+	doc.check_permission("write")
+	if doc.docstatus != 1:
+		frappe.throw(_("Only a submitted invoice can be shared."))
+	days = min(max(cint(days) or SHARE_DAYS, 1), 30)
+	token = uuid.uuid4().hex
+	link = f"/invoice?token={token}"
+	expires_on = add_days(now_datetime(), days)
+	doc.db_set(
+		{"public_token": token, "is_public": 1, "public_link": link, "public_link_expires_on": expires_on}
+	)
+	return {"public_link": link, "public_token": token, "expires_on": str(expires_on)}
+
+
+@frappe.whitelist(methods=["POST"])
+def unshare_invoice(invoice_name):
+	"""Turn a shared invoice's public link off at once."""
+	if not set(SHARE_ROLES) & set(frappe.get_roles()):
+		frappe.throw(_("Only an administrator can change invoice sharing."), frappe.PermissionError)
+	doc = frappe.get_doc("Sales Invoice", invoice_name)
+	doc.check_permission("write")
+	doc.db_set({"is_public": 0, "public_token": None, "public_link": None, "public_link_expires_on": None})
+	return {"is_public": 0}
 
 
 @frappe.whitelist()
