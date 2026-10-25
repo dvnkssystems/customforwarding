@@ -555,3 +555,20 @@ class TestQuoteSubmitChecks(R3BackendCase):
 		q = quote(customer=CUSTOMER)
 		q.submit()
 		self.assertEqual(q.status, "Submitted")
+
+
+class TestQuoteFormTidy(R3BackendCase):
+	# R3-48 --------------------------------------------------------------------
+
+	def test_prepared_by_fills_name_and_phone(self):
+		from forwarding.tests.test_job_360 import CUSTOMER
+
+		meta = frappe.get_meta("Quote")
+		for fieldname in ("status", "employee", "show_in_print"):
+			self.assertTrue(meta.get_field(fieldname).hidden, fieldname)
+		for fieldname, source in (("prepared_by_name", "prepared_by.full_name"), ("prepared_by_phone", "prepared_by.mobile_no")):
+			field = meta.get_field(fieldname)
+			self.assertEqual((field.read_only, field.fetch_from), (1, source))
+
+		q = quote(customer=CUSTOMER, prepared_by="Administrator")
+		self.assertEqual(q.prepared_by_name, frappe.db.get_value("User", "Administrator", "full_name"))
