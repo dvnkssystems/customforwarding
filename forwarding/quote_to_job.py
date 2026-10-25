@@ -23,7 +23,8 @@ What the mapping can and cannot carry:
   times. A port is filled only when the text names exactly one record for the
   job's mode (see `_resolve_port`); otherwise the text lands in the Place of
   Loading / Delivery beside the Link and the Link is left for the user.
-* A quote records no branch, job type or service type, so they are derived from
+* A quote names its branch, job type and scopes of work (R3-45), which the
+  job takes as they are. An older quote has none, so they are derived from
   the resolved ports: a Saudi destination makes an import, a Saudi origin an
   export; the Saudi port's city names the branch; mode and direction name the
   service ("Sea Freight Import"). Each is set only when it resolves to a real
@@ -147,6 +148,8 @@ def make_operations_from_quote(source_name, target_doc=None):
 				"doctype": "Cost Table",
 				"postprocess": update_item,
 			},
+			# Same multi-select as the job (R3-45).
+			"Job Scope Of Work": {"doctype": "Job Scope Of Work"},
 		},
 		target_doc,
 		postprocess,
@@ -328,7 +331,10 @@ def _resolve_port(text, mode=None):
 
 
 def _set_direction(target, mode):
-	"""Job type, branch and service type, from where the cargo starts and ends."""
+	"""Job type, branch and service type, from where the cargo starts and ends.
+
+	Only what the quote left blank: a quote now names its Branch and Job Type
+	(R3-45), and those are what the job takes."""
 	origin = _port_country(target.get("port_of_loading"))
 	destination = _port_country(target.get("port_of_destination"))
 	if destination == SAUDI_ARABIA and origin != SAUDI_ARABIA:
@@ -338,16 +344,20 @@ def _set_direction(target, mode):
 	else:
 		return
 
-	if frappe.db.exists("Job Type", job_type):
+	if target.get("job_type") and target.job_type != job_type:
+		# The quote says otherwise: keep its job type and leave the rest.
+		return
+	if not target.get("job_type") and frappe.db.exists("Job Type", job_type):
 		target.job_type = job_type
 
-	city = (frappe.db.get_value("Port", saudi_port, "port_name") or "").upper()
-	branch = next((b for b in frappe.get_all("Branch", pluck="name") if b.upper() in city.split()), None)
-	if branch:
-		target.branch = branch
+	if not target.get("branch"):
+		city = (frappe.db.get_value("Port", saudi_port, "port_name") or "").upper()
+		branch = next((b for b in frappe.get_all("Branch", pluck="name") if b.upper() in city.split()), None)
+		if branch:
+			target.branch = branch
 
 	service = f"{mode} Freight {job_type}" if mode else None
-	if service and frappe.db.exists("Freight Activity Code", service):
+	if not target.get("activity_code") and service and frappe.db.exists("Freight Activity Code", service):
 		target.activity_code = service
 
 

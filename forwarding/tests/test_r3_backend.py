@@ -432,3 +432,27 @@ class TestQuoteChargeItems(R3BackendCase):
 			html = frappe.get_print("Quote", q.name, print_format=print_format)
 			for figure in ("321.37", "642.74"):
 				self.assertNotIn(figure, html, f"{print_format} prints the Est. Cost")
+
+
+class TestQuoteJobBasics(R3BackendCase):
+	# R3-45 --------------------------------------------------------------------
+
+	def test_create_job_takes_branch_job_type_mode_and_scopes(self):
+		from forwarding.quote_to_job import make_operations_from_quote
+		from forwarding.tests.test_job_360 import CUSTOMER
+
+		branch = frappe.get_all("Branch", pluck="name", limit=1)[0]
+		scopes = frappe.get_all("Scope Of Work", pluck="name", limit=2)
+		if len(scopes) < 2 or not frappe.db.exists("Job Type", "Export"):
+			self.skipTest("needs two Scope Of Work records and the Export job type")
+		q = quote(
+			customer=CUSTOMER,
+			mode="AIR",
+			branch=branch,
+			job_type="Export",
+			scopes_of_work=[{"scope_of_work": s} for s in scopes],
+		)
+		q.submit()
+		job = make_operations_from_quote(q.name)
+		self.assertEqual((job.branch, job.job_type, job.mode_of_shipment), (branch, "Export", "Air"))
+		self.assertEqual([r.scope_of_work for r in job.scopes_of_work], scopes)
