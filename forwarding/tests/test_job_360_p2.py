@@ -126,9 +126,9 @@ class TestServices(P2TestCase):
 		self.assertEqual(len(lines), 2)
 
 	def test_clearance_status_mapping(self):
-		self.assertEqual(clearance_status("Manifest Submission", None, None), "Submitted")
-		self.assertEqual(clearance_status("Arrived to Port", "Working", None), "Submitted")
-		self.assertEqual(clearance_status("Submitted Declaration", None, None), "Submitted")
+		self.assertEqual(clearance_status("Manifest Submission", None, None), "Submitted to Customs")
+		self.assertEqual(clearance_status("Arrived to Port", "Working", None), "Submitted to Customs")
+		self.assertEqual(clearance_status("Submitted Declaration", None, None), "Submitted to Customs")
 		self.assertEqual(clearance_status("Inspection stage", None, None), "Under Review")
 		self.assertEqual(clearance_status("Ready to Release", None, None), "Duty Assessed")
 		self.assertEqual(clearance_status("Fully Release", "Working", None), "Released")

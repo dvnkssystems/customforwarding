@@ -246,11 +246,11 @@ class TestBayan(R2Case):
 		cc = frappe.get_doc({"doctype": "Custom Clearance", "operations": job.name, "clearance_status": "Draft"})
 		cc.insert(ignore_permissions=True)
 		cc.reload()
-		cc.clearance_status = "Submitted"
+		cc.clearance_status = "Submitted to Customs"
 		with self.assertRaisesRegex(frappe.MandatoryError, "Bayan"):
 			cc.save()
 		cc.reload()
-		cc.clearance_status = "Submitted"
+		cc.clearance_status = "Submitted to Customs"
 		cc.bayyan_number = "BY-R2"
 		cc.bayyan_date = TODAY
 		cc.save()

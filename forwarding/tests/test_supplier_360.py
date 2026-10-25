@@ -250,7 +250,7 @@ class TestSupplier360(IntegrationTestCase):
 		name = self.supplier.name
 		make(handling_agent=name, operations_status="Closed")
 		open_job = make(handling_agent=name)
-		make_transport(open_job, name, "Dispatched")
+		make_transport(open_job, name, "In Transit")
 		make_transport(make(), name, "Delivered")
 		make_clearance(make(), broker=name, status="Under Review")
 		make_clearance(make(), broker=name, status="Released")
@@ -340,7 +340,7 @@ class TestSupplier360(IntegrationTestCase):
 
 	def test_banner_s2_unbilled_services(self):
 		name = self.supplier.name
-		make_transport(make(), name, "Dispatched")  # not finished: no nudge yet
+		make_transport(make(), name, "In Transit")  # not finished: no nudge yet
 		make_clearance(make(), broker=name, status="Rejected")  # nothing to bill
 		self.assertNotIn("S2", codes(fresh(name)))
 

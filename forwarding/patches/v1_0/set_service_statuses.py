@@ -19,10 +19,13 @@ Transportation records without a transport_status become Planned.
 import frappe
 from frappe.utils import cstr
 
+# Renamed from "Submitted" in R3-40 (r3_submitted_to_customs).
+SUBMITTED = "Submitted to Customs"
+
 STATUS_MAP = {
-	"manifest submission": "Submitted",
-	"arrived to port": "Submitted",
-	"submitted declaration": "Submitted",
+	"manifest submission": SUBMITTED,
+	"arrived to port": SUBMITTED,
+	"submitted declaration": SUBMITTED,
 	"inspection stage": "Under Review",
 	"ready to release": "Duty Assessed",
 	"fully release": "Released",

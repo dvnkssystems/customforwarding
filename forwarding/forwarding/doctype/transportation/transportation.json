@@ -91,7 +91,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Transport Status",
-   "options": "Planned\nDispatched\nDelivered\nContainer Returned"
+   "options": "Planned\nIn Transit\nDelivered\nContainer Returned"
   },
   {
    "fieldname": "delivery_trip",
@@ -207,7 +207,7 @@
    "link_fieldname": "transportation"
   }
  ],
- "modified": "2026-10-23 12:00:00.000000",
+ "modified": "2026-10-25 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Forwarding",
  "name": "Transportation",
