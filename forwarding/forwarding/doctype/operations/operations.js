@@ -131,6 +131,8 @@ function services_query(doc) {
 		mode_of_shipment: doc.mode_of_shipment || "",
 		job_type: doc.job_type || "",
 		scopes_of_work: JSON.stringify(scope_names(doc)),
+		// A service already on the job drops out of the list (R3-25).
+		exclude: JSON.stringify((doc.services || []).map((r) => r.activity_code).filter(Boolean)),
 	};
 	// A form without the table (an older meta) still sends its one scope.
 	if (!doc.scopes_of_work) filters.scope_of_work = doc.scope_of_work || "";
@@ -149,17 +151,16 @@ const SCOPE_FLAGS = {
 // them only when the scopes change, so opening a job leaves it unchanged.
 function apply_scopes(frm, set_flags) {
 	const scopes = scope_names(frm.doc);
-	if (!scopes.length && !frm.doc.scope_of_work) {
-		Object.values(SERVICE_TYPE_FIELD).forEach(field => frm.toggle_display(field, true));
-		return;
-	}
+	// The tick-boxes follow the Services list and stay hidden (R3-26): the
+	// list is the one place services are chosen.
+	Object.values(SERVICE_TYPE_FIELD).forEach(field => frm.toggle_display(field, false));
+	if (!scopes.length && !frm.doc.scope_of_work) return;
 	frappe.call({
 		method: "forwarding.services.scope_service_types",
 		args: { scopes: JSON.stringify(scopes.length ? scopes : [frm.doc.scope_of_work]) },
 	}).then(r => {
 		const allowed = r && r.message;
 		const offers = type => !Array.isArray(allowed) || allowed.includes(type);
-		Object.entries(SERVICE_TYPE_FIELD).forEach(([type, field]) => frm.toggle_display(field, offers(type)));
 		if (!set_flags || !Array.isArray(allowed)) return;
 		Object.entries(SCOPE_FLAGS).forEach(([field, type]) => {
 			const value = offers(type) ? "1" : "0";
@@ -450,7 +451,7 @@ frappe.ui.form.on("Operations", {
 // Cut-offs: an export job with none starts with the milestones for its mode
 // (Sea: all but AES unless bound for the US; Air: SI Deadline + Cargo Cut-off).
 // The server adds the same rows when the job is inserted (Operations.
-// before_insert); adding them here shows them before the first save. Latest
+// before_insert); adding them here shows them before the first save. Deadline
 // is optional, so the rows can be saved undated. A job that already has
 // cut-offs is left alone.
 // ---------------------------------------------------------------------------
@@ -468,7 +469,7 @@ async function prefill_cutoffs(frm) {
 
 	milestones.forEach((milestone) => frm.add_child("cutoffs", { milestone }));
 	frm.refresh_field("cutoffs");
-	frappe.show_alert({ message: __("Cut-offs added for this export job: enter each Latest Time, or remove the rows you do not need."), indicator: "blue" }, 7);
+	frappe.show_alert({ message: __("Cut-offs added for this export job: enter each Deadline, or remove the rows you do not need."), indicator: "blue" }, 7);
 }
 
 frappe.ui.form.on("Operations", {
@@ -503,11 +504,41 @@ frappe.ui.form.on("Document Table", {
 // The server refuses one too (Operations.validate_actual_dates).
 // ---------------------------------------------------------------------------
 
+const ACTUAL_DATE_FIELDS = ["atd_date", "ata_date"];
+
+// The last accepted value of each actual date, to go back to when a new one
+// is refused (R3-22).
+function remember_actual_dates(frm) {
+	frm._accepted_actuals = {};
+	ACTUAL_DATE_FIELDS.forEach((f) => (frm._accepted_actuals[f] = frm.doc[f] || null));
+}
+
+// Mark the field red, or clear the mark. The desk has $wrapper; the Vue
+// app's form shim may not, so both are optional.
+function mark_field_error(frm, fieldname, on) {
+	const field = frm.fields_dict && frm.fields_dict[fieldname];
+	const $wrapper = field && field.$wrapper;
+	if ($wrapper && $wrapper.toggleClass) $wrapper.toggleClass("has-error", !!on);
+	if (frm.set_df_property) frm.set_df_property(fieldname, "invalid", on ? 1 : 0);
+}
+
 function refuse_future_actual(frm, fieldname, label) {
 	const value = frm.doc[fieldname];
 	const today = frappe.datetime.get_today();
-	if (!value || String(value).slice(0, 10) <= today) return;
-	frm.set_value(fieldname, null);
+	if (!frm._accepted_actuals) remember_actual_dates(frm);
+	if (frm._restoring_actual === fieldname) return; // our own put-back below
+	if (!value || String(value).slice(0, 10) <= today) {
+		frm._accepted_actuals[fieldname] = value || null;
+		mark_field_error(frm, fieldname, false);
+		return;
+	}
+	// Back to what it was before (or empty), and red until it is fixed.
+	const previous = frm._accepted_actuals[fieldname] || null;
+	frm._restoring_actual = fieldname;
+	Promise.resolve(frm.set_value(fieldname, previous)).finally(() => {
+		frm._restoring_actual = null;
+		mark_field_error(frm, fieldname, true);
+	});
 	frappe.msgprint({
 		title: __("Date in the future"),
 		message: __("{0} cannot be after today ({1}): it records what has already happened.", [
@@ -534,6 +565,7 @@ async function fill_salesman_from_customer(frm) {
 }
 
 frappe.ui.form.on("Operations", {
+	refresh: remember_actual_dates,
 	atd_date: (frm) => refuse_future_actual(frm, "atd_date", __("ATD")),
 	ata_date: (frm) => refuse_future_actual(frm, "ata_date", __("ATA")),
 	customer: fill_salesman_from_customer,
@@ -565,4 +597,178 @@ frappe.ui.form.on("Cost Table", {
 			},
 		});
 	},
+});
+
+// ---------------------------------------------------------------------------
+// The Saudi side of a job (R3-05). An Import job arrives in Saudi Arabia, an
+// Export job leaves from it: that side's country is filled and locked, and
+// its port only lists Saudi ports. LAND TRANSPORT / Others are left free.
+// The server applies the same (Operations.set_home_side).
+// ---------------------------------------------------------------------------
+
+const HOME_COUNTRY = "Saudi Arabia";
+const HOME_SIDE = {
+	Import: { country: "destination_country", port: "port_of_destination" },
+	Export: { country: "loading_country", port: "port_of_loading" },
+};
+
+function home_side(frm) {
+	return HOME_SIDE[frm.doc.job_type] || null;
+}
+
+// The Port.mode_of_shipment a job's mode lists (R3-24): seaports for Sea,
+// airports for Air, land ports for Land; any for Others.
+function port_mode(doc) {
+	const mode = String(doc.mode_of_shipment || "").toLowerCase();
+	if (mode.startsWith("sea")) return "Sea";
+	if (mode === "air") return "Air";
+	if (mode === "land") return "Land";
+	return null;
+}
+
+function port_query(port_field) {
+	return (doc) => {
+		const filters = {};
+		const side = HOME_SIDE[doc.job_type];
+		if (side && side.port === port_field) filters.country = HOME_COUNTRY;
+		const mode = port_mode(doc);
+		if (mode) filters.mode_of_shipment = mode;
+		return { filters };
+	};
+}
+
+// `fill` is false on refresh: opening a job must not change it (that marked
+// every old job unsaved). Existing jobs were back-filled by a patch and the
+// server sets the country on save; a new job, a Job Type change or a port
+// pick fills it here.
+function apply_home_side(frm, fill = true) {
+	const side = home_side(frm);
+	Object.values(HOME_SIDE).forEach(({ country }) => {
+		frm.set_df_property(country, "read_only", side && side.country === country ? 1 : 0);
+	});
+	if (!fill && !frm.is_new()) return;
+	if (side && frm.doc.docstatus === 0 && frm.doc[side.country] !== HOME_COUNTRY) {
+		frm.set_value(side.country, HOME_COUNTRY);
+	}
+}
+
+frappe.ui.form.on("Operations", {
+	setup(frm) {
+		frm.set_query("port_of_destination", port_query("port_of_destination"));
+		frm.set_query("port_of_loading", port_query("port_of_loading"));
+	},
+	refresh(frm) {
+		// set_query again: the Vue app's form shim may not run setup.
+		frm.set_query("port_of_destination", port_query("port_of_destination"));
+		frm.set_query("port_of_loading", port_query("port_of_loading"));
+		apply_home_side(frm, false);
+	},
+	job_type: (frm) => apply_home_side(frm),
+	// The ports fetch their country into these fields; put the home side back.
+	port_of_destination: (frm) => apply_home_side(frm),
+	port_of_loading: (frm) => apply_home_side(frm),
+});
+
+// Company is shown only when the site has more than one (R3-33).
+frappe.ui.form.on("Operations", {
+	async refresh(frm) {
+		if (frm._company_count === undefined) {
+			try {
+				frm._company_count = await frappe.db.count("Company");
+			} catch (e) {
+				frm._company_count = 2;
+			}
+		}
+		frm.toggle_display("company", frm._company_count > 1 || !frm.doc.company);
+	},
+});
+
+// Weight UOM offers weight units only (R3-31), as Operations.WEIGHT_UOMS.
+const WEIGHT_UOMS = ["Kg", "Tonne", "Pound"];
+frappe.ui.form.on("Operations", {
+	setup(frm) {
+		frm.set_query("weight_uom", () => ({ filters: { name: ["in", WEIGHT_UOMS] } }));
+	},
+	refresh(frm) {
+		frm.set_query("weight_uom", () => ({ filters: { name: ["in", WEIGHT_UOMS] } }));
+	},
+});
+
+// Services fill in from Job Type + Mode + Scope of Work (R3-23): the codes
+// each scope's core service types call for (forwarding.services.
+// default_services). Services the user added that still fit are kept; ones
+// that no longer fit the new type / mode / scope are dropped.
+async function fill_default_services(frm) {
+	if (cint(frm.doc.docstatus) > 0 || !frm.doc.job_type || !frm.doc.mode_of_shipment) return;
+	const scopes = scope_names(frm.doc);
+	if (!scopes.length) return;
+	const asked = [frm.doc.job_type, frm.doc.mode_of_shipment, JSON.stringify(scopes)].join("|");
+	frm._services_for = asked;
+	const r = await frappe.call({
+		method: "forwarding.services.default_services",
+		args: { job_type: frm.doc.job_type, mode_of_shipment: frm.doc.mode_of_shipment, scopes_of_work: JSON.stringify(scopes) },
+	});
+	if (frm._services_for !== asked) return; // a later change is on its way
+	const defaults = (r && r.message) || [];
+	const current = (frm.doc.services || []).map((row) => row.activity_code).filter(Boolean);
+	let keep = [];
+	if (current.length) {
+		const q = await frappe.call({
+			method: "forwarding.services.activity_code_query",
+			args: { doctype: "Freight Activity Code", txt: "", searchfield: "name", start: 0, page_len: 500,
+				filters: services_query(Object.assign({}, frm.doc, { services: [] })).filters },
+		});
+		const fitting = new Set(((q && q.message) || []).map((row) => row[0]));
+		keep = current.filter((code) => fitting.has(code) && !defaults.includes(code));
+	}
+	const next = [...defaults, ...keep];
+	if (next.join("|") === current.join("|")) return;
+	frm.set_value("services", next.map((activity_code) => ({ activity_code })));
+}
+
+frappe.ui.form.on("Operations", {
+	job_type: fill_default_services,
+	mode_of_shipment: fill_default_services,
+	scopes_of_work: fill_default_services,
+});
+
+// Each field narrows the next (R3-24); forwarding.job_rules applies the same
+// on save. LAND TRANSPORT fixes the mode to Land; Land has no Port to Port
+// scope; the estimate's items leave out what the job type / mode cannot carry.
+const MODE_FOR_JOB_TYPE = { "LAND TRANSPORT": "Land" };
+const SCOPES_NOT_FOR_MODE = { Land: ["Port to Port"] };
+
+function scope_query(doc) {
+	const excluded = SCOPES_NOT_FOR_MODE[port_mode(doc)] || [];
+	return excluded.length ? { filters: { name: ["not in", excluded] } } : {};
+}
+
+function estimate_item_query(doc) {
+	return {
+		query: "forwarding.job_rules.estimate_item_query",
+		filters: { job_type: doc.job_type || "", mode_of_shipment: doc.mode_of_shipment || "" },
+	};
+}
+
+function apply_job_type_mode(frm) {
+	const forced = MODE_FOR_JOB_TYPE[frm.doc.job_type];
+	frm.set_df_property("mode_of_shipment", "read_only", forced ? 1 : 0);
+	if (forced && frm.doc.mode_of_shipment !== forced && cint(frm.doc.docstatus) === 0) {
+		frm.set_value("mode_of_shipment", forced);
+	}
+}
+
+function set_narrowing_queries(frm) {
+	frm.set_query("scopes_of_work", scope_query);
+	frm.set_query("scope_of_work", "scopes_of_work", scope_query);
+	frm.set_query("item", "cost_table", estimate_item_query);
+}
+
+frappe.ui.form.on("Operations", {
+	setup: set_narrowing_queries,
+	refresh(frm) {
+		set_narrowing_queries(frm);
+		apply_job_type_mode(frm);
+	},
+	job_type: apply_job_type_mode,
 });

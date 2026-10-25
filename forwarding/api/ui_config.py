@@ -75,8 +75,8 @@ PAGES = {
 		],
 		"tiles": [
 			{"key": "documents", "label": "Documents", "tab": "documents"},
-			{"key": "services", "label": "Linked services", "tab": "services"},
-			{"key": "cost_revenue", "label": "Cost vs revenue", "tab": "charges"},
+			{"key": "services", "label": "Service orders", "tab": "services"},
+			{"key": "cost_revenue", "label": "Estimate: cost / selling", "tab": "charges"},
 			{"key": "billed_collected", "label": "Billed / collected", "tab": "invoices"},
 			{"key": "free_time", "label": "Free time left", "tab": "milestones"},
 		],

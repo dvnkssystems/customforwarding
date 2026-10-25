@@ -52,7 +52,8 @@ class TestDocumentRows(R2Case):
 	def test_a_row_needs_a_document(self):
 		job = make()
 		job.append("document_table", {"received": "No"})
-		with self.assertRaises(frappe.MandatoryError):
+		# Refused by validate_document_rows (R3-06) before Frappe's own check.
+		with self.assertRaisesRegex(frappe.ValidationError, "has no Document"):
 			job.save()
 
 	def test_received_dates_the_row_and_unreceived_clears_it(self):
@@ -164,7 +165,8 @@ class TestModeFields(R2Case):
 		self.assertEqual(meta.get_field("chargable_weight").depends_on, 'eval:doc.mode_of_shipment=="Air"')
 		self.assertEqual(meta.get_field("air_line").depends_on, 'eval:doc.mode_of_shipment=="Air"')
 		self.assertEqual(meta.get_field("carrier").depends_on, 'eval:doc.mode_of_shipment!="Air"')
-		self.assertEqual(meta.get_field("shipping_line").depends_on, 'eval:doc.mode_of_shipment!="Air"')
+		# Sea only since R3-24 (Shipping Line for Sea, Airline for Air).
+		self.assertEqual(meta.get_field("shipping_line").depends_on, 'eval:(doc.mode_of_shipment||"").toLowerCase().startsWith("sea")')
 		self.assertTrue(frappe.get_meta("Document Table").get_field("document").reqd)
 
 
@@ -211,7 +213,9 @@ class TestQuoteToJob(R2Case):
 
 	def test_saving_adds_the_consignee(self):
 		customer = make_customer()
-		quote = make_quote(customer.name, mode="SEA", submit=True)
+		# The quote names a Consignee of its own (R3-43: Customer and
+		# Consignee are separate).
+		quote = make_quote(customer.name, mode="SEA", submit=True, consignee=customer.name)
 		job = make_operations_from_quote(quote.name)
 		self.assertFalse(job.consignee, "no Consignee record yet")
 
@@ -245,12 +249,12 @@ class TestBayan(R2Case):
 		cc = frappe.get_doc({"doctype": "Custom Clearance", "operations": job.name, "clearance_status": "Draft"})
 		cc.insert(ignore_permissions=True)
 		cc.reload()
-		cc.clearance_status = "Submitted"
+		cc.clearance_status = "Submitted to Customs"
 		with self.assertRaisesRegex(frappe.MandatoryError, "Bayan"):
 			cc.save()
 		cc.reload()
-		cc.clearance_status = "Submitted"
-		cc.bayyan_number = "BY-R2"
+		cc.clearance_status = "Submitted to Customs"
+		cc.bayyan_number = "2002"
 		cc.bayyan_date = TODAY
 		cc.save()
 

@@ -15,31 +15,67 @@ from frappe.contacts.doctype.address.address import get_company_address
 from erpnext.stock.doctype.item.item import get_item_defaults
 from erpnext.setup.doctype.item_group.item_group import get_item_group_defaults
 
-from forwarding.child_tables import undate_unreceived_documents, job_containers, add_clearance_containers
+from forwarding.child_tables import (
+	add_clearance_containers,
+	job_containers,
+	undate_unreceived_documents,
+	validate_document_rows,
+)
 # A job's Services, its tick-boxes and which codes it may hold (M-05, M-06).
 from forwarding.services import apply_services
+from forwarding import job_rules
 
 # kg per cubic metre for air freight volumetric weight (IATA 1:6000)
 AIR_VOLUMETRIC_FACTOR = 167
 
 
-def get_cutoff_status(latest):
-	"""Upcoming, Due Today or Passed for a cut-off's latest time."""
-	if not latest:
+def get_cutoff_status(deadline, done=False):
+	"""Upcoming, Due today, Missed or Done for a cut-off (R3-54). Done once
+	the shipment has left (the job's ATD is recorded): every cut-off before
+	it was met. Missed when its deadline has passed without that."""
+	if done:
+		return "Done"
+	if not deadline:
 		return None
-	latest = get_datetime(latest)
+	deadline = get_datetime(deadline)
 	now = now_datetime()
-	if latest < now:
-		return "Passed"
-	if latest.date() == now.date():
-		return "Due Today"
+	if deadline < now:
+		return "Missed"
+	if deadline.date() == now.date():
+		return "Due today"
 	return "Upcoming"
 
 
 # Cut-off milestones, in the order the Job Cutoff options list them.
 AES_DEADLINE = "AES Deadline"
-SEA_CUTOFFS = ("Rail Cut-off", "Inland Cut-off", "Container Pickup", AES_DEADLINE, "SI Deadline", "Cargo Cut-off")
+# A Saudi sea export starts with these (R3-54); Rail and Inland Cut-off are
+# added by hand when they apply.
+SEA_CUTOFFS = ("SI Deadline", "VGM Cut-off", "Cargo Cut-off", "Container Pickup", AES_DEADLINE)
 AIR_CUTOFFS = ("SI Deadline", "Cargo Cut-off")
+CONTAINER_PICKUP = "Container Pickup"
+
+# The Saudi side of a job (R3-05): an Import arrives here, an Export leaves
+# from here. Territory name; there is also a stray "SAUDI  ARABIA".
+HOME_COUNTRY = "Saudi Arabia"
+HOME_SIDE = {
+	"Import": ("destination_country", "port_of_destination"),
+	"Export": ("loading_country", "port_of_loading"),
+}
+
+# The units a job's weights may be in (R3-31), Kg first as the default.
+WEIGHT_UOMS = ("Kg", "Tonne", "Pound")
+
+# The Operations Status a closed job carries (R3-07).
+CLOSED_STATUS = "Closed"
+
+
+def short_date(value):
+	"""24 Oct; with the year when it is not this year (24 Oct 2027)."""
+	value = getdate(value)
+	if value.year == getdate(nowdate()).year:
+		return value.strftime("%d %b").lstrip("0")
+	return value.strftime("%d %b %Y").lstrip("0")
+
 
 # destination_country links to Territory; these are the names the US goes by.
 US_NAMES = {"united states", "united states of america", "usa", "us"}
@@ -207,10 +243,15 @@ class Operations(Document):
 		self.set_company()
 		self.set_operation_id()
 		self.validate_shipment_type()
+		# Each field narrows the next (R3-24): mode from job type, scopes,
+		# ports, carrier, estimate items.
+		job_rules.validate(self)
 		apply_services(self)
+		self.set_home_side()
 		self.validate_ports()
 		self.calculate_package_totals()
 		self.validate_weights()
+		self.validate_weight_uom()
 		self.validate_actual_dates()
 		self.set_default_salesman()
 		self.set_free_time_expiry()
@@ -220,18 +261,103 @@ class Operations(Document):
 		self.sync_container_rows()
 		self.set_billing_status()
 		self.set_cost_accounts()
-		self.warn_missing_documents()
+		self.set_total_cost()
+		self.validate_close()
 
 	def before_submit(self):
-		self.validate_estimate()
+		self.validate_submit()
 
-	def validate_estimate(self):
-		"""A job is submitted with its estimate (M-02): at least one cost sheet
-		row with an Est. Selling above zero. A draft saves without one."""
+	def validate_weight_uom(self):
+		"""Weights are in Kg unless chosen otherwise, and only in a weight unit."""
+		if not self.weight_uom:
+			self.weight_uom = WEIGHT_UOMS[0]
+			return
+		if self.weight_uom not in WEIGHT_UOMS:
+			frappe.throw(
+				_("Weight UOM {0} is not a weight unit. Choose {1}.").format(
+					frappe.bold(self.weight_uom), ", ".join(WEIGHT_UOMS)
+				),
+				title=_("Weight UOM"),
+			)
+
+	def set_total_cost(self):
+		"""Total Cost is the estimate's: the Estimate rows' Cost added up
+		(R3-33). Read-only on the form."""
+		if self.meta.has_field("custom_total_cost"):
+			self.custom_total_cost = sum(flt(r.cost) for r in self.get("cost_table") or [])
+
+	def submit_problems(self):
+		"""Everything that stops this job being submitted, as one list (R3-08).
+
+		Frappe would otherwise stop at the first: the estimate here, then its
+		own mandatory check after before_submit, each only once the one
+		before it was fixed."""
 		from forwarding.banners import has_estimate
 
+		problems = []
+		missing = list(self._get_missing_mandatory_fields())
+		for row in self.get_all_children():
+			missing.extend(row._get_missing_mandatory_fields())
+		problems.extend(strip_html(msg) for _fieldname, msg in missing)
 		if not has_estimate(self):
-			frappe.throw(_("Add an estimate before submitting"), title=_("Estimate missing"))
+			problems.append(_("Add an estimate: a cost sheet row with an Est. Selling above 0."))
+		return problems
+
+	def validate_submit(self):
+		problems = self.submit_problems()
+		if not problems:
+			return
+		if len(problems) == 1:
+			message = _("Can't submit yet: {0}").format(problems[0])
+		else:
+			message = _("Can't submit yet. Still missing:") + "<ul>" + "".join(
+				"<li>{0}</li>".format(p) for p in problems
+			) + "</ul>"
+		frappe.throw(message, title=_("Not ready to submit"))
+
+	def validate_estimate(self):
+		"""Kept for callers of the old name; see validate_submit."""
+		self.validate_submit()
+
+	def outstanding_documents(self):
+		"""(missing, awaited): documents the Shipment Type expects that the job
+		does not list, and documents the job lists but has not marked received."""
+		listed = {}
+		for row in self.get("document_table") or []:
+			if row.document:
+				listed[row.document] = cstr(row.received).strip()
+
+		expected = []
+		if self.shipment_type:
+			# Read the type's own rows rather than querying the child table
+			# directly: that needs the parent doctype declared, and the keyword
+			# for it has moved between Frappe versions.
+			shipment_type = frappe.get_cached_doc("Shipment Type", self.shipment_type)
+			expected = [row.document for row in shipment_type.get("document_table") or [] if row.document]
+
+		missing = [name for name in expected if name and name not in listed]
+		awaited = [name for name, received in listed.items() if received != "Yes"]
+		return missing, awaited
+
+	def validate_close(self):
+		"""A job is closed only with its paperwork in (R3-07): every document it
+		lists marked received, and none its Shipment Type expects left off.
+		This used to sit on Submit, where it stopped work that had only begun."""
+		if self.docstatus == 2 or self.operations_status != CLOSED_STATUS:
+			return
+		if not (self.is_new() or self.has_value_changed("operations_status")):
+			return
+		missing, awaited = self.outstanding_documents()
+		lines = []
+		if missing:
+			lines.append(_("Not on the job yet: {0}").format(", ".join(frappe.bold(n) for n in missing)))
+		if awaited:
+			lines.append(_("Not marked received: {0}").format(", ".join(frappe.bold(n) for n in awaited)))
+		if lines:
+			frappe.throw(
+				_("Can't close the job until every document is in.") + "<br>" + "<br>".join(lines),
+				title=_("Documents outstanding"),
+			)
 
 	def before_update_after_submit(self):
 		"""Ops keep a submitted job current (schedule, cut-offs, containers,
@@ -242,6 +368,8 @@ class Operations(Document):
 		self.validate_cutoffs()
 		self.set_cutoff_status()
 		self.sync_container_rows()
+		validate_document_rows(self)
+		self.validate_close()
 
 	def on_update_after_submit(self):
 		self.sync_clearance_containers()
@@ -268,21 +396,7 @@ class Operations(Document):
 		if self.docstatus == 2:
 			return
 
-		listed = {}
-		for row in self.get("document_table") or []:
-			if row.document:
-				listed[row.document] = cstr(row.received).strip()
-
-		expected = []
-		if self.shipment_type:
-			# Read the type's own rows rather than querying the child table
-			# directly: that needs the parent doctype declared, and the keyword
-			# for it has moved between Frappe versions.
-			shipment_type = frappe.get_cached_doc("Shipment Type", self.shipment_type)
-			expected = [row.document for row in shipment_type.get("document_table") or [] if row.document]
-
-		missing = [name for name in expected if name and name not in listed]
-		awaited = [name for name, received in listed.items() if received != "Yes"]
+		missing, awaited = self.outstanding_documents()
 
 		lines = []
 		if missing:
@@ -307,6 +421,32 @@ class Operations(Document):
 	def set_operation_id(self):
 		"""Operation ID is the job number, not something typed in."""
 		self.operation_id = self.name
+
+	def set_home_side(self):
+		"""Import: Destination Country is Saudi Arabia and the Port of Discharge
+		a Saudi port. Export: the same for Loading Country and Port of
+		Loading (R3-05). Other job types are left as entered."""
+		side = HOME_SIDE.get(self.job_type)
+		if not side:
+			return
+		country_field, port_field = side
+		self.set(country_field, HOME_COUNTRY)
+		port = self.get(port_field)
+		if not port:
+			return
+		port_country = frappe.db.get_value("Port", port, "country")
+		if port_country == HOME_COUNTRY:
+			return
+		frappe.throw(
+			_("{0} {1} is {2}. An {3} job's {0} must be a port in {4}.").format(
+				_(self.meta.get_label(port_field)).strip(),
+				frappe.bold(port),
+				_("in {0}").format(port_country) if port_country else _("not linked to a country"),
+				_(self.job_type),
+				HOME_COUNTRY,
+			),
+			title=_("Port outside {0}").format(HOME_COUNTRY),
+		)
 
 	def validate_ports(self):
 		"""A shipment cannot leave from the port it is bound for.
@@ -427,10 +567,25 @@ class Operations(Document):
 		self.volume = flt(self.total_package_volume, 3)
 		self.chargable_weight = flt(self.total_chargeable_weight)
 
+	def free_time_start(self):
+		"""When the job's free time starts counting (R3-52), or None while
+		that has not happened yet.
+
+		Import (and any job that is not an export): our free time is at
+		destination, from the ATA -- not the ETA, so nothing expires before
+		the cargo has arrived. Export: the container's free time at origin,
+		from the Container Pickup cut-off's deadline (the consignee's free
+		time after arrival is not ours)."""
+		if self.job_type == "Export":
+			for row in self.get("cutoffs") or []:
+				if row.milestone == CONTAINER_PICKUP and row.get("deadline"):
+					return getdate(row.deadline)
+			return None
+		return getdate(self.ata_date) if self.ata_date else None
+
 	def set_free_time_expiry(self):
-		"""Free time runs from arrival: the ATA once recorded, the ETA until then."""
 		days = cint(self.free_time_days)
-		start = self.ata_date or self.eta_date
+		start = self.free_time_start()
 		self.free_time_expiry = add_days(start, days) if start and days > 0 else None
 
 	def set_chargeable_weight(self):
@@ -447,6 +602,27 @@ class Operations(Document):
 		self.chargable_weight = max(flt(self.gross_weight), flt(self.cbm) * AIR_VOLUMETRIC_FACTOR)
 
 	def validate_cutoffs(self):
+		self.validate_cutoffs_before_etd()
+		self.validate_aes_cutoff()
+
+	def validate_cutoffs_before_etd(self):
+		"""A cut-off falls before the vessel or flight leaves (R3-12): no row's
+		deadline may be after the ETD."""
+		if not self.etd_date:
+			return
+		etd = getdate(self.etd_date)
+		for row in self.get("cutoffs") or []:
+			for fieldname in ("deadline",):
+				value = row.get(fieldname)
+				if value and getdate(value) > etd:
+					frappe.throw(
+						_("Row {0} ({1}): Cut-off can't be after ETD ({2}).").format(
+							row.idx, _(row.milestone or ""), short_date(etd)
+						),
+						title=_("Cut-offs"),
+					)
+
+	def validate_aes_cutoff(self):
 		"""AES filing only applies to shipments bound for the United States."""
 		if is_us(self.destination_country):
 			return
@@ -461,7 +637,7 @@ class Operations(Document):
 
 	def set_cutoff_status(self):
 		for row in self.get("cutoffs") or []:
-			row.cutoff_status = get_cutoff_status(row.latest)
+			row.cutoff_status = get_cutoff_status(row.deadline, done=bool(self.atd_date))
 
 	def sync_container_rows(self):
 		"""Carry the job's containers into its Transportation tab.
@@ -548,6 +724,11 @@ class Operations(Document):
 	def on_update(self):
 		self.ensure_project()
 		self.sync_clearance_containers()
+		# Only once the save has gone through, and not on Submit (R3-07): from
+		# validate, the warning came back as the first message of a save or
+		# submit refused for something else, and read as its reason.
+		if self._action != "submit":
+			self.warn_missing_documents()
 		fields_to_transfer = ['awb_number']
 		fields_to_transfer_project = ['cost_center']
 		if self.freight:
@@ -667,6 +848,9 @@ def make_transportaion(source_name, target_doc=None, ignore_permissions=False):
 	def set_missing_values(source, target):
 		# A copied document is dated only once received (C16).
 		undate_unreceived_documents(target)
+		# The route opens filled from the job, not only on save (R3-42).
+		from forwarding.forwarding.doctype.transportation.transportation import set_route_from_job
+		set_route_from_job(target, source)
 		
 	doclist = get_mapped_doc("Operations", source_name, {
 		"Operations": {
@@ -699,6 +883,11 @@ def _invoice_from_today(target):
 
 @frappe.whitelist()
 def make_sales_invoice(source_name, target_doc=None, ignore_permissions=False):
+	# Only a submitted job is invoiced (R3-03); the invoice's validate says so too.
+	from forwarding.invoice_guard import assert_job_submitted
+
+	assert_job_submitted(source_name, "Sales Invoice")
+
 	def postprocess(source, target):
 		set_missing_values(source, target)
 		#Get the advance paid Journal Entries in Sales Invoice Advance
@@ -776,6 +965,11 @@ def make_sales_invoice(source_name, target_doc=None, ignore_permissions=False):
 
 @frappe.whitelist()
 def make_purchase_invoice(source_name, target_doc=None, ignore_permissions=False):
+	# Only a submitted job is invoiced (R3-03); the invoice's validate says so too.
+	from forwarding.invoice_guard import assert_job_submitted
+
+	assert_job_submitted(source_name, "Purchase Invoice")
+
 	def postprocess(source, target):
 		set_missing_values(source, target)
 		#Get the advance paid Journal Entries in Purchase Invoice Advance

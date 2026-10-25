@@ -1,0 +1,574 @@
+# Copyright (c) 2026, DVNKS Systems and contributors
+"""Round 3 corrections, sections 6-8: Transportation / Custom Clearance,
+Quote, invoice and customer. Uses the site's own masters; everything is
+rolled back."""
+
+from unittest.mock import patch
+
+import frappe
+from frappe.tests import IntegrationTestCase
+
+
+class R3BackendCase(IntegrationTestCase):
+	def setUp(self):
+		frappe.set_user("Administrator")
+		patcher = patch("frappe.model.document.run_server_script_for_doc_event")
+		patcher.start()
+		self.addCleanup(patcher.stop)
+
+
+class TestIndiaFieldsHidden(R3BackendCase):
+	# R3-50 --------------------------------------------------------------------
+
+	def test_gst_category_and_eway_bill_are_hidden(self):
+		for doctype, fieldname in (("Customer", "gst_category"), ("Sales Invoice", "ewaybill")):
+			field = frappe.get_meta(doctype).get_field(fieldname)
+			if field:
+				self.assertTrue(field.hidden, f"{doctype}.{fieldname} should be hidden")
+
+
+class TestPublicShare(R3BackendCase):
+	# R3-51 --------------------------------------------------------------------
+
+	def invoice(self):
+		name = frappe.db.get_value("Sales Invoice", {"docstatus": 1}, "name")
+		if not name:
+			self.skipTest("no submitted Sales Invoice on this site")
+		return name
+
+	def page(self, token):
+		from forwarding.www import invoice as page
+
+		frappe.form_dict.token = token
+		try:
+			context = page.get_context(frappe._dict())
+		finally:
+			frappe.form_dict.pop("token", None)
+		return context
+
+	def test_section_is_hidden_and_off_by_default(self):
+		meta = frappe.get_meta("Sales Invoice")
+		for fieldname in ("flcs_share_section", "is_public", "public_token", "public_link", "public_link_expires_on"):
+			self.assertTrue(meta.get_field(fieldname).hidden, fieldname)
+		self.assertEqual(meta.get_field("is_public").default, "0")
+
+	def test_only_an_admin_shares(self):
+		from forwarding.api import share_invoice
+
+		name = self.invoice()
+		user = frappe.db.get_value("Has Role", {"role": "Accounts User", "parenttype": "User", "parent": ["not in", ["Administrator"]]}, "parent")
+		if not user or {"System Manager", "Freight Admin"} & set(frappe.get_roles(user)):
+			self.skipTest("no non-admin accounts user")
+		frappe.set_user(user)
+		with self.assertRaises(frappe.PermissionError):
+			share_invoice(name)
+
+	def test_link_expires(self):
+		from frappe.utils import add_days, now_datetime
+
+		from forwarding.api import share_invoice, unshare_invoice
+
+		name = self.invoice()
+		out = share_invoice(name, days=3)
+		self.assertTrue(out["expires_on"])
+		self.assertEqual(self.page(out["public_token"]).invoice.name, name)
+
+		frappe.db.set_value("Sales Invoice", name, "public_link_expires_on", add_days(now_datetime(), -1))
+		self.assertIsNone(self.page(out["public_token"]).invoice)
+
+		out = share_invoice(name)
+		unshare_invoice(name)
+		self.assertIsNone(self.page(out["public_token"]).invoice)
+
+
+def clearance(**values):
+	from forwarding.tests.test_job_360 import make
+
+	job = make()
+	return frappe.get_doc({"doctype": "Custom Clearance", "operations": job.name, "clearance_status": "Draft", **values}).insert(
+		ignore_permissions=True
+	)
+
+
+class TestNumberOnlyFields(R3BackendCase):
+	# R3-41 --------------------------------------------------------------------
+
+	def test_bayan_no_is_digits_only(self):
+		cc = clearance()
+		cc.reload()
+		cc.bayyan_number = "effdq"
+		with self.assertRaisesRegex(frappe.ValidationError, "Bayan No. must contain digits only"):
+			cc.save()
+		cc.reload()
+		cc.bayyan_number = " 1234 5678 "
+		cc.save()
+		self.assertEqual(cc.bayyan_number, "12345678")
+
+	def test_old_placeholder_bayan_still_saves(self):
+		cc = clearance()
+		frappe.db.set_value("Custom Clearance", cc.name, "bayyan_number", "OLD-1")
+		cc.reload()
+		cc.do_number = "DO-1"
+		cc.save()
+
+	def test_cr_no_is_ten_digits(self):
+		from forwarding.tests.test_customer_360 import make_customer
+
+		for bad in ("12345T6Y", "123456789", "12345678901"):
+			with self.assertRaisesRegex(frappe.ValidationError, "CR No must be exactly 10 digits"):
+				make_customer(cr_no=bad, custom_vat_registration_number="300000000000003")
+		customer = make_customer(cr_no="1010999999", custom_vat_registration_number="300000000000003")
+		customer.cr_no = "2050 064692"
+		customer.save()
+		self.assertEqual(customer.cr_no, "2050064692")
+
+
+class TestServiceStatusSteps(R3BackendCase):
+	# R3-39 --------------------------------------------------------------------
+
+	def test_clearance_moves_one_step_at_a_time(self):
+		from frappe.utils import nowdate
+
+		from forwarding.api.service_status import get_status, set_status
+
+		cc = clearance()
+		state = get_status("Custom Clearance", cc.name)
+		self.assertEqual(
+			(state["status"], state["next_status"], state["next_label"]),
+			("Draft", "Submitted to Customs", "Submit to Customs"),
+		)
+		self.assertEqual([f["fieldname"] for f in state["next_needs"]], ["bayyan_number", "bayyan_date"])
+		self.assertEqual([e["status"] for e in state["extra"]], ["Rejected"])
+
+		with self.assertRaisesRegex(frappe.ValidationError, "it can only move to"):
+			set_status("Custom Clearance", cc.name, "Released")
+		with self.assertRaisesRegex(frappe.MandatoryError, "Value missing for Custom Clearance: Bayan No.<br>Value missing for Custom Clearance: Bayan Date"):
+			set_status("Custom Clearance", cc.name, "Submitted to Customs")
+		with self.assertRaisesRegex(frappe.ValidationError, "digits only"):
+			set_status("Custom Clearance", cc.name, "Submitted to Customs", {"bayyan_number": "abc", "bayyan_date": nowdate()})
+		with self.assertRaisesRegex(frappe.ValidationError, "does not set do_number"):
+			set_status("Custom Clearance", cc.name, "Submitted to Customs", {"do_number": "1"})
+
+		state = set_status(
+			"Custom Clearance", cc.name, "Submitted to Customs", {"bayyan_number": "123456", "bayyan_date": nowdate()}
+		)
+		self.assertEqual((state["status"], state["next_label"]), ("Submitted to Customs", "Mark Under Review"))
+		self.assertEqual(frappe.db.get_value("Custom Clearance", cc.name, "bayyan_number"), "123456")
+		self.assertEqual(set_status("Custom Clearance", cc.name, "Under Review")["next_label"], "Mark Duty Assessed")
+		self.assertEqual(set_status("Custom Clearance", cc.name, "Duty Assessed")["next_label"], "Mark Released")
+		state = set_status("Custom Clearance", cc.name, "Released")
+		self.assertEqual((state["status"], state["next_status"], state["extra"]), ("Released", None, []))
+		self.assertTrue(frappe.db.get_value("Custom Clearance", cc.name, "clearance_date"))
+
+	def test_rejected_from_draft_then_submitted_again(self):
+		from frappe.utils import nowdate
+
+		from forwarding.api.service_status import set_status
+
+		cc = clearance()
+		state = set_status("Custom Clearance", cc.name, "Rejected")
+		self.assertEqual((state["status"], state["next_status"]), ("Rejected", "Submitted to Customs"))
+		state = set_status(
+			"Custom Clearance", cc.name, "Submitted to Customs", {"bayyan_number": "77", "bayyan_date": nowdate()}
+		)
+		self.assertEqual(state["status"], "Submitted to Customs")
+
+	def test_transportation_steps(self):
+		from forwarding.api.service_status import set_status
+		from forwarding.tests.test_job_360 import make
+
+		job = make()
+		tt = frappe.get_doc({"doctype": "Transportation", "operations": job.name}).insert(ignore_permissions=True)
+		state = set_status("Transportation", tt.name, "In Transit")
+		self.assertEqual((state["status"], state["next_label"]), ("In Transit", "Mark Delivered"))
+		state = set_status("Transportation", tt.name, "Delivered")
+		self.assertEqual((state["next_status"], [e["label"] for e in state["extra"]]), (None, ["Mark Container Returned"]))
+		self.assertTrue(frappe.db.get_value("Transportation", tt.name, "delivery_date"))
+		self.assertEqual(set_status("Transportation", tt.name, "Container Returned")["extra"], [])
+
+
+class TestTransportRoute(R3BackendCase):
+	# R3-42 --------------------------------------------------------------------
+
+	def job(self, job_type):
+		from forwarding.tests.test_job_360 import make
+
+		job = make()
+		port = frappe.db.get_value("Port", {"port_code": ["is", "set"]}, ["name", "port_name", "port_code"], as_dict=True)
+		if not port or not frappe.db.exists("Job Type", job_type):
+			self.skipTest("needs a Port with a code and the Job Type")
+		frappe.db.set_value(
+			"Operations",
+			job.name,
+			{
+				"job_type": job_type,
+				"port_of_loading": port.name,
+				"port_of_destination": port.name,
+				"pickup_address": "Warehouse 4, Industrial City\nRiyadh",
+				"delivery_address": "Al Noor Store,\nJeddah",
+			},
+		)
+		return job, f"{port.port_name} ({port.port_code})"
+
+	def transport(self, job, **values):
+		return frappe.get_doc({"doctype": "Transportation", "operations": job.name, **values}).insert(ignore_permissions=True)
+
+	def test_import_runs_port_of_discharge_to_delivery_address(self):
+		job, port = self.job("Import")
+		tt = self.transport(job)
+		self.assertEqual((tt.departure_location, tt.destination_location), (port, "Al Noor Store"))
+		self.assertEqual(tt.destination_location_address, "Al Noor Store,\nJeddah")
+
+	def test_export_runs_pickup_address_to_port_of_loading(self):
+		job, port = self.job("Export")
+		tt = self.transport(job)
+		self.assertEqual((tt.departure_location, tt.destination_location), ("Warehouse 4, Industrial City", port))
+
+	def test_typed_values_are_kept(self):
+		from forwarding.forwarding.doctype.transportation.transportation import get_route
+
+		job, port = self.job("Import")
+		tt = self.transport(job, departure_location="Dry port")
+		self.assertEqual((tt.departure_location, tt.destination_location), ("Dry port", "Al Noor Store"))
+		self.assertEqual(get_route(job.name)["departure_location"], port)
+
+
+class TestClearanceDocumentsShared(R3BackendCase):
+	# R3-36 (clearance side) ---------------------------------------------------
+
+	def setUp(self):
+		super().setUp()
+		from forwarding.tests.test_job_360_p2 import _documents, job_with_rows, make_clearance
+
+		self.docs = _documents(5)
+		self.job = job_with_rows()
+		self.cc = make_clearance(self.job)
+		self.cc.reload()
+
+	def job_customs(self):
+		return [
+			(r.document, r.received, r.remark)
+			for r in frappe.get_all(
+				"Document Table",
+				filters={"parenttype": "Operations", "parent": self.job.name, "stage": "Customs Clearance"},
+				fields=["document", "received", "remark"],
+				order_by="idx",
+			)
+		]
+
+	def clearance_rows(self):
+		return [
+			(r.document, r.received, r.remark, r.stage)
+			for r in frappe.get_all(
+				"Document Table",
+				filters={"parenttype": "Custom Clearance", "parent": self.cc.name},
+				fields=["document", "received", "remark", "stage"],
+				order_by="idx",
+			)
+		]
+
+	def test_clearance_starts_with_the_jobs_customs_rows_only(self):
+		self.assertEqual(self.clearance_rows(), [(self.docs[1], "No", None, "Customs Clearance")])
+
+	def test_change_add_remove_on_the_clearance_reach_the_job(self):
+		self.cc.document_table[0].received = "Yes"
+		self.cc.document_table[0].remark = "original seen"
+		self.cc.append("document_table", {"document": self.docs[3], "received": "No"})
+		self.cc.save()
+		self.assertEqual(
+			self.job_customs(), [(self.docs[1], "Yes", "original seen"), (self.docs[3], "No", None)]
+		)
+		self.assertEqual(self.cc.document_table[1].stage, "Customs Clearance")
+
+		self.cc.reload()
+		self.cc.remove(self.cc.document_table[0])
+		self.cc.save()
+		self.assertEqual(self.job_customs(), [(self.docs[3], "No", None)])
+		# The job's other stages are untouched.
+		self.assertEqual(
+			frappe.db.count("Document Table", {"parenttype": "Operations", "parent": self.job.name}), 3
+		)
+
+	def test_change_add_remove_on_the_job_reach_the_clearance(self):
+		job = frappe.get_doc("Operations", self.job.name)
+		customs = next(r for r in job.document_table if r.stage == "Customs Clearance")
+		customs.remark = "from the job"
+		job.append("document_table", {"document": self.docs[3], "stage": "Customs Clearance", "received": "No"})
+		job.append("document_table", {"document": self.docs[4], "stage": "Delivery", "received": "No"})
+		job.save()
+		self.assertEqual(
+			self.clearance_rows(),
+			[(self.docs[1], "No", "from the job", "Customs Clearance"), (self.docs[3], "No", None, "Customs Clearance")],
+		)
+
+		job.reload()
+		job.remove(next(r for r in job.document_table if r.document == self.docs[1]))
+		job.save()
+		self.assertEqual(self.clearance_rows(), [(self.docs[3], "No", None, "Customs Clearance")])
+
+	def test_a_stale_job_form_cannot_write_old_rows_back(self):
+		stale = frappe.get_doc("Operations", self.job.name)
+		self.cc.append("document_table", {"document": self.docs[3], "received": "No"})
+		self.cc.save()
+		stale.remark = "x" if stale.meta.has_field("remark") else None
+		with self.assertRaises(frappe.TimestampMismatchError):
+			stale.save()
+
+	def test_a_row_added_on_the_job_since_is_kept_when_the_clearance_saves(self):
+		frappe.get_doc(
+			{
+				"doctype": "Document Table",
+				"parenttype": "Operations",
+				"parent": self.job.name,
+				"parentfield": "document_table",
+				"idx": 10,
+				"document": self.docs[3],
+				"stage": "Customs Clearance",
+			}
+		).db_insert()
+		self.cc.document_table[0].remark = "edited"
+		self.cc.save()
+		self.assertEqual([r[0] for r in self.clearance_rows()], [self.docs[1], self.docs[3]])
+		self.assertEqual([r[0] for r in self.job_customs()], [self.docs[1], self.docs[3]])
+
+
+QUOTE_ITEMS = [{"item": "Air Freight", "description": "Ocean freight", "rate": 100, "units": 1}]
+
+
+def quote(**values):
+	from frappe.utils import add_days, nowdate
+
+	return frappe.get_doc(
+		{
+			"doctype": "Quote",
+			"date": nowdate(),
+			"validity": add_days(nowdate(), 10),
+			"mode": "SEA",
+			"items": [dict(r) for r in QUOTE_ITEMS],
+			**values,
+		}
+	).insert(ignore_permissions=True)
+
+
+def a_lead():
+	lead = frappe.get_doc({"doctype": "Lead", "lead_name": "R3 Prospect", "company_name": "R3 Prospect Trading"})
+	return lead.insert(ignore_permissions=True)
+
+
+class TestQuoteCustomer(R3BackendCase):
+	# R3-43 --------------------------------------------------------------------
+
+	def test_customer_is_required(self):
+		with self.assertRaisesRegex(frappe.MandatoryError, "Value missing for Quote: Customer"):
+			quote()
+
+	def test_customer_fills_the_job(self):
+		from forwarding.quote_to_job import make_operations_from_quote
+		from forwarding.tests.test_job_360 import CUSTOMER
+
+		q = quote(customer=CUSTOMER)
+		self.assertEqual((q.quote_to, q.party_name), ("Customer", frappe.db.get_value("Customer", CUSTOMER, "customer_name")))
+		self.assertFalse(q.consignee, "Consignee stays separate and optional")
+		q.submit()
+		self.assertEqual(make_operations_from_quote(q.name).customer, CUSTOMER)
+
+	def test_prospect_is_converted_first(self):
+		from forwarding.quote_to_job import make_operations_from_quote
+		from forwarding.tests.test_job_360 import CUSTOMER
+
+		lead = a_lead()
+		q = quote(quote_to="Prospect", lead=lead.name, customer=CUSTOMER)
+		self.assertEqual((q.customer, q.party_name), (None, "R3 Prospect Trading"))
+		q.submit()
+		with self.assertRaisesRegex(frappe.ValidationError, "Convert .*R3 Prospect Trading.* to a customer first"):
+			make_operations_from_quote(q.name)
+
+		frappe.db.set_value("Customer", CUSTOMER, "lead_name", lead.name)
+		self.assertEqual(make_operations_from_quote(q.name).customer, CUSTOMER)
+
+
+class TestQuoteChargeItems(R3BackendCase):
+	# R3-44 --------------------------------------------------------------------
+
+	def make(self):
+		from forwarding.tests.test_job_360 import CUSTOMER, ITEM
+
+		return quote(
+			customer=CUSTOMER,
+			items=[
+				{"item": ITEM, "units": 2, "rate": 500, "est_cost": 321.37, "has_vat": 1},
+				{"item": ITEM, "description": "Handling", "rate": 100, "currency": "USD", "ex_rate": 3.75, "est_cost": 40},
+			],
+		)
+
+	def test_amounts_are_worked_out_on_the_server(self):
+		from forwarding.tests.test_job_360 import ITEM
+
+		q = self.make()
+		first, second = q.items
+		self.assertEqual(first.description, frappe.db.get_value("Item", ITEM, "item_name"))
+		self.assertEqual((first.amount, first.vat, first.cost_amount, first.ex_rate), (1000, 150, 642.74, 1))
+		self.assertEqual((second.units, second.amount, second.vat, second.cost_amount), (1, 375, 0, 150))
+		self.assertEqual((q.sub_total, q.total_vat, q.total), (1375, 150, 1525))
+
+	def test_create_job_copies_rows_into_the_estimate(self):
+		from forwarding.quote_to_job import make_operations_from_quote
+		from forwarding.tests.test_job_360 import ITEM
+
+		q = self.make()
+		q.submit()
+		job = make_operations_from_quote(q.name)
+		self.assertEqual(
+			[(r.item, r.rate, r.cost) for r in job.cost_table], [(ITEM, 1000, 642.74), (ITEM, 375, 150)]
+		)
+		self.assertEqual(job.cost_table[0].item_name, frappe.db.get_value("Item", ITEM, "item_name"))
+
+	def test_est_cost_is_never_printed(self):
+		q = self.make()
+		meta = frappe.get_meta("Quote Item")
+		self.assertTrue(meta.get_field("est_cost").print_hide)
+		self.assertTrue(meta.get_field("cost_amount").print_hide)
+		for print_format in frappe.get_all("Print Format", filters={"doc_type": "Quote", "disabled": 0}, pluck="name"):
+			html = frappe.get_print("Quote", q.name, print_format=print_format)
+			for figure in ("321.37", "642.74"):
+				self.assertNotIn(figure, html, f"{print_format} prints the Est. Cost")
+
+
+class TestQuoteJobBasics(R3BackendCase):
+	# R3-45 --------------------------------------------------------------------
+
+	def test_create_job_takes_branch_job_type_mode_and_scopes(self):
+		from forwarding.quote_to_job import make_operations_from_quote
+		from forwarding.tests.test_job_360 import CUSTOMER
+
+		branch = frappe.get_all("Branch", pluck="name", limit=1)[0]
+		scopes = frappe.get_all("Scope Of Work", pluck="name", limit=2)
+		if len(scopes) < 2 or not frappe.db.exists("Job Type", "Export"):
+			self.skipTest("needs two Scope Of Work records and the Export job type")
+		q = quote(
+			customer=CUSTOMER,
+			mode="AIR",
+			branch=branch,
+			job_type="Export",
+			scopes_of_work=[{"scope_of_work": s} for s in scopes],
+		)
+		q.submit()
+		job = make_operations_from_quote(q.name)
+		self.assertEqual((job.branch, job.job_type, job.mode_of_shipment), (branch, "Export", "Air"))
+		self.assertEqual([r.scope_of_work for r in job.scopes_of_work], scopes)
+
+
+class TestQuoteLists(R3BackendCase):
+	# R3-46 (and mode_of_shipment for R3-45) ------------------------------------
+
+	def ports(self, mode):
+		ports = frappe.get_all("Port", filters={"mode_of_shipment": mode}, pluck="name", limit=2)
+		if len(ports) < 2:
+			self.skipTest(f"needs two {mode} ports")
+		return ports
+
+	def test_mode_and_mode_of_shipment_agree(self):
+		from forwarding.tests.test_job_360 import CUSTOMER
+
+		self.assertEqual(quote(customer=CUSTOMER, mode="AIR").mode_of_shipment, "Air")
+		self.assertEqual(quote(customer=CUSTOMER, mode="AIR", mode_of_shipment="Sea").mode, "SEA")
+
+	def test_sea_quote_carries_ports_incoterm_and_shipping_line_to_the_job(self):
+		from forwarding.quote_to_job import make_operations_from_quote
+		from forwarding.tests.test_job_360 import CUSTOMER
+
+		pol, pod = self.ports("Sea")
+		line = frappe.get_all("Shipping Line", pluck="name", limit=1)[0]
+		q = quote(
+			customer=CUSTOMER, mode="SEA", pol=pol, pod=pod, shipping_terms="DAP", shipping_line=line, air_line="Nobody Air"
+		)
+		self.assertIsNone(q.air_line, "a sea quote has no airline")
+		q.submit()
+		job = make_operations_from_quote(q.name)
+		self.assertEqual(
+			(job.port_of_loading, job.port_of_destination, job.inco_terms, job.shipping_line, job.mode_of_shipment),
+			(pol, pod, "DAP", line, "Sea"),
+		)
+
+	def test_air_quote_carries_the_airline(self):
+		from forwarding.quote_to_job import make_operations_from_quote
+		from forwarding.tests.test_job_360 import CUSTOMER
+
+		q = quote(customer=CUSTOMER, mode="AIR", air_line="Saudia Cargo")
+		q.submit()
+		job = make_operations_from_quote(q.name)
+		self.assertEqual((job.air_line, job.shipping_line), ("Saudia Cargo", None))
+
+	def test_old_free_text_is_matched_or_noted(self):
+		from forwarding.patches.v1_0.r3_quote_ports_incoterms import migrate_quote
+		from forwarding.tests.test_job_360 import CUSTOMER
+
+		pol, _ = self.ports("Sea")
+		port_name = frappe.db.get_value("Port", pol, "port_name")
+		q = quote(customer=CUSTOMER, mode="SEA")
+		frappe.db.set_value(
+			"Quote", q.name, {"pol": pol, "pod": "Atlantis Harbour", "shipping_terms": "C&F", "carrier": "No Such Line"}
+		)
+		row = frappe.db.get_value(
+			"Quote", q.name, ["name", "mode", "pol", "pod", "shipping_terms", "carrier", "unmatched_note", "mode_of_shipment"], as_dict=True
+		)
+		migrate_quote(row)
+		after = frappe.db.get_value("Quote", q.name, ["pol", "pod", "shipping_terms", "unmatched_note"], as_dict=True)
+		self.assertEqual((after.pol, after.pod, after.shipping_terms), (pol, None, "CFR"))
+		self.assertEqual(after.unmatched_note, "POD: Atlantis Harbour\nCarrier: No Such Line")
+		self.assertTrue(port_name)
+
+	def test_incoterms_are_codes(self):
+		self.assertFalse(frappe.db.exists("Inco Terms", "DELIVERED AT PLACE"))
+		self.assertEqual(frappe.get_meta("Quote").get_field("shipping_terms").label, "Incoterms")
+
+
+class TestQuoteSubmitChecks(R3BackendCase):
+	# R3-47 --------------------------------------------------------------------
+
+	def test_every_problem_in_one_message(self):
+		from forwarding.tests.test_job_360 import CUSTOMER
+
+		q = quote(customer=CUSTOMER, validity=None, items=[{"description": "Freight", "rate": 0}, {"item": "Air Freight", "rate": 0}])
+		with self.assertRaises(frappe.ValidationError) as caught:
+			q.submit()
+		message = str(caught.exception)
+		for part in (
+			"Value missing for Quote: Validity",
+			"Rate is missing on row 1, 2",
+			"Item is missing on row 1",
+			"The total is 0",
+		):
+			self.assertIn(part, message)
+		self.assertEqual(frappe.db.get_value("Quote", q.name, "docstatus"), 0)
+
+	def test_no_rows_is_refused(self):
+		from forwarding.tests.test_job_360 import CUSTOMER
+
+		q = quote(customer=CUSTOMER, items=[])
+		with self.assertRaisesRegex(frappe.ValidationError, "Add at least one charge row"):
+			q.submit()
+
+	def test_complete_quote_submits(self):
+		from forwarding.tests.test_job_360 import CUSTOMER
+
+		q = quote(customer=CUSTOMER)
+		q.submit()
+		self.assertEqual(q.status, "Submitted")
+
+
+class TestQuoteFormTidy(R3BackendCase):
+	# R3-48 --------------------------------------------------------------------
+
+	def test_prepared_by_fills_name_and_phone(self):
+		from forwarding.tests.test_job_360 import CUSTOMER
+
+		meta = frappe.get_meta("Quote")
+		for fieldname in ("status", "employee", "show_in_print"):
+			self.assertTrue(meta.get_field(fieldname).hidden, fieldname)
+		for fieldname, source in (("prepared_by_name", "prepared_by.full_name"), ("prepared_by_phone", "prepared_by.mobile_no")):
+			field = meta.get_field(fieldname)
+			self.assertEqual((field.read_only, field.fetch_from), (1, source))
+
+		q = quote(customer=CUSTOMER, prepared_by="Administrator")
+		self.assertEqual(q.prepared_by_name, frappe.db.get_value("User", "Administrator", "full_name"))

@@ -16,7 +16,7 @@ from unittest.mock import patch
 
 import frappe
 from frappe.tests import IntegrationTestCase
-from frappe.utils import nowdate
+from frappe.utils import add_days, nowdate
 
 from forwarding import banners
 from forwarding.api import job_360, job_lifecycle
@@ -66,19 +66,20 @@ class TestCostSheetIsTheEstimate(EstimateCase):
 		quote = frappe.get_doc(
 			{
 				"doctype": "Quote",
-				"consignee": customer,
+				"customer": customer,
 				"mode": "AIR",
 				"date": nowdate(),
+				"validity": add_days(nowdate(), 10),
 				"items": [
-					{"description": "Air Freight", "rate": 100, "units": 3, "amount": 300},
-					{"description": "Handling", "rate": 50, "units": 1, "amount": 50},
+					{"item": "Air Freight", "rate": 100, "units": 3},
+					{"item": "Air Freight", "description": "Handling", "rate": 50, "units": 1},
 				],
 			}
 		).insert(ignore_permissions=True)
 		quote.submit()
 
 		job = make_operations_from_quote(quote.name)
-		self.assertEqual([(r.item_name, r.rate) for r in job.cost_table], [("Air Freight", 300), ("Handling", 50)])
+		self.assertEqual([(r.item, r.rate) for r in job.cost_table], [("Air Freight", 300), ("Air Freight", 50)])
 		self.assertTrue(banners.has_estimate(job))
 
 
@@ -92,13 +93,13 @@ class TestEstimateIsMandatory(EstimateCase):
 
 	def test_submit_is_blocked_without_an_estimate(self):
 		job = make()
-		with self.assertRaisesRegex(frappe.ValidationError, "Add an estimate before submitting"):
+		with self.assertRaisesRegex(frappe.ValidationError, "Add an estimate"):
 			job.submit()
 		self.assertEqual(frappe.db.get_value("Operations", job.name, "docstatus"), 0)
 
 	def test_a_row_with_no_selling_is_not_an_estimate(self):
 		job = make(cost_table=[{"item_name": "Trucking", "cost": 500, "rate": 0}])
-		with self.assertRaisesRegex(frappe.ValidationError, "Add an estimate before submitting"):
+		with self.assertRaisesRegex(frappe.ValidationError, "Add an estimate"):
 			job.submit()
 
 	def test_submit_goes_through_with_an_estimate(self):
@@ -211,4 +212,6 @@ class TestReportRules(EstimateCase):
 		row = report_rows(gain)[0]
 		# Nothing posted yet: actual profit 0 against an estimated 400.
 		self.assertEqual(row["variance"], -400)
-		self.assertEqual(row["variance_pct"], -100)
+		# Not billed yet: no percentage, and the report says so (R3-59).
+		self.assertIsNone(row["variance_pct"])
+		self.assertEqual(row["variance_label"], "Not billed yet")

@@ -70,6 +70,7 @@
    "description": "Set by the OCR run; drives the timeline's OCR chip.",
    "fieldname": "ocr_status",
    "fieldtype": "Select",
+   "hidden": 1,
    "label": "OCR Status",
    "options": "\nNot Started\nReading\nExtracted\nFailed"
   },
@@ -78,6 +79,7 @@
    "description": "Raw values OCR read back from the attachment.",
    "fieldname": "extracted_data",
    "fieldtype": "Small Text",
+   "hidden": 1,
    "label": "Extracted Data",
    "read_only": 1
   },
@@ -99,7 +101,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-10-23 12:00:00.000000",
+ "modified": "2026-10-25 18:39:46.088036",
  "modified_by": "Administrator",
  "module": "Forwarding",
  "name": "Document Table",

@@ -17,7 +17,7 @@ from forwarding import supplier_banners
 from forwarding.api import supplier_360
 from forwarding.job_events import supplier_cache_key
 from forwarding.party_360 import default_company
-from forwarding.tests.test_job_360 import ITEM, _first, make
+from forwarding.tests.test_job_360 import ITEM, _first, ensure_submitted, make
 
 NO_ROLE_USER = "supplier360-norole@example.com"
 
@@ -49,6 +49,7 @@ def make_bill(supplier, amount, due_in_days=0, job=None, submit=True):
 	company = default_company()
 	due = add_days(nowdate(), due_in_days)
 	posting = min(nowdate(), due)
+	ensure_submitted(job)
 	pi = frappe.get_doc(
 		{
 			"doctype": "Purchase Invoice",
@@ -103,7 +104,7 @@ def make_clearance(job, broker=None, transporter=None, status="Draft"):
 			"broker_name": broker,
 			"transporter_name": transporter,
 			"clearance_status": status,
-			"bayyan_number": frappe.generate_hash(length=8),
+			"bayyan_number": "".join(str(ord(c) % 10) for c in frappe.generate_hash(length=8)),
 			"bayyan_date": nowdate(),
 		}
 	).insert(ignore_permissions=True)
@@ -249,7 +250,7 @@ class TestSupplier360(IntegrationTestCase):
 		name = self.supplier.name
 		make(handling_agent=name, operations_status="Closed")
 		open_job = make(handling_agent=name)
-		make_transport(open_job, name, "Dispatched")
+		make_transport(open_job, name, "In Transit")
 		make_transport(make(), name, "Delivered")
 		make_clearance(make(), broker=name, status="Under Review")
 		make_clearance(make(), broker=name, status="Released")
@@ -339,7 +340,7 @@ class TestSupplier360(IntegrationTestCase):
 
 	def test_banner_s2_unbilled_services(self):
 		name = self.supplier.name
-		make_transport(make(), name, "Dispatched")  # not finished: no nudge yet
+		make_transport(make(), name, "In Transit")  # not finished: no nudge yet
 		make_clearance(make(), broker=name, status="Rejected")  # nothing to bill
 		self.assertNotIn("S2", codes(fresh(name)))
 

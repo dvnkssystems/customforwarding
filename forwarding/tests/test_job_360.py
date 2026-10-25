@@ -90,7 +90,20 @@ def submit_job(job):
 	return job
 
 
+def ensure_submitted(job):
+	"""Submit a draft job (estimate added) so it can be invoiced (R3-03).
+	Takes the job or its name; returns the job's name."""
+	if not job:
+		return job
+	name = job if isinstance(job, str) else job.name
+	if frappe.db.get_value("Operations", name, "docstatus") == 0:
+		doc = job if not isinstance(job, str) else frappe.get_doc("Operations", name)
+		submit_job(doc)
+	return name
+
+
 def make_sales_invoice(job, amount=1000, submit=True):
+	ensure_submitted(job)
 	si = frappe.get_doc(
 		{
 			"doctype": "Sales Invoice",
@@ -201,7 +214,10 @@ class TestJob360(IntegrationTestCase):
 	def test_record_actual_on_submitted_job_moves_free_time(self):
 		job = make(eta_date=add_days(nowdate(), -3), free_time_days=5)
 		submit_job(job)
-		self.assertEqual(str(job.free_time_expiry), add_days(nowdate(), 2))
+		# Free time starts at the ATA, not the ETA (R3-52).
+		self.assertIsNone(job.free_time_expiry)
+		frappe.cache.delete_keys("job_360")
+		self.assertEqual(job_360.get(job.name)["kpis"]["free_time_note"], "Starts on arrival")
 
 		payload = job_360.record_actual(job.name, "ata", nowdate())
 		self.assertEqual(payload["job"]["ata_date"], nowdate())
@@ -218,7 +234,7 @@ class TestJob360(IntegrationTestCase):
 		self.assertNotIn("B7", codes(job_360.build(make(job_type="Import", svc_customs_clearance=0).name)))
 
 	def test_b4_colour_follows_days_left(self):
-		job = make(eta_date=add_days(nowdate(), -10), free_time_days=5)
+		job = make(eta_date=add_days(nowdate(), -10), ata_date=add_days(nowdate(), -10), free_time_days=5)
 		b4 = [b for b in job_360.build(job.name)["banners"] if b["rule_code"] == "B4"]
 		self.assertEqual(b4[0]["colour"], "critical")
 
@@ -228,7 +244,7 @@ class TestJob360(IntegrationTestCase):
 			job_type="Export",
 			container_details=[{"container_no": "TEST1234567", "size": "40"}, {"size": "20"}],
 			cost_table=[{"item": ITEM, "cost": 300, "rate": 500}],
-			cutoffs=[{"milestone": "Cargo Cut-off", "latest": add_to_date(now_datetime(), hours=-1)}],
+			cutoffs=[{"milestone": "Cargo Cut-off", "deadline": add_to_date(now_datetime(), hours=-1)}],
 		)
 		make_sales_invoice(job, amount=1000)
 		frappe.cache.delete_value(cache_key(job.name))
@@ -263,6 +279,13 @@ class TestJob360(IntegrationTestCase):
 				"billed",
 				"collected",
 				"free_days_left",
+				"free_time_note",
+				"estimate_cost",
+				"estimate_selling",
+				"estimate_margin_pct",
+				"actual_billed",
+				"actual_cost",
+				"actual_margin_pct",
 			},
 		)
 		self.assertEqual(set(payload["linked"]), {"transportation", "custom_clearance"})
@@ -287,7 +310,7 @@ class TestJob360(IntegrationTestCase):
 		self.assertEqual(payload["job"]["billing_status"], "Invoiced")
 
 		self.assertEqual([u["attention"] for u in payload["units"]], [False, True])
-		self.assertEqual(payload["cutoffs"][0]["cutoff_status"], "Passed")
+		self.assertEqual(payload["cutoffs"][0]["cutoff_status"], "Missed")
 		self.assertEqual(payload["charges"][0]["source_doctype"], "Operations")
 		self.assertIn("billed", {m["key"] for m in payload["milestones"]})
 		self.assertTrue(frappe.cache.get_value(cache_key(job.name)))
@@ -313,7 +336,8 @@ class TestJob360(IntegrationTestCase):
 		self.assertIn(("Transportation", transport.name), sources)
 
 	def test_cutoff_status(self):
-		self.assertEqual(get_cutoff_status(add_to_date(now_datetime(), days=-1)), "Passed")
+		self.assertEqual(get_cutoff_status(add_to_date(now_datetime(), days=-1)), "Missed")
+		self.assertEqual(get_cutoff_status(add_to_date(now_datetime(), days=-1), done=True), "Done")
 		self.assertEqual(get_cutoff_status(add_to_date(now_datetime(), days=3)), "Upcoming")
 		self.assertIsNone(get_cutoff_status(None))
 

@@ -261,8 +261,8 @@ def on_customer_change(doc, method=None):
 
 
 def on_quote_change(doc, method=None):
-	"""Quote is a custom DocType; its customer is the `consignee` link."""
-	clear_customer_cache(doc.get("consignee"), _previous(doc, "consignee"))
+	"""Quote is a custom DocType; its customer is the `customer` link (R3-43)."""
+	clear_customer_cache(doc.get("customer"), _previous(doc, "customer"))
 
 
 def _party_links(doc, party_type):

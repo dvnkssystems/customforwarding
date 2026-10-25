@@ -68,8 +68,7 @@ def get_message(data):
 		)
 	if untagged:
 		parts.append(
-			_("{0} have no ledger entry tagged to them at all, which reads the same as earning nothing — check the Project field on the invoice.")
-			.format(len(untagged))
+			_("{0} jobs have no invoices or bills linked yet.").format(len(untagged))
 		)
 	if not parts:
 		return ""

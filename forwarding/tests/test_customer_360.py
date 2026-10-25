@@ -16,7 +16,7 @@ from frappe.utils import add_days, nowdate
 from forwarding import customer_banners
 from forwarding.api import customer_360
 from forwarding.job_events import customer_cache_key
-from forwarding.tests.test_job_360 import ITEM, _first, make, make_payment
+from forwarding.tests.test_job_360 import ITEM, _first, ensure_submitted, make, make_payment
 
 NO_ROLE_USER = "customer360-norole@example.com"
 
@@ -47,6 +47,7 @@ def make_invoice(customer, amount, due_in_days=0, job=None, submit=True):
 	"""A Sales Invoice due due_in_days from today (negative: already overdue)."""
 	due = add_days(nowdate(), due_in_days)
 	posting = min(nowdate(), due)
+	ensure_submitted(job)
 	si = frappe.get_doc(
 		{
 			"doctype": "Sales Invoice",
@@ -66,11 +67,19 @@ def make_invoice(customer, amount, due_in_days=0, job=None, submit=True):
 
 
 def make_quote(customer, validity_in_days=None, submit=False, **values):
-	"""A quote; `submit` approves it, which a job needs (M-08)."""
+	"""A quote; `submit` approves it, which a job needs (M-08). A quote to
+	submit gets what submitting needs when the caller leaves it out (R3-47):
+	30 days' validity, a charge row, and a charge Item on every row."""
+	if submit:
+		if validity_in_days is None:
+			validity_in_days = 30
+		values["items"] = [
+			{"item": "Air Freight", **row} for row in (values.get("items") or [{"description": "Freight", "rate": 100, "units": 1}])
+		]
 	quote = frappe.get_doc(
 		{
 			"doctype": "Quote",
-			"consignee": customer,
+			"customer": customer,
 			"date": nowdate(),
 			"validity": add_days(nowdate(), validity_in_days) if validity_in_days is not None else None,
 			"mode": "SEA",

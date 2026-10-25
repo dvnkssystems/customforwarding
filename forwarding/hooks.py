@@ -106,10 +106,17 @@ fixtures = [
 			"Freight Finance", "Freight Sales", "Freight Viewer",
 		]]],
 	},
-	# Quote is a custom DocType — it lives in the database, not on disk, so
-	# without this its fields never reach another site.
+	# Quote and its Quote Item rows are custom DocTypes: they live in the
+	# database, not on disk, so without this their fields never reach
+	# another site.
 	{
 		"dt": "DocType",
+		"filters": [["name", "in", ["Quote", "Quote Item"]]],
+	},
+	# The quote's print: Customer, Incoterms, ports by name; Est. Cost is
+	# never printed (R3-44). Site data, not a standard format.
+	{
+		"dt": "Print Format",
 		"filters": [["name", "in", ["Quote"]]],
 	},
 ]
@@ -122,14 +129,21 @@ doc_events = {
 	"Sales Invoice": {
 		"validate": [
 			"forwarding.subscription.enforce_limit",
+			"forwarding.invoice_guard.validate",
 			"forwarding.sales_invoice.enforce_overseas_zero_rating",
 		],
-		"before_submit": "forwarding.sales_invoice.block_zero_value_job_invoice",
+		"before_submit": [
+			"forwarding.sales_invoice.block_zero_value_job_invoice",
+			"forwarding.sales_invoice.stamp_seller",
+		],
 		"on_update": [
 			"forwarding.custom_methods.update_cost_table_in_operations",
 			"forwarding.job_events.on_sales_invoice_change",
 		],
-		"on_submit": "forwarding.job_events.on_sales_invoice_change",
+		"on_submit": [
+			"forwarding.job_events.on_sales_invoice_change",
+			"forwarding.sales_invoice.warn_missing_seller_details",
+		],
 		"on_cancel": [
 			"forwarding.custom_methods.update_cost_table_in_operations_on_cancle",
 			"forwarding.job_events.on_sales_invoice_change",
@@ -141,6 +155,7 @@ doc_events = {
 		"before_validate": "forwarding.purchase_invoice.fill_from_job",
 		"validate": [
 			"forwarding.subscription.enforce_limit",
+			"forwarding.invoice_guard.validate",
 			"forwarding.purchase_invoice.warn_unlinked",
 		],
 		"on_update": [
@@ -170,8 +185,12 @@ doc_events = {
 			"forwarding.subscription.enforce_limit",
 			"forwarding.child_tables.apply",
 		],
-		"on_update": "forwarding.job_events.on_job_change",
-		"on_update_after_submit": "forwarding.job_events.on_job_change",
+		# The clearance's Documents table mirrors the job's customs rows (R3-36).
+		"on_update": ["forwarding.clearance_documents.sync_from_job", "forwarding.job_events.on_job_change"],
+		"on_update_after_submit": [
+			"forwarding.clearance_documents.sync_from_job",
+			"forwarding.job_events.on_job_change",
+		],
 		"on_cancel": "forwarding.job_events.on_job_change",
 		"on_trash": "forwarding.job_events.on_job_change",
 	},
@@ -193,13 +212,13 @@ doc_events = {
 	},
 	"Customer": {
 		"before_insert": "forwarding.naming.set_customer_code",
-		"validate": "forwarding.party_documents.validate",
+		"validate": ["forwarding.party_documents.validate", "forwarding.party_validation.validate_cr_no"],
 		"on_update": "forwarding.job_events.on_customer_change",
 		"on_trash": "forwarding.job_events.on_customer_change",
 	},
 	"Quote": {
 		# Submit approves the quote (M-08); status follows docstatus.
-		"validate": "forwarding.quote.set_status",
+		"validate": "forwarding.quote.validate",
 		"before_submit": "forwarding.quote.before_submit",
 		"before_cancel": "forwarding.quote.before_cancel",
 		"on_update": "forwarding.job_events.on_quote_change",
@@ -217,7 +236,8 @@ doc_events = {
 		"on_trash": "forwarding.job_events.on_party_detail_change",
 	},
 	"File": {
-		"after_insert": "forwarding.job_events.on_file_change",
+		# Private first (R3-10), so on_file_change sees the final URL.
+		"after_insert": ["forwarding.private_files.on_file_insert", "forwarding.job_events.on_file_change"],
 		"on_trash": "forwarding.job_events.on_file_change",
 	},
 	"Supplier": {
@@ -297,6 +317,9 @@ override_whitelisted_methods = {
 	"frappe.www.contact.send_message": "forwarding.contact_us.send_message",
 	"erpnext.templates.utils.send_message": "forwarding.contact_us.send_message",
 	"frappe.utils.print_format.download_pdf": "forwarding.print_pdf.download_pdf",
+	# Uploads to freight records are private (R3-10).
+	"upload_file": "forwarding.private_files.upload_file",
+	"frappe.handler.upload_file": "forwarding.private_files.upload_file",
 }
 #
 # each overriding function accepts a `data` argument;

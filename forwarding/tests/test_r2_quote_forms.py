@@ -25,7 +25,7 @@ class R2Case(IntegrationTestCase):
 		self.addCleanup(patcher.stop)
 
 
-ITEMS = [{"description": "Air freight", "rate": 100, "units": 1, "amount": 100}]
+ITEMS = [{"item": "Air Freight", "description": "Air freight", "rate": 100, "units": 1, "amount": 100}]
 
 
 class TestQuoteApproval(R2Case):
@@ -95,7 +95,10 @@ class TestJobFromQuote(R2Case):
 		self.assertEqual(make_operations_from_quote(quote.name).from_quotation, quote.name)
 
 	def test_open_quote_with_no_validity_makes_a_job(self):
+		# A quote is submitted with a validity now (R3-47); one approved
+		# before that may still have none.
 		quote = make_quote(CUSTOMER, items=ITEMS, submit=True)
+		frappe.db.set_value("Quote", quote.name, "validity", None)
 		self.assertEqual(make_operations_from_quote(quote.name).customer, CUSTOMER)
 
 	def test_duplicate_of_a_submitted_quote_is_a_draft(self):

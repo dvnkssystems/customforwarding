@@ -78,19 +78,19 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Clearance Status",
-   "options": "Draft\nSubmitted\nUnder Review\nDuty Assessed\nReleased\nRejected"
+   "options": "Draft\nSubmitted to Customs\nUnder Review\nDuty Assessed\nReleased\nRejected"
   },
   {
    "fieldname": "bayyan_number",
    "fieldtype": "Data",
    "label": "Bayan No.",
-   "mandatory_depends_on": "eval:doc.clearance_status && doc.clearance_status!=\"Draft\""
+   "mandatory_depends_on": "eval:doc.clearance_status && ![\"Draft\", \"Rejected\"].includes(doc.clearance_status)"
   },
   {
    "fieldname": "bayyan_date",
    "fieldtype": "Date",
    "label": "Bayan Date",
-   "mandatory_depends_on": "eval:doc.clearance_status && doc.clearance_status!=\"Draft\""
+   "mandatory_depends_on": "eval:doc.clearance_status && ![\"Draft\", \"Rejected\"].includes(doc.clearance_status)"
   },
   {
    "fieldname": "column_break_8",
@@ -174,13 +174,14 @@
   {
    "fieldname": "section_break_18",
    "fieldtype": "Section Break",
-   "label": "Clearance Details"
+   "label": "Documents"
   },
   {
    "fieldname": "document_table",
    "fieldtype": "Table",
    "label": "Documents",
-   "options": "Document Table"
+   "options": "Document Table",
+   "description": "The job's documents for the Customs Clearance stage. A row added, changed or removed here changes on the job too, and the other way round."
   },
   {
    "fieldname": "section_break_20",
@@ -267,13 +268,15 @@
    "collapsible": 1,
    "fieldname": "clearance_documents_section",
    "fieldtype": "Section Break",
-   "label": "Clearance Documents"
+   "label": "Clearance Documents",
+   "hidden": 1
   },
   {
    "fieldname": "clearance_documents",
    "fieldtype": "Table",
    "label": "Clearance Documents",
-   "options": "Operations Clearance Document"
+   "options": "Operations Clearance Document",
+   "hidden": 1
   }
  ],
  "index_web_pages_for_search": 1,
@@ -283,7 +286,7 @@
    "link_fieldname": "custom_clearance_id"
   }
  ],
- "modified": "2026-10-23 12:00:00.000000",
+ "modified": "2026-10-25 14:00:00.000000",
  "modified_by": "Administrator",
  "module": "Forwarding",
  "name": "Custom Clearance",

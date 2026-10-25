@@ -99,6 +99,58 @@ def _company_address(doc):
 	return _render_address(name)
 
 
+def zatca_qr(doc, seller_name, seller_tax_id):
+	"""The invoice's ZATCA QR as an <img> src, or "" (R3-11).
+
+	ksa_compliance is the source wherever it is set up: its Phase 2 record
+	(Sales Invoice Additional Fields, made on submit once the company is
+	onboarded) first, then its Phase 1 settings. Without either, a Phase 1
+	QR -- seller name, VAT number, timestamp, total, VAT -- is built with
+	ksa_compliance's own TLV encoder from the seller on the invoice. Only a
+	submitted invoice with a seller VAT number gets one: the QR states both.
+	Nothing here calls ZATCA.
+	"""
+	if frappe.db.exists("DocType", "Sales Invoice Additional Fields"):
+		siaf = frappe.db.get_value(
+			"Sales Invoice Additional Fields",
+			{"sales_invoice": doc.name, "docstatus": ["<", 2]},
+			"name",
+			order_by="creation desc",
+		)
+		# qr_image_src is worked out by the doc (not a column), as in
+		# ksa_compliance's own Phase 2 print format.
+		src = siaf and frappe.get_doc("Sales Invoice Additional Fields", siaf).get("qr_image_src")
+		if src:
+			return src
+	legacy = _existing_file(doc.get("ksa_einv_qr"))
+	if legacy:
+		return legacy
+	if doc.docstatus != 1 or not seller_tax_id:
+		return ""
+	try:
+		from ksa_compliance import jinja as ksa
+	except ImportError:
+		return ""
+	try:
+		png = ksa.get_zatca_phase_1_qr_for_invoice(doc.name)
+		if not png:
+			png = ksa._generate_qrcode(
+				ksa._generate_decoded_string(
+					[
+						seller_name,
+						seller_tax_id,
+						ksa._format_date(doc.posting_date, doc.posting_time or "00:00:00"),
+						flt(doc.grand_total, 2),
+						flt(doc.total_taxes_and_charges, 2),
+					]
+				)
+			)
+	except Exception:
+		frappe.log_error(title="ZATCA QR for invoice print", reference_doctype=doc.doctype, reference_name=doc.name)
+		return ""
+	return f"data:image/png;base64,{png}" if png else ""
+
+
 def amount_in_words_ar(amount, currency):
 	"""Arabic amount in words, or "" when num2words cannot do it."""
 	try:
@@ -185,11 +237,13 @@ def get_tax_invoice_context(doc):
 
 	grand_total = doc.rounded_total if doc.get("rounded_total") and not doc.get("disable_rounded_total") else doc.grand_total
 
+	seller_name = company.get("company_name") or doc.company
+	seller_tax_id = doc.get("company_tax_id") or company.get("tax_id") or ""
 	return frappe._dict(
 		seller=frappe._dict(
-			name=company.get("company_name") or doc.company,
+			name=seller_name,
 			name_ar=company.get("company_arabic_name") or "",
-			tax_id=doc.get("company_tax_id") or company.get("tax_id") or "",
+			tax_id=seller_tax_id,
 			address=address_lines(_company_address(doc)),
 			address_ar=address_lines(company.get("address_arabic")),
 		),
@@ -211,7 +265,7 @@ def get_tax_invoice_context(doc):
 		grand_total=grand_total,
 		words_en=doc.get("in_words") or money_in_words(grand_total, doc.currency),
 		words_ar=amount_in_words_ar(grand_total, doc.currency),
-		qr=_existing_file(doc.get("ksa_einv_qr")),
+		qr=zatca_qr(doc, seller_name, seller_tax_id),
 		title=_("Tax Invoice") if not doc.get("is_return") else _("Credit Note"),
 		title_ar="فاتورة ضريبية" if not doc.get("is_return") else "إشعار دائن",
 	)

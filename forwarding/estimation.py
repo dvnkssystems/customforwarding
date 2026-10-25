@@ -13,6 +13,7 @@ the ledger, matched to the job by the GL Entry's Project.
 """
 
 import frappe
+from frappe import _
 from frappe.utils import cint, flt
 
 # The account types that make up a job's revenue and its cost of sale. Kept
@@ -96,10 +97,14 @@ def job_row(job, estimate, actual):
 		# identically to one that was billed and genuinely lost money — the
 		# two need entirely different follow-up.
 		"billed": 1 if act_income else 0,
+		# What the Variance column says instead of a number until the job has
+		# been billed (R3-59): an open job is not a loss. Such a job counts as
+		# neither beating nor falling short of its estimate.
+		"variance_label": None if act_income else _("Not billed yet"),
 		# A percentage of the estimated profit only means something when that
 		# profit is positive: against a loss it reads backwards (+300% on a job
 		# estimated at -1,000), and against zero it is undefined (M-20).
-		"variance_pct": variance / est_profit * 100 if est_profit > 0 else None,
+		"variance_pct": variance / est_profit * 100 if est_profit > 0 and act_income else None,
 		"last_posting": last_posting,
 		# A job whose ledger caught up after the job's own date. Not an
 		# error — it is normal, and it is what makes a period's actuals move

@@ -14,17 +14,17 @@ What the mapping can and cannot carry:
   of its own, so the converted figure is the only one that means anything
   beside the other lines. Multiplying rate by units would under-bill every
   foreign line.
-* A quote line names its charge in free text and has no Item. The Cost Table's
-  `item` and `account` are both optional, so the description lands in
-  `item_name` and the two links stay empty for whoever prices the job. Those
-  rows carry no Item or Account until someone fills them in, so they do not
-  reach the ledger on their own.
+* A quote line names its charge Item (R3-44), which the estimate row takes
+  along with Est. Selling (the line's amount) and Est. Cost (its Est. Cost
+  Amount). An older line has only free text: it lands in `item_name` and the
+  Item stays empty for whoever prices the job.
 * Ports are free text on a quote and Links on a job, and the port master holds
   42,000 records under several naming conventions — Jeddah alone is there three
   times. A port is filled only when the text names exactly one record for the
   job's mode (see `_resolve_port`); otherwise the text lands in the Place of
   Loading / Delivery beside the Link and the Link is left for the user.
-* A quote records no branch, job type or service type, so they are derived from
+* A quote names its branch, job type and scopes of work (R3-45), which the
+  job takes as they are. An older quote has none, so they are derived from
   the resolved ports: a Saudi destination makes an import, a Saudi origin an
   export; the Saudi port's city names the branch; mode and direction name the
   service ("Sea Freight Import"). Each is set only when it resolves to a real
@@ -82,15 +82,27 @@ def make_operations_from_quote(source_name, target_doc=None):
 	"""Map a Quote onto a new, unsaved Operations document.
 
 	Only a submitted quote that has not expired makes a job (M-07, M-08)."""
-	from forwarding.quote import assert_can_make_job
+	from forwarding.quote import assert_can_make_job, job_customer
 
 	assert_can_make_job(source_name)
+	# The quote's Customer bills the job; a prospect is converted first (R3-43).
+	customer = job_customer(frappe.get_doc("Quote", source_name))
 
 	def update_item(source, target, source_parent):
-		target.rate = flt(source.amount) or flt(source.rate) * flt(source.units or 1)
-		target.item_name = (source.description or "").strip()
+		"""A quote row becomes an estimate row (R3-44): its Item, Est.
+		Selling = the row's Amount and Est. Cost = its Est. Cost Amount, both
+		in company currency. Item Name is the Item's name; a row with no Item
+		(older quotes) keeps its description there."""
+		target.rate = flt(source.amount) or flt(source.rate) * flt(source.units or 1) * flt(source.get("ex_rate") or 1)
+		target.cost = flt(source.get("cost_amount")) or flt(source.get("est_cost")) * flt(source.units or 1) * flt(
+			source.get("ex_rate") or 1
+		)
+		target.item = source.get("item") or None
+		item_name = frappe.db.get_value("Item", target.item, "item_name") if target.item else None
+		target.item_name = item_name or (source.description or "").strip()
 
 	def postprocess(source, target):
+		target.customer = customer
 		mode = MODES.get((source.mode or "").strip().upper())
 		if mode and frappe.db.exists("Mode Of Shipment", mode):
 			target.mode_of_shipment = mode
@@ -101,7 +113,16 @@ def make_operations_from_quote(source_name, target_doc=None):
 		if (source.get("cargo") or "").strip().lower() == "dg goods":
 			target.dg_status = 1
 
-		_set_carrier(target, source.get("carrier"), mode)
+		# Shipping Line / Airline by mode (R3-46); an older quote has free text.
+		if mode == "Sea" and source.get("shipping_line"):
+			target.shipping_line = source.shipping_line
+			target.air_line = None
+		elif mode == "Air" and source.get("air_line"):
+			target.air_line = source.air_line
+			target.shipping_line = None
+			target.carrier = None
+		else:
+			_set_carrier(target, source.get("carrier"), mode)
 		_set_parties(target, source)
 
 		_set_place(target, "port_of_loading", "place_of_loading", source.pol, mode)
@@ -128,7 +149,6 @@ def make_operations_from_quote(source_name, target_doc=None):
 				"doctype": "Operations",
 				"field_map": {
 					"name": "from_quotation",
-					"consignee": "customer",
 					"shipment_reference": "company_ref_no",
 					"cargo_details": "cargo_description",
 				},
@@ -137,6 +157,8 @@ def make_operations_from_quote(source_name, target_doc=None):
 				"doctype": "Cost Table",
 				"postprocess": update_item,
 			},
+			# Same multi-select as the job (R3-45).
+			"Job Scope Of Work": {"doctype": "Job Scope Of Work"},
 		},
 		target_doc,
 		postprocess,
@@ -187,10 +209,10 @@ def _set_carrier(target, text, mode):
 def _set_parties(target, source):
 	"""Consignee, Shipper and Salesman (R2-24, M-04).
 
-	The quote's Consignee is a Customer (mapped to the job's customer); the
-	job's Consignee links a Consignee record, so it takes the one named like
-	the customer, and a new one is added when the job is saved
-	(parties_from_quote). Shipper and Salesman are copied when the quote has
+	The quote's Customer is the job's customer (R3-43). Its Consignee, when
+	set, is a Customer record; the job's Consignee links a Consignee record,
+	so it takes the one named like it, and a new one is added when the job
+	is saved (parties_from_quote). Shipper and Salesman are copied when the quote has
 	them; Salesman otherwise comes from the customer's Default Salesperson.
 	"""
 	target.consignee = _consignee_for(source.get("consignee"))
@@ -318,7 +340,10 @@ def _resolve_port(text, mode=None):
 
 
 def _set_direction(target, mode):
-	"""Job type, branch and service type, from where the cargo starts and ends."""
+	"""Job type, branch and service type, from where the cargo starts and ends.
+
+	Only what the quote left blank: a quote now names its Branch and Job Type
+	(R3-45), and those are what the job takes."""
 	origin = _port_country(target.get("port_of_loading"))
 	destination = _port_country(target.get("port_of_destination"))
 	if destination == SAUDI_ARABIA and origin != SAUDI_ARABIA:
@@ -328,16 +353,20 @@ def _set_direction(target, mode):
 	else:
 		return
 
-	if frappe.db.exists("Job Type", job_type):
+	if target.get("job_type") and target.job_type != job_type:
+		# The quote says otherwise: keep its job type and leave the rest.
+		return
+	if not target.get("job_type") and frappe.db.exists("Job Type", job_type):
 		target.job_type = job_type
 
-	city = (frappe.db.get_value("Port", saudi_port, "port_name") or "").upper()
-	branch = next((b for b in frappe.get_all("Branch", pluck="name") if b.upper() in city.split()), None)
-	if branch:
-		target.branch = branch
+	if not target.get("branch"):
+		city = (frappe.db.get_value("Port", saudi_port, "port_name") or "").upper()
+		branch = next((b for b in frappe.get_all("Branch", pluck="name") if b.upper() in city.split()), None)
+		if branch:
+			target.branch = branch
 
 	service = f"{mode} Freight {job_type}" if mode else None
-	if service and frappe.db.exists("Freight Activity Code", service):
+	if not target.get("activity_code") and service and frappe.db.exists("Freight Activity Code", service):
 		target.activity_code = service
 
 

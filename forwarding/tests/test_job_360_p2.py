@@ -59,7 +59,7 @@ def make_clearance(job, **values):
 		{
 			"doctype": "Custom Clearance",
 			"operations": job.name,
-			"bayyan_number": "BY-1",
+			"bayyan_number": "1001",
 			"bayyan_date": nowdate(),
 			**values,
 		}
@@ -111,7 +111,7 @@ class TestServices(P2TestCase):
 		job = job_with_rows()
 		cc = make_custom_clearance(job.name)
 		self.assertEqual([r.stage for r in cc.document_table], ["Customs Clearance"])
-		cc.bayyan_number = "BY-2"
+		cc.bayyan_number = "1002"
 		cc.bayyan_date = nowdate()
 		cc.insert(ignore_permissions=True)
 		cc.reload()
@@ -126,9 +126,9 @@ class TestServices(P2TestCase):
 		self.assertEqual(len(lines), 2)
 
 	def test_clearance_status_mapping(self):
-		self.assertEqual(clearance_status("Manifest Submission", None, None), "Submitted")
-		self.assertEqual(clearance_status("Arrived to Port", "Working", None), "Submitted")
-		self.assertEqual(clearance_status("Submitted Declaration", None, None), "Submitted")
+		self.assertEqual(clearance_status("Manifest Submission", None, None), "Submitted to Customs")
+		self.assertEqual(clearance_status("Arrived to Port", "Working", None), "Submitted to Customs")
+		self.assertEqual(clearance_status("Submitted Declaration", None, None), "Submitted to Customs")
 		self.assertEqual(clearance_status("Inspection stage", None, None), "Under Review")
 		self.assertEqual(clearance_status("Ready to Release", None, None), "Duty Assessed")
 		self.assertEqual(clearance_status("Fully Release", "Working", None), "Released")
@@ -194,7 +194,7 @@ class TestCutoffs(P2TestCase):
 	def test_default_cutoffs(self):
 		sea = job_360.default_cutoffs("Sea", "Saudi Arabia")
 		self.assertEqual(
-			sea, ["Rail Cut-off", "Inland Cut-off", "Container Pickup", "SI Deadline", "Cargo Cut-off"]
+			sea, ["SI Deadline", "VGM Cut-off", "Cargo Cut-off", "Container Pickup"]
 		)
 		self.assertIn("AES Deadline", job_360.default_cutoffs("Sea", "United States"))
 		self.assertEqual(job_360.default_cutoffs("SEA-FCL", "France"), sea)
@@ -203,7 +203,7 @@ class TestCutoffs(P2TestCase):
 		self.assertEqual(job_360.default_cutoffs(None, None), [])
 
 	def test_aes_only_for_the_united_states(self):
-		cutoff = {"milestone": "AES Deadline", "latest": add_days(nowdate(), 5)}
+		cutoff = {"milestone": "AES Deadline", "deadline": add_days(nowdate(), 5)}
 		with self.assertRaises(frappe.ValidationError):
 			make(job_type="Export", mode_of_shipment="Sea", destination_country="Saudi Arabia", cutoffs=[cutoff])
 		job = make(job_type="Export", mode_of_shipment="Sea", destination_country="United States", cutoffs=[cutoff])
@@ -284,7 +284,10 @@ class TestWorklist(P2TestCase):
 		self.assertEqual({k: v for k, v in result["counters"].items() if v}, totals)
 
 	def test_closed_jobs_are_left_out(self):
-		job = job_with_rows(operations_status="Closed")
+		job = job_with_rows()
+		# Saving can't close a job with documents outstanding (R3-07); a job
+		# closed before that rule still has to stay off the worklist.
+		frappe.db.set_value("Operations", job.name, "operations_status", "Closed")
 		result = job_360.build_worklist("Administrator", "all")
 		self.assertNotIn(job.name, {i["job"] for i in result["items"]})
 

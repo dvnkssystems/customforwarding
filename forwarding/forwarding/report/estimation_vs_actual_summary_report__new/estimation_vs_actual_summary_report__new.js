@@ -117,9 +117,9 @@ frappe.query_reports["Estimation VS Actual Summary Report_-NEW"] = {
 				: `<span style="color:var(--text-light)" title="${__("Nothing billed on this job yet")}">${value}</span>`;
 		}
 
-		// Same reasoning for the variance.
-		if (column.fieldname === "variance" && data && !data.billed && data.actual_expense) {
-			value = `<span style="color:var(--text-light)">${value}</span>`;
+		// Until a job is billed its variance is not a result (R3-59).
+		if (column.fieldname === "variance" && data && !data.billed) {
+			value = `<span style="color:var(--text-light)">${__(data.variance_label || "Not billed yet")}</span>`;
 		}
 
 		return value;

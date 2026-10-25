@@ -15,6 +15,7 @@ from forwarding import party_360
 from forwarding.api import job_360
 from forwarding.forwarding.doctype.operations.operations import make_sales_invoice
 from forwarding.quote_to_job import _resolve_port, _set_direction
+from forwarding.tests.test_job_360 import ensure_submitted
 from forwarding.tests.test_job_360_p2 import job_with_rows, make_clearance, make_transportation
 
 
@@ -42,6 +43,7 @@ class P0TestCase(IntegrationTestCase):
 	def test_mapped_invoice_is_dated_today_and_numbered_as_an_invoice(self):
 		job = job_with_rows(date=add_days(nowdate(), -30))
 		frappe.db.set_value("Operations", job.name, "posting_date", add_days(nowdate(), -30))
+		ensure_submitted(job.name)
 		si = make_sales_invoice(job.name)
 		self.assertEqual(str(si.posting_date), nowdate())
 		self.assertGreaterEqual(str(si.due_date), nowdate())

@@ -57,17 +57,12 @@
   "svc_warehousing",
   "customer_details_section",
   "customer",
-  "secondary_customers",
   "to_attention",
   "po_no",
   "po_date",
   "salesman",
   "column_break_23",
   "company",
-  "company_address_name",
-  "company_address",
-  "serial_no",
-  "company_ref_no",
   "cargo_flags_section",
   "cargo_type",
   "dg_status",
@@ -97,7 +92,6 @@
   "house_number",
   "shipping_line",
   "air_line",
-  "customer_supplier",
   "handling_agent",
   "column_break_35",
   "voyage_number",
@@ -150,6 +144,13 @@
   "chargable_weight",
   "column_break_55",
   "cargo_description",
+  "more_details_section",
+  "secondary_customers",
+  "customer_supplier",
+  "company_address_name",
+  "company_address",
+  "serial_no",
+  "company_ref_no",
   "tab_clearance",
   "clearance_docs_section",
   "type_of_clearance",
@@ -258,24 +259,24 @@
    "set_only_once": 1
   },
   {
+   "description": "The first of the job's Scopes of Work, kept for job numbers, prints and older reports.",
    "fetch_from": "movement_type.scope_of_work",
    "fetch_if_empty": 1,
    "fieldname": "scope_of_work",
    "fieldtype": "Link",
+   "hidden": 1,
    "in_filter": 1,
    "label": "Primary Scope Of Work",
    "options": "Scope Of Work",
-   "description": "The first of the job's Scopes of Work, kept for job numbers, prints and older reports.",
-   "hidden": 1,
    "read_only": 1
   },
   {
+   "description": "Decides which services the job can hold: those of any scope chosen.",
    "fieldname": "scopes_of_work",
    "fieldtype": "Table MultiSelect",
    "label": "Scope Of Work",
-   "options": "Job Scope Of Work",
    "mandatory_depends_on": "eval:doc.__islocal",
-   "description": "Decides which services the job can hold: those of any scope chosen."
+   "options": "Job Scope Of Work"
   },
   {
    "fetch_from": "country.abbreviation",
@@ -348,18 +349,21 @@
    "depends_on": "eval:doc.freight_forwarding==\"1\"",
    "fieldname": "freight_forwarding_details_section",
    "fieldtype": "Section Break",
+   "hidden": 1,
    "label": "Freight Forwarding Details"
   },
   {
    "depends_on": "eval:doc.custom_clearance==\"1\"",
    "fieldname": "custom_clearance_details_section",
    "fieldtype": "Section Break",
+   "hidden": 1,
    "label": "Custom Clearance Details"
   },
   {
    "depends_on": "eval:doc.transport==\"1\"",
    "fieldname": "transportation_details_section",
    "fieldtype": "Section Break",
+   "hidden": 1,
    "label": "Transportation Details"
   },
   {
@@ -398,18 +402,21 @@
   {
    "fieldname": "custom_clearance_id",
    "fieldtype": "Link",
+   "hidden": 1,
    "label": "Custom Clearance ID",
    "options": "Custom Clearance"
   },
   {
    "fieldname": "freight",
    "fieldtype": "Link",
+   "hidden": 1,
    "label": "Freight",
    "options": "Freight"
   },
   {
    "fieldname": "transportation",
    "fieldtype": "Link",
+   "hidden": 1,
    "label": "Transportation",
    "options": "Transportation"
   },
@@ -580,6 +587,8 @@
    "read_only_depends_on": "eval:(doc.package_details||[]).length"
   },
   {
+   "default": "Kg",
+   "description": "Kg, Tonne or Pound.",
    "fieldname": "weight_uom",
    "fieldtype": "Link",
    "label": "Weight UOM",
@@ -643,7 +652,7 @@
   {
    "fieldname": "cost_table",
    "fieldtype": "Table",
-   "label": "Cost Table",
+   "label": "Estimate",
    "options": "Cost Table"
   },
   {
@@ -701,7 +710,8 @@
   },
   {
    "fieldname": "section_break_76",
-   "fieldtype": "Section Break"
+   "fieldtype": "Section Break",
+   "label": "Estimate"
   },
   {
    "default": "Today",
@@ -714,7 +724,7 @@
   },
   {
    "allow_on_submit": 1,
-   "depends_on": "eval:doc.mode_of_shipment!=\"Air\"",
+   "depends_on": "eval:(doc.mode_of_shipment||\"\").toLowerCase().startsWith(\"sea\")",
    "fieldname": "shipping_line",
    "fieldtype": "Link",
    "label": "Shipping Line",
@@ -770,6 +780,7 @@
   {
    "fieldname": "operation_id",
    "fieldtype": "Data",
+   "hidden": 1,
    "label": "Operation Id",
    "read_only": 1,
    "unique": 1
@@ -816,10 +827,12 @@
   {
    "allow_on_submit": 1,
    "default": "Open",
+   "description": "Changed by the job's actions (Put on hold, Close job...).",
    "fieldname": "operations_status",
    "fieldtype": "Link",
    "label": "Operations Status",
-   "options": "Operations Status"
+   "options": "Operations Status",
+   "read_only": 1
   },
   {
    "fieldname": "lifecycle_section",
@@ -913,65 +926,72 @@
    "description": "The first of the job's Services, kept for prints and older reports.",
    "fieldname": "activity_code",
    "fieldtype": "Link",
+   "hidden": 1,
    "label": "Primary Service",
    "link_filters": "[[\"Freight Activity Code\", \"mode\", \"=\", \"eval:(doc.mode_of_shipment||\\\"\\\").replace(/^sea.*/i,\\\"Sea\\\").replace(/^others$/i,\\\"Other\\\")\"]]",
    "options": "Freight Activity Code",
-   "hidden": 1,
    "read_only": 1
   },
   {
    "fetch_from": "activity_code.mode",
    "fieldname": "activity_mode",
    "fieldtype": "Data",
+   "hidden": 1,
    "label": "Mode",
-   "read_only": 1,
-   "hidden": 1
+   "read_only": 1
   },
   {
    "fetch_from": "activity_code.service_type",
    "fieldname": "activity_service_type",
    "fieldtype": "Data",
+   "hidden": 1,
    "label": "Primary Service",
-   "read_only": 1,
-   "hidden": 1
+   "read_only": 1
   },
   {
    "fieldname": "column_break_services",
-   "fieldtype": "Column Break"
+   "fieldtype": "Column Break",
+   "hidden": 1
   },
   {
    "fieldname": "svc_freight_forwarding",
    "fieldtype": "Check",
+   "hidden": 1,
    "label": "Freight Forwarding",
    "read_only_depends_on": "eval:(doc.services||[]).length"
   },
   {
    "fieldname": "svc_customs_clearance",
    "fieldtype": "Check",
+   "hidden": 1,
    "label": "Customs Clearance",
    "read_only_depends_on": "eval:(doc.services||[]).length"
   },
   {
    "fieldname": "svc_transportation",
    "fieldtype": "Check",
+   "hidden": 1,
    "label": "Transportation",
    "read_only_depends_on": "eval:(doc.services||[]).length"
   },
   {
    "fieldname": "svc_packing_relocation",
    "fieldtype": "Check",
+   "hidden": 1,
    "label": "Packing & Relocation",
    "read_only_depends_on": "eval:(doc.services||[]).length"
   },
   {
    "fieldname": "svc_trading",
    "fieldtype": "Check",
+   "hidden": 1,
    "label": "Trading",
    "read_only_depends_on": "eval:(doc.services||[]).length"
   },
   {
    "fieldname": "svc_warehousing",
    "fieldtype": "Check",
+   "hidden": 1,
    "label": "Warehousing",
    "read_only_depends_on": "eval:(doc.services||[]).length"
   },
@@ -992,6 +1012,7 @@
    "default": "Today",
    "fieldname": "posting_date",
    "fieldtype": "Date",
+   "hidden": 1,
    "label": "Posting Date"
   },
   {
@@ -1123,7 +1144,7 @@
   {
    "fieldname": "shipment_extra_section",
    "fieldtype": "Section Break",
-   "label": "Shipment"
+   "label": "Port Details"
   },
   {
    "fieldname": "volume",
@@ -1182,7 +1203,7 @@
   {
    "fieldname": "clearance_docs_section",
    "fieldtype": "Section Break",
-   "label": "Documents & D.O"
+   "label": "Clearance & D.O"
   },
   {
    "allow_on_submit": 1,
@@ -1376,6 +1397,7 @@
    "allow_on_submit": 1,
    "fieldname": "wh_delivery_date",
    "fieldtype": "Date",
+   "hidden": 1,
    "label": "Delivery Date"
   },
   {
@@ -1536,6 +1558,12 @@
   {
    "fieldname": "column_break_schedule",
    "fieldtype": "Column Break"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "more_details_section",
+   "fieldtype": "Section Break",
+   "label": "More details"
   }
  ],
  "is_submittable": 1,
@@ -1553,7 +1581,7 @@
    "link_fieldname": "operations"
   }
  ],
- "modified": "2026-10-24 12:00:00.000000",
+ "modified": "2026-10-25 19:01:53.679259",
  "modified_by": "Administrator",
  "module": "Forwarding",
  "name": "Operations",
