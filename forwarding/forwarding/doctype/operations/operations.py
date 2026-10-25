@@ -51,6 +51,7 @@ AES_DEADLINE = "AES Deadline"
 # added by hand when they apply.
 SEA_CUTOFFS = ("SI Deadline", "VGM Cut-off", "Cargo Cut-off", "Container Pickup", AES_DEADLINE)
 AIR_CUTOFFS = ("SI Deadline", "Cargo Cut-off")
+CONTAINER_PICKUP = "Container Pickup"
 
 # The Saudi side of a job (R3-05): an Import arrives here, an Export leaves
 # from here. Territory name; there is also a stray "SAUDI  ARABIA".
@@ -562,10 +563,25 @@ class Operations(Document):
 		self.volume = flt(self.total_package_volume, 3)
 		self.chargable_weight = flt(self.total_chargeable_weight)
 
+	def free_time_start(self):
+		"""When the job's free time starts counting (R3-52), or None while
+		that has not happened yet.
+
+		Import (and any job that is not an export): our free time is at
+		destination, from the ATA -- not the ETA, so nothing expires before
+		the cargo has arrived. Export: the container's free time at origin,
+		from the Container Pickup cut-off's deadline (the consignee's free
+		time after arrival is not ours)."""
+		if self.job_type == "Export":
+			for row in self.get("cutoffs") or []:
+				if row.milestone == CONTAINER_PICKUP and row.get("deadline"):
+					return getdate(row.deadline)
+			return None
+		return getdate(self.ata_date) if self.ata_date else None
+
 	def set_free_time_expiry(self):
-		"""Free time runs from arrival: the ATA once recorded, the ETA until then."""
 		days = cint(self.free_time_days)
-		start = self.ata_date or self.eta_date
+		start = self.free_time_start()
 		self.free_time_expiry = add_days(start, days) if start and days > 0 else None
 
 	def set_chargeable_weight(self):

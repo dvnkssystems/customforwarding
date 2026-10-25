@@ -457,3 +457,22 @@ class TestAtaAlertAfterDeparture(R3Case):
 		self.assertTrue(banners.ata_missing(job, ctx))
 		job.eta_date = add_days(nowdate(), 2)
 		self.assertFalse(banners.ata_missing(job, ctx))
+
+
+class TestFreeTimeStart(R3Case):
+	# R3-52 --------------------------------------------------------------------
+
+	def test_import_waits_for_ata(self):
+		job = make(job_type="Import", eta_date=add_days(nowdate(), -1), free_time_days=7)
+		self.assertIsNone(job.free_time_expiry)
+		job.ata_date = add_days(nowdate(), -1)
+		job.save()
+		self.assertEqual(str(job.free_time_expiry), add_days(nowdate(), 6))
+
+	def test_export_counts_from_container_pickup(self):
+		job = make(job_type="Export", mode_of_shipment="Sea", destination_country="Saudi Arabia", eta_date=nowdate(), free_time_days=10)
+		self.assertIsNone(job.free_time_expiry)
+		pickup = next(r for r in job.cutoffs if r.milestone == "Container Pickup")
+		pickup.deadline = f"{add_days(nowdate(), -2)} 09:00:00"
+		job.save()
+		self.assertEqual(str(job.free_time_expiry), add_days(nowdate(), 8))

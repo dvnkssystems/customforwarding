@@ -214,7 +214,10 @@ class TestJob360(IntegrationTestCase):
 	def test_record_actual_on_submitted_job_moves_free_time(self):
 		job = make(eta_date=add_days(nowdate(), -3), free_time_days=5)
 		submit_job(job)
-		self.assertEqual(str(job.free_time_expiry), add_days(nowdate(), 2))
+		# Free time starts at the ATA, not the ETA (R3-52).
+		self.assertIsNone(job.free_time_expiry)
+		frappe.cache.delete_keys("job_360")
+		self.assertEqual(job_360.get(job.name)["kpis"]["free_time_note"], "Starts on arrival")
 
 		payload = job_360.record_actual(job.name, "ata", nowdate())
 		self.assertEqual(payload["job"]["ata_date"], nowdate())
@@ -231,7 +234,7 @@ class TestJob360(IntegrationTestCase):
 		self.assertNotIn("B7", codes(job_360.build(make(job_type="Import", svc_customs_clearance=0).name)))
 
 	def test_b4_colour_follows_days_left(self):
-		job = make(eta_date=add_days(nowdate(), -10), free_time_days=5)
+		job = make(eta_date=add_days(nowdate(), -10), ata_date=add_days(nowdate(), -10), free_time_days=5)
 		b4 = [b for b in job_360.build(job.name)["banners"] if b["rule_code"] == "B4"]
 		self.assertEqual(b4[0]["colour"], "critical")
 
@@ -276,6 +279,7 @@ class TestJob360(IntegrationTestCase):
 				"billed",
 				"collected",
 				"free_days_left",
+				"free_time_note",
 				"estimate_cost",
 				"estimate_selling",
 				"estimate_margin_pct",

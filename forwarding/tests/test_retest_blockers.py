@@ -102,6 +102,8 @@ class TestSubmittedJobStaysEditable(BlockerTestCase):
 		job.ata_date = nowdate()
 		job.vessel_name = "MSC TEST"
 		job.cutoffs[0].deadline = f"{add_days(nowdate(), -1)} 10:00:00"
+		# An export's free time counts from Container Pickup (R3-52).
+		next(r for r in job.cutoffs if r.milestone == "Container Pickup").deadline = f"{nowdate()} 08:00:00"
 		job.append("container_details", {"container_no": "MSCU1234567", "size": "20", "container_type": "GP"})
 		job.save()
 

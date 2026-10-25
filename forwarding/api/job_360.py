@@ -188,6 +188,10 @@ def job_kpis(doc, documents, charges, linked, submitted_si, today):
 		"free_days_left": date_diff(doc.free_time_expiry, today)
 		if doc.free_time_expiry and cint(doc.docstatus) != 2
 		else None,
+		# Free time set but not started yet (R3-52): "Starts on arrival" for
+		# an import until its ATA, "Starts at container pickup" for an export
+		# until that cut-off has a deadline. None otherwise.
+		"free_time_note": _free_time_note(doc),
 	}
 
 	ctx = dict(
@@ -204,6 +208,12 @@ def job_kpis(doc, documents, charges, linked, submitted_si, today):
 		today=today,
 	)
 	return kpis, ctx
+
+
+def _free_time_note(doc):
+	if cint(doc.get("docstatus")) == 2 or doc.get("free_time_expiry") or cint(doc.get("free_time_days")) <= 0:
+		return None
+	return _("Starts at container pickup") if doc.get("job_type") == "Export" else _("Starts on arrival")
 
 
 def _margin(selling, cost):
@@ -651,6 +661,8 @@ def _milestones(doc, submitted_si, today):
 		days = date_diff(doc.free_time_expiry, today)
 		status = "done" if finished else ("overdue" if days < 0 else "due" if days <= 3 else "upcoming")
 		rows.append(ms("free_time", _("Free time expires"), planned=doc.free_time_expiry, status=status))
+	elif _free_time_note(doc):
+		rows.append(ms("free_time", _("Free time: {0}").format(_free_time_note(doc)), status="upcoming"))
 
 	first_invoice = min((getdate(si.posting_date) for si in submitted_si), default=None)
 	rows.append(
