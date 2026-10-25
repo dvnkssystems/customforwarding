@@ -370,7 +370,7 @@ class TestDuplicateQuote(P1TestCase):
 		old = frappe.get_doc(
 			{
 				"doctype": "Quote",
-				"consignee": customer,
+				"customer": customer,
 				"mode": "SEA",
 				"date": add_days(nowdate(), -40),
 				"validity": add_days(nowdate(), -26),
@@ -383,5 +383,5 @@ class TestDuplicateQuote(P1TestCase):
 		self.assertNotEqual(name, old.name)
 		self.assertEqual(getdate(copy.date), getdate(nowdate()))
 		self.assertEqual(getdate(copy.validity), getdate(add_days(nowdate(), 14)))
-		self.assertEqual((copy.consignee, len(copy.items)), (customer, 1))
+		self.assertEqual((copy.customer, len(copy.items)), (customer, 1))
 		self.assertEqual(getdate(frappe.db.get_value("Quote", old.name, "validity")), getdate(add_days(nowdate(), -26)))

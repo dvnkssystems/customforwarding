@@ -24,8 +24,55 @@ def is_expired(validity, today=None):
 	return bool(validity) and getdate(validity) < getdate(today or nowdate())
 
 
+PROSPECT = "Prospect"
+
+
+def validate(doc, method=None):
+	set_status(doc)
+	set_party(doc)
+
+
 def set_status(doc, method=None):
 	doc.status = STATUS_BY_DOCSTATUS.get(doc.docstatus, "Draft")
+
+
+def converted_customer(lead):
+	"""The Customer a Lead was converted to (Customer.lead_name), if any."""
+	return frappe.db.get_value("Customer", {"lead_name": lead, "disabled": 0}, "name") if lead else None
+
+
+def set_party(doc):
+	"""Who the quote is for (R3-43): a Customer, or a prospect (a Lead) not
+	yet converted. Exactly one of the two is kept; party_name is the name
+	shown in lists and on the print."""
+	if doc.get("quote_to") == PROSPECT:
+		if not doc.get("lead"):
+			frappe.throw(_("Choose the Prospect this quote is for."), frappe.MandatoryError, title=_("Customer missing"))
+		doc.customer = None
+		lead = frappe.db.get_value("Lead", doc.lead, ["company_name", "lead_name"], as_dict=True) or {}
+		doc.party_name = lead.get("company_name") or lead.get("lead_name") or doc.lead
+		return
+	doc.quote_to = "Customer"
+	if not doc.get("customer"):
+		frappe.throw(_("Choose the Customer this quote is for."), frappe.MandatoryError, title=_("Customer missing"))
+	doc.lead = None
+	doc.party_name = frappe.db.get_value("Customer", doc.customer, "customer_name") or doc.customer
+
+
+def job_customer(quote):
+	"""The Customer a job made from the quote bills: the quote's Customer, or
+	the customer its prospect was converted to. Throws for a prospect not
+	converted yet."""
+	if quote.get("quote_to") != PROSPECT:
+		return quote.get("customer")
+	customer = converted_customer(quote.get("lead"))
+	if not customer:
+		name = quote.get("party_name") or quote.get("lead")
+		frappe.throw(
+			_("Convert {0} to a customer first, then create the job.").format(frappe.bold(name)),
+			title=_("Prospect not a customer yet"),
+		)
+	return customer
 
 
 def before_submit(doc, method=None):

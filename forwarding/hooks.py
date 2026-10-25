@@ -106,11 +106,12 @@ fixtures = [
 			"Freight Finance", "Freight Sales", "Freight Viewer",
 		]]],
 	},
-	# Quote is a custom DocType — it lives in the database, not on disk, so
-	# without this its fields never reach another site.
+	# Quote and its Quote Item rows are custom DocTypes: they live in the
+	# database, not on disk, so without this their fields never reach
+	# another site.
 	{
 		"dt": "DocType",
-		"filters": [["name", "in", ["Quote"]]],
+		"filters": [["name", "in", ["Quote", "Quote Item"]]],
 	},
 ]
 
@@ -211,7 +212,7 @@ doc_events = {
 	},
 	"Quote": {
 		# Submit approves the quote (M-08); status follows docstatus.
-		"validate": "forwarding.quote.set_status",
+		"validate": "forwarding.quote.validate",
 		"before_submit": "forwarding.quote.before_submit",
 		"before_cancel": "forwarding.quote.before_cancel",
 		"on_update": "forwarding.job_events.on_quote_change",

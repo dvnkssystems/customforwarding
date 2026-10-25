@@ -330,3 +330,58 @@ class TestClearanceDocumentsShared(R3BackendCase):
 		self.cc.save()
 		self.assertEqual([r[0] for r in self.clearance_rows()], [self.docs[1], self.docs[3]])
 		self.assertEqual([r[0] for r in self.job_customs()], [self.docs[1], self.docs[3]])
+
+
+QUOTE_ITEMS = [{"description": "Ocean freight", "rate": 100, "units": 1}]
+
+
+def quote(**values):
+	from frappe.utils import add_days, nowdate
+
+	return frappe.get_doc(
+		{
+			"doctype": "Quote",
+			"date": nowdate(),
+			"validity": add_days(nowdate(), 10),
+			"mode": "SEA",
+			"items": [dict(r) for r in QUOTE_ITEMS],
+			**values,
+		}
+	).insert(ignore_permissions=True)
+
+
+def a_lead():
+	lead = frappe.get_doc({"doctype": "Lead", "lead_name": "R3 Prospect", "company_name": "R3 Prospect Trading"})
+	return lead.insert(ignore_permissions=True)
+
+
+class TestQuoteCustomer(R3BackendCase):
+	# R3-43 --------------------------------------------------------------------
+
+	def test_customer_is_required(self):
+		with self.assertRaisesRegex(frappe.ValidationError, "Customer"):
+			quote()
+
+	def test_customer_fills_the_job(self):
+		from forwarding.quote_to_job import make_operations_from_quote
+		from forwarding.tests.test_job_360 import CUSTOMER
+
+		q = quote(customer=CUSTOMER)
+		self.assertEqual((q.quote_to, q.party_name), ("Customer", frappe.db.get_value("Customer", CUSTOMER, "customer_name")))
+		self.assertFalse(q.consignee, "Consignee stays separate and optional")
+		q.submit()
+		self.assertEqual(make_operations_from_quote(q.name).customer, CUSTOMER)
+
+	def test_prospect_is_converted_first(self):
+		from forwarding.quote_to_job import make_operations_from_quote
+		from forwarding.tests.test_job_360 import CUSTOMER
+
+		lead = a_lead()
+		q = quote(quote_to="Prospect", lead=lead.name, customer=CUSTOMER)
+		self.assertEqual((q.customer, q.party_name), (None, "R3 Prospect Trading"))
+		q.submit()
+		with self.assertRaisesRegex(frappe.ValidationError, "Convert .*R3 Prospect Trading.* to a customer first"):
+			make_operations_from_quote(q.name)
+
+		frappe.db.set_value("Customer", CUSTOMER, "lead_name", lead.name)
+		self.assertEqual(make_operations_from_quote(q.name).customer, CUSTOMER)

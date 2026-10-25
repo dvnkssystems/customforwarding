@@ -71,7 +71,7 @@ def make_quote(customer, validity_in_days=None, submit=False, **values):
 	quote = frappe.get_doc(
 		{
 			"doctype": "Quote",
-			"consignee": customer,
+			"customer": customer,
 			"date": nowdate(),
 			"validity": add_days(nowdate(), validity_in_days) if validity_in_days is not None else None,
 			"mode": "SEA",

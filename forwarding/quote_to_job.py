@@ -82,15 +82,18 @@ def make_operations_from_quote(source_name, target_doc=None):
 	"""Map a Quote onto a new, unsaved Operations document.
 
 	Only a submitted quote that has not expired makes a job (M-07, M-08)."""
-	from forwarding.quote import assert_can_make_job
+	from forwarding.quote import assert_can_make_job, job_customer
 
 	assert_can_make_job(source_name)
+	# The quote's Customer bills the job; a prospect is converted first (R3-43).
+	customer = job_customer(frappe.get_doc("Quote", source_name))
 
 	def update_item(source, target, source_parent):
 		target.rate = flt(source.amount) or flt(source.rate) * flt(source.units or 1)
 		target.item_name = (source.description or "").strip()
 
 	def postprocess(source, target):
+		target.customer = customer
 		mode = MODES.get((source.mode or "").strip().upper())
 		if mode and frappe.db.exists("Mode Of Shipment", mode):
 			target.mode_of_shipment = mode
@@ -128,7 +131,6 @@ def make_operations_from_quote(source_name, target_doc=None):
 				"doctype": "Operations",
 				"field_map": {
 					"name": "from_quotation",
-					"consignee": "customer",
 					"shipment_reference": "company_ref_no",
 					"cargo_details": "cargo_description",
 				},
@@ -187,10 +189,10 @@ def _set_carrier(target, text, mode):
 def _set_parties(target, source):
 	"""Consignee, Shipper and Salesman (R2-24, M-04).
 
-	The quote's Consignee is a Customer (mapped to the job's customer); the
-	job's Consignee links a Consignee record, so it takes the one named like
-	the customer, and a new one is added when the job is saved
-	(parties_from_quote). Shipper and Salesman are copied when the quote has
+	The quote's Customer is the job's customer (R3-43). Its Consignee, when
+	set, is a Customer record; the job's Consignee links a Consignee record,
+	so it takes the one named like it, and a new one is added when the job
+	is saved (parties_from_quote). Shipper and Salesman are copied when the quote has
 	them; Salesman otherwise comes from the customer's Default Salesperson.
 	"""
 	target.consignee = _consignee_for(source.get("consignee"))

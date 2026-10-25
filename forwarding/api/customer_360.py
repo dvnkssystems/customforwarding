@@ -3,7 +3,7 @@
 """Customer 360: everything about one customer in a single call.
 
 get() reads the Customer and the records around it -- jobs (Operations),
-quotes (Quote, whose customer is `consignee`), Sales Invoices, Payment
+quotes (Quote, whose customer is `customer`, R3-43), Sales Invoices, Payment
 Entries, the documents on the customer's jobs and on the Customer itself,
 Contacts and Addresses -- and folds them into KPIs, banners and lists.
 
@@ -383,7 +383,7 @@ def _quotes(customer, today, days=None, date_range=None):
 	rows = frappe.get_all(
 		"Quote",
 		# A cancelled quote is no longer on offer (M-08).
-		filters={"consignee": customer, "docstatus": ["<", 2]},
+		filters={"customer": customer, "docstatus": ["<", 2]},
 		fields=["name", "date", "validity", "mode", "pol", "pod", "total"],
 		order_by="date desc, creation desc",
 	)

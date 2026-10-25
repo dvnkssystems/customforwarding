@@ -212,7 +212,9 @@ class TestQuoteToJob(R2Case):
 
 	def test_saving_adds_the_consignee(self):
 		customer = make_customer()
-		quote = make_quote(customer.name, mode="SEA", submit=True)
+		# The quote names a Consignee of its own (R3-43: Customer and
+		# Consignee are separate).
+		quote = make_quote(customer.name, mode="SEA", submit=True, consignee=customer.name)
 		job = make_operations_from_quote(quote.name)
 		self.assertFalse(job.consignee, "no Consignee record yet")
 
