@@ -48,3 +48,4 @@ forwarding.patches.v1_0.r2_scope_multi
 forwarding.patches.v1_0.seed_party_document_banner_rules
 forwarding.patches.v1_0.seed_fleet_banner_rules
 forwarding.patches.v1_0.r3_drop_blank_document_rows
+forwarding.patches.v1_0.r3_private_attachments

@@ -2,6 +2,7 @@
 """Round 3 corrections, section 2 ("fix first"). Uses the site's own masters;
 everything is rolled back."""
 
+import os
 import unittest
 from unittest.mock import patch
 
@@ -308,3 +309,74 @@ class TestHomeSide(R3Case):
 			self.skipTest("needs a third Job Type")
 		job = make(job_type=other, port_of_destination=port_in(False), port_of_loading=port_in(False))
 		self.assertNotEqual(job.destination_country, "Saudi Arabia")
+
+
+class TestPrivateAttachments(R3Case):
+	# R3-10 --------------------------------------------------------------------
+
+	def file(self, job, name, private=0):
+		return frappe.get_doc(
+			{
+				"doctype": "File",
+				"file_name": f"{name}-{frappe.generate_hash(length=6)}.txt",
+				"content": b"bill of lading",
+				"attached_to_doctype": "Operations",
+				"attached_to_name": job.name,
+				"is_private": private,
+			}
+		).insert(ignore_permissions=True)
+
+	def test_upload_to_a_freight_record_is_made_private(self):
+		from forwarding import private_files
+
+		captured = {}
+		with patch("frappe.handler.upload_file", lambda: captured.update(private=frappe.form_dict.is_private)):
+			frappe.form_dict.update({"doctype": "Operations", "docname": "X", "is_private": 0})
+			try:
+				private_files.upload_file()
+			finally:
+				for key in ("doctype", "docname", "is_private"):
+					frappe.form_dict.pop(key, None)
+		self.assertEqual(captured["private"], 1)
+
+	def test_upload_elsewhere_is_left_alone(self):
+		from forwarding import private_files
+
+		captured = {}
+		with patch("frappe.handler.upload_file", lambda: captured.update(private=frappe.form_dict.is_private)):
+			frappe.form_dict.update({"doctype": "User", "docname": "X", "is_private": 0})
+			try:
+				private_files.upload_file()
+			finally:
+				for key in ("doctype", "docname", "is_private"):
+					frappe.form_dict.pop(key, None)
+		self.assertEqual(captured["private"], 0)
+
+	def test_public_file_on_a_job_goes_private(self):
+		job = make()
+		f = self.file(job, "r3-10-public")
+		self.assertEqual(f.is_private, 1)
+		self.assertTrue(f.file_url.startswith("/private/files/"))
+		self.assertTrue(os.path.exists(f.get_full_path()))
+
+	def test_patch_moves_public_files_and_rewrites_row_urls(self):
+		from forwarding.patches.v1_0 import r3_private_attachments
+
+		job = job_with_rows()
+		with patch("forwarding.private_files.on_file_insert"):
+			f = self.file(job, "r3-10-legacy")
+		self.assertEqual(f.is_private, 0)
+		frappe.db.set_value("Document Table", job.document_table[0].name, "attach", f.file_url)
+		public_path = f.get_full_path()
+
+		# Not undone on rollback: the test's rollback deletes the file where
+		# it now is, through the insert's own rollback.
+		with patch("frappe.core.doctype.file.file.File.on_rollback"):
+			r3_private_attachments.execute()
+
+		f.reload()
+		self.assertEqual(f.is_private, 1)
+		self.assertTrue(f.file_url.startswith("/private/files/"))
+		self.assertTrue(os.path.exists(f.get_full_path()))
+		self.assertFalse(os.path.exists(public_path))
+		self.assertEqual(frappe.db.get_value("Document Table", job.document_table[0].name, "attach"), f.file_url)

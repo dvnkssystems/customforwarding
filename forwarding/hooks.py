@@ -219,7 +219,8 @@ doc_events = {
 		"on_trash": "forwarding.job_events.on_party_detail_change",
 	},
 	"File": {
-		"after_insert": "forwarding.job_events.on_file_change",
+		# Private first (R3-10), so on_file_change sees the final URL.
+		"after_insert": ["forwarding.private_files.on_file_insert", "forwarding.job_events.on_file_change"],
 		"on_trash": "forwarding.job_events.on_file_change",
 	},
 	"Supplier": {
@@ -299,6 +300,9 @@ override_whitelisted_methods = {
 	"frappe.www.contact.send_message": "forwarding.contact_us.send_message",
 	"erpnext.templates.utils.send_message": "forwarding.contact_us.send_message",
 	"frappe.utils.print_format.download_pdf": "forwarding.print_pdf.download_pdf",
+	# Uploads to freight records are private (R3-10).
+	"upload_file": "forwarding.private_files.upload_file",
+	"frappe.handler.upload_file": "forwarding.private_files.upload_file",
 }
 #
 # each overriding function accepts a `data` argument;
