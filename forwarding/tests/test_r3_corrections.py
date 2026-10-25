@@ -441,3 +441,19 @@ class TestCutoffDeadline(R3Case):
 		r3_cutoff_deadline.execute()
 		self.assertEqual(str(frappe.db.get_value("Job Cutoff", row.name, "deadline")), f"{add_days(nowdate(), 3)} 10:00:00")
 		self.assertEqual(frappe.db.get_value("Job Cutoff", row.name, "cutoff_status"), "Upcoming")
+
+
+class TestAtaAlertAfterDeparture(R3Case):
+	# R3-55 --------------------------------------------------------------------
+
+	def test_no_ata_alert_before_departure(self):
+		from forwarding import banners
+
+		job = frappe._dict(docstatus=0, operations_status="Open", etd_date=add_days(nowdate(), -5), eta_date=add_days(nowdate(), -1))
+		ctx = {"today": nowdate()}
+		self.assertTrue(banners.atd_missing(job, ctx))
+		self.assertFalse(banners.ata_missing(job, ctx))
+		job.atd_date = add_days(nowdate(), -5)
+		self.assertTrue(banners.ata_missing(job, ctx))
+		job.eta_date = add_days(nowdate(), 2)
+		self.assertFalse(banners.ata_missing(job, ctx))

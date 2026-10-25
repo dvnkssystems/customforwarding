@@ -52,8 +52,11 @@ def atd_missing(job, ctx):
 
 
 def ata_missing(job, ctx):
+	"""Only once the cargo has left (ATD recorded) and the ETA has passed
+	(R3-55): before departure there is nothing to arrive yet."""
 	return bool(
 		_active(job)
+		and job.get("atd_date")
 		and job.get("eta_date")
 		and getdate(job.get("eta_date")) <= _today(ctx)
 		and not job.get("ata_date")
