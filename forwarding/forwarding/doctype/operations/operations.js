@@ -149,17 +149,16 @@ const SCOPE_FLAGS = {
 // them only when the scopes change, so opening a job leaves it unchanged.
 function apply_scopes(frm, set_flags) {
 	const scopes = scope_names(frm.doc);
-	if (!scopes.length && !frm.doc.scope_of_work) {
-		Object.values(SERVICE_TYPE_FIELD).forEach(field => frm.toggle_display(field, true));
-		return;
-	}
+	// The tick-boxes follow the Services list and stay hidden (R3-26): the
+	// list is the one place services are chosen.
+	Object.values(SERVICE_TYPE_FIELD).forEach(field => frm.toggle_display(field, false));
+	if (!scopes.length && !frm.doc.scope_of_work) return;
 	frappe.call({
 		method: "forwarding.services.scope_service_types",
 		args: { scopes: JSON.stringify(scopes.length ? scopes : [frm.doc.scope_of_work]) },
 	}).then(r => {
 		const allowed = r && r.message;
 		const offers = type => !Array.isArray(allowed) || allowed.includes(type);
-		Object.entries(SERVICE_TYPE_FIELD).forEach(([type, field]) => frm.toggle_display(field, offers(type)));
 		if (!set_flags || !Array.isArray(allowed)) return;
 		Object.entries(SCOPE_FLAGS).forEach(([field, type]) => {
 			const value = offers(type) ? "1" : "0";

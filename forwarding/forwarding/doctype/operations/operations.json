@@ -348,18 +348,21 @@
    "depends_on": "eval:doc.freight_forwarding==\"1\"",
    "fieldname": "freight_forwarding_details_section",
    "fieldtype": "Section Break",
+   "hidden": 1,
    "label": "Freight Forwarding Details"
   },
   {
    "depends_on": "eval:doc.custom_clearance==\"1\"",
    "fieldname": "custom_clearance_details_section",
    "fieldtype": "Section Break",
+   "hidden": 1,
    "label": "Custom Clearance Details"
   },
   {
    "depends_on": "eval:doc.transport==\"1\"",
    "fieldname": "transportation_details_section",
    "fieldtype": "Section Break",
+   "hidden": 1,
    "label": "Transportation Details"
   },
   {
@@ -398,18 +401,21 @@
   {
    "fieldname": "custom_clearance_id",
    "fieldtype": "Link",
+   "hidden": 1,
    "label": "Custom Clearance ID",
    "options": "Custom Clearance"
   },
   {
    "fieldname": "freight",
    "fieldtype": "Link",
+   "hidden": 1,
    "label": "Freight",
    "options": "Freight"
   },
   {
    "fieldname": "transportation",
    "fieldtype": "Link",
+   "hidden": 1,
    "label": "Transportation",
    "options": "Transportation"
   },
@@ -937,41 +943,48 @@
   },
   {
    "fieldname": "column_break_services",
-   "fieldtype": "Column Break"
+   "fieldtype": "Column Break",
+   "hidden": 1
   },
   {
    "fieldname": "svc_freight_forwarding",
    "fieldtype": "Check",
+   "hidden": 1,
    "label": "Freight Forwarding",
    "read_only_depends_on": "eval:(doc.services||[]).length"
   },
   {
    "fieldname": "svc_customs_clearance",
    "fieldtype": "Check",
+   "hidden": 1,
    "label": "Customs Clearance",
    "read_only_depends_on": "eval:(doc.services||[]).length"
   },
   {
    "fieldname": "svc_transportation",
    "fieldtype": "Check",
+   "hidden": 1,
    "label": "Transportation",
    "read_only_depends_on": "eval:(doc.services||[]).length"
   },
   {
    "fieldname": "svc_packing_relocation",
    "fieldtype": "Check",
+   "hidden": 1,
    "label": "Packing & Relocation",
    "read_only_depends_on": "eval:(doc.services||[]).length"
   },
   {
    "fieldname": "svc_trading",
    "fieldtype": "Check",
+   "hidden": 1,
    "label": "Trading",
    "read_only_depends_on": "eval:(doc.services||[]).length"
   },
   {
    "fieldname": "svc_warehousing",
    "fieldtype": "Check",
+   "hidden": 1,
    "label": "Warehousing",
    "read_only_depends_on": "eval:(doc.services||[]).length"
   },
@@ -1554,7 +1567,7 @@
    "link_fieldname": "operations"
   }
  ],
- "modified": "2026-10-25 18:40:14.981790",
+ "modified": "2026-10-25 18:40:33.822632",
  "modified_by": "Administrator",
  "module": "Forwarding",
  "name": "Operations",
