@@ -17,8 +17,10 @@ from forwarding.child_tables import (
 from forwarding.naming import service_name
 
 
-# Before the declaration is filed there is no Bayan yet.
+# Before the declaration is filed there is no Bayan yet; a clearance can also
+# be rejected before it was filed (R3-39: Rejected from any step).
 BAYAN_OPTIONAL_STATUS = "Draft"
+BAYAN_OPTIONAL_STATUSES = (BAYAN_OPTIONAL_STATUS, "Rejected")
 
 
 class CustomClearance(Document):
@@ -52,7 +54,7 @@ class CustomClearance(Document):
 		if not number or number.isdigit() and number.isascii():
 			return
 		before = self.get_doc_before_save() if not self.is_new() else None
-		if before and before.bayyan_number == number:
+		if before and "".join((before.bayyan_number or "").split()) == number:
 			return
 		frappe.throw(
 			_("{0} must contain digits only.").format(_(self.meta.get_label("bayyan_number"))),
@@ -61,9 +63,9 @@ class CustomClearance(Document):
 
 	def validate_bayan(self):
 		"""The Bayan is issued once the declaration is filed: Bayan No. and
-		Bayan Date are required from Clearance Status Submitted on (the
+		Bayan Date are required from Clearance Status Submitted to Customs on (the
 		form's mandatory_depends_on), not on a Draft clearance (M-11)."""
-		if (self.clearance_status or BAYAN_OPTIONAL_STATUS) == BAYAN_OPTIONAL_STATUS:
+		if (self.clearance_status or BAYAN_OPTIONAL_STATUS) in BAYAN_OPTIONAL_STATUSES:
 			return
 		missing = [
 			_(self.meta.get_label(fieldname))

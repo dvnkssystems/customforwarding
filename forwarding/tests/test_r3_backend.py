@@ -121,3 +121,67 @@ class TestNumberOnlyFields(R3BackendCase):
 		customer.cr_no = "2050 064692"
 		customer.save()
 		self.assertEqual(customer.cr_no, "2050064692")
+
+
+class TestServiceStatusSteps(R3BackendCase):
+	# R3-39 --------------------------------------------------------------------
+
+	def test_clearance_moves_one_step_at_a_time(self):
+		from frappe.utils import nowdate
+
+		from forwarding.api.service_status import get_status, set_status
+
+		cc = clearance()
+		state = get_status("Custom Clearance", cc.name)
+		self.assertEqual(
+			(state["status"], state["next_status"], state["next_label"]),
+			("Draft", "Submitted to Customs", "Submit to Customs"),
+		)
+		self.assertEqual([f["fieldname"] for f in state["next_needs"]], ["bayyan_number", "bayyan_date"])
+		self.assertEqual([e["status"] for e in state["extra"]], ["Rejected"])
+
+		with self.assertRaisesRegex(frappe.ValidationError, "it can only move to"):
+			set_status("Custom Clearance", cc.name, "Released")
+		with self.assertRaisesRegex(frappe.MandatoryError, "Submit to Customs needs Bayan No., Bayan Date"):
+			set_status("Custom Clearance", cc.name, "Submitted to Customs")
+		with self.assertRaisesRegex(frappe.ValidationError, "digits only"):
+			set_status("Custom Clearance", cc.name, "Submitted to Customs", {"bayyan_number": "abc", "bayyan_date": nowdate()})
+		with self.assertRaisesRegex(frappe.ValidationError, "does not set do_number"):
+			set_status("Custom Clearance", cc.name, "Submitted to Customs", {"do_number": "1"})
+
+		state = set_status(
+			"Custom Clearance", cc.name, "Submitted to Customs", {"bayyan_number": "123456", "bayyan_date": nowdate()}
+		)
+		self.assertEqual((state["status"], state["next_label"]), ("Submitted to Customs", "Mark Under Review"))
+		self.assertEqual(frappe.db.get_value("Custom Clearance", cc.name, "bayyan_number"), "123456")
+		self.assertEqual(set_status("Custom Clearance", cc.name, "Under Review")["next_label"], "Mark Duty Assessed")
+		self.assertEqual(set_status("Custom Clearance", cc.name, "Duty Assessed")["next_label"], "Mark Released")
+		state = set_status("Custom Clearance", cc.name, "Released")
+		self.assertEqual((state["status"], state["next_status"], state["extra"]), ("Released", None, []))
+		self.assertTrue(frappe.db.get_value("Custom Clearance", cc.name, "clearance_date"))
+
+	def test_rejected_from_draft_then_submitted_again(self):
+		from frappe.utils import nowdate
+
+		from forwarding.api.service_status import set_status
+
+		cc = clearance()
+		state = set_status("Custom Clearance", cc.name, "Rejected")
+		self.assertEqual((state["status"], state["next_status"]), ("Rejected", "Submitted to Customs"))
+		state = set_status(
+			"Custom Clearance", cc.name, "Submitted to Customs", {"bayyan_number": "77", "bayyan_date": nowdate()}
+		)
+		self.assertEqual(state["status"], "Submitted to Customs")
+
+	def test_transportation_steps(self):
+		from forwarding.api.service_status import set_status
+		from forwarding.tests.test_job_360 import make
+
+		job = make()
+		tt = frappe.get_doc({"doctype": "Transportation", "operations": job.name}).insert(ignore_permissions=True)
+		state = set_status("Transportation", tt.name, "In Transit")
+		self.assertEqual((state["status"], state["next_label"]), ("In Transit", "Mark Delivered"))
+		state = set_status("Transportation", tt.name, "Delivered")
+		self.assertEqual((state["next_status"], [e["label"] for e in state["extra"]]), (None, ["Mark Container Returned"]))
+		self.assertTrue(frappe.db.get_value("Transportation", tt.name, "delivery_date"))
+		self.assertEqual(set_status("Transportation", tt.name, "Container Returned")["extra"], [])
