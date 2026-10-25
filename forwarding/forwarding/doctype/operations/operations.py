@@ -238,11 +238,6 @@ class Operations(Document):
 		self.set_billing_status()
 		self.set_cost_accounts()
 		self.validate_close()
-		if self._action != "submit":
-			# On Submit the documents are not the question (R3-07): the warning
-			# came back as the first message of a refused submit and read as
-			# the reason for it.
-			self.warn_missing_documents()
 
 	def before_submit(self):
 		self.validate_submit()
@@ -644,6 +639,11 @@ class Operations(Document):
 	def on_update(self):
 		self.ensure_project()
 		self.sync_clearance_containers()
+		# Only once the save has gone through, and not on Submit (R3-07): from
+		# validate, the warning came back as the first message of a save or
+		# submit refused for something else, and read as its reason.
+		if self._action != "submit":
+			self.warn_missing_documents()
 		fields_to_transfer = ['awb_number']
 		fields_to_transfer_project = ['cost_center']
 		if self.freight:

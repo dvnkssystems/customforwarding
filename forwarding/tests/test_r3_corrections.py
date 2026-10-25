@@ -250,3 +250,21 @@ class TestBlankDocumentRows(R3Case):
 		self.assertEqual(len(job.document_table), named)
 		self.assertEqual([r.idx for r in job.document_table], list(range(1, named + 1)))
 		job.save()  # saves again
+
+
+class TestDocumentsWarningAfterSave(R3Case):
+	# R3-07 / R3-08: the save-time warning must not lead a refusal --------------
+
+	def test_refused_save_carries_only_the_refusal(self):
+		job = job_with_rows()
+		job.append("document_table", {"received": "No"})
+		frappe.clear_messages()
+		with self.assertRaises(frappe.ValidationError):
+			job.save()
+		self.assertNotIn("Not marked received", str(frappe.message_log))
+
+	def test_successful_save_still_warns(self):
+		job = job_with_rows()
+		frappe.clear_messages()
+		job.save()
+		self.assertIn("Not marked received", str(frappe.message_log))
