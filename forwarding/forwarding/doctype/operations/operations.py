@@ -45,6 +45,14 @@ AIR_CUTOFFS = ("SI Deadline", "Cargo Cut-off")
 CLOSED_STATUS = "Closed"
 
 
+def short_date(value):
+	"""24 Oct; with the year when it is not this year (24 Oct 2027)."""
+	value = getdate(value)
+	if value.year == getdate(nowdate()).year:
+		return value.strftime("%d %b").lstrip("0")
+	return value.strftime("%d %b %Y").lstrip("0")
+
+
 # destination_country links to Territory; these are the names the US goes by.
 US_NAMES = {"united states", "united states of america", "usa", "us"}
 
@@ -508,6 +516,27 @@ class Operations(Document):
 		self.chargable_weight = max(flt(self.gross_weight), flt(self.cbm) * AIR_VOLUMETRIC_FACTOR)
 
 	def validate_cutoffs(self):
+		self.validate_cutoffs_before_etd()
+		self.validate_aes_cutoff()
+
+	def validate_cutoffs_before_etd(self):
+		"""A cut-off falls before the vessel or flight leaves (R3-12): no row's
+		earliest or latest date may be after the ETD."""
+		if not self.etd_date:
+			return
+		etd = getdate(self.etd_date)
+		for row in self.get("cutoffs") or []:
+			for fieldname in ("earliest", "latest"):
+				value = row.get(fieldname)
+				if value and getdate(value) > etd:
+					frappe.throw(
+						_("Row {0} ({1}): Cut-off can't be after ETD ({2}).").format(
+							row.idx, _(row.milestone or ""), short_date(etd)
+						),
+						title=_("Cut-offs"),
+					)
+
+	def validate_aes_cutoff(self):
 		"""AES filing only applies to shipments bound for the United States."""
 		if is_us(self.destination_country):
 			return

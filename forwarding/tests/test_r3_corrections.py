@@ -6,9 +6,13 @@ from unittest.mock import patch
 
 import frappe
 from frappe.tests import IntegrationTestCase
-from frappe.utils import nowdate
+from frappe.utils import add_days, getdate, nowdate
 
-from forwarding.forwarding.doctype.operations.operations import make_purchase_invoice, make_sales_invoice
+from forwarding.forwarding.doctype.operations.operations import (
+	make_purchase_invoice,
+	make_sales_invoice,
+	short_date,
+)
 from forwarding.tests.test_job_360 import ITEM, add_estimate, make, submit_job
 from forwarding.tests.test_job_360_p2 import job_with_rows
 
@@ -154,3 +158,42 @@ class TestSubmitProblemsAtOnce(R3Case):
 		with self.assertRaises(frappe.ValidationError) as caught:
 			job.submit()
 		self.assertIn("Add an estimate", str(caught.exception))
+
+
+class TestCutoffsBeforeEtd(R3Case):
+	# R3-12 --------------------------------------------------------------------
+
+	def test_cutoff_after_etd_is_refused(self):
+		etd = add_days(nowdate(), 10)
+		with self.assertRaisesRegex(frappe.ValidationError, r"Cut-off can't be after ETD"):
+			make(
+				job_type="Export",
+				mode_of_shipment="Sea",
+				etd_date=etd,
+				cutoffs=[{"milestone": "Rail Cut-off", "latest": f"{add_days(etd, 7)} 12:00:00"}],
+			)
+
+	def test_message_names_the_etd(self):
+		etd = add_days(nowdate(), 10)
+		with self.assertRaises(frappe.ValidationError) as caught:
+			make(
+				job_type="Export",
+				mode_of_shipment="Sea",
+				etd_date=etd,
+				cutoffs=[{"milestone": "Rail Cut-off", "earliest": f"{add_days(etd, 1)} 08:00:00"}],
+			)
+		self.assertIn(f"({short_date(etd)})", str(caught.exception))
+
+	def test_cutoff_on_or_before_etd_saves(self):
+		etd = add_days(nowdate(), 10)
+		job = make(
+			job_type="Export",
+			mode_of_shipment="Sea",
+			etd_date=etd,
+			cutoffs=[{"milestone": "Rail Cut-off", "latest": f"{etd} 18:00:00"}],
+		)
+		self.assertTrue(job.name)
+
+	def test_short_date(self):
+		self.assertEqual(short_date(f"{getdate(nowdate()).year}-10-24"), "24 Oct")
+		self.assertEqual(short_date("2031-10-04"), "4 Oct 2031")
