@@ -67,7 +67,15 @@ def make_invoice(customer, amount, due_in_days=0, job=None, submit=True):
 
 
 def make_quote(customer, validity_in_days=None, submit=False, **values):
-	"""A quote; `submit` approves it, which a job needs (M-08)."""
+	"""A quote; `submit` approves it, which a job needs (M-08). A quote to
+	submit gets what submitting needs when the caller leaves it out (R3-47):
+	30 days' validity, a charge row, and a charge Item on every row."""
+	if submit:
+		if validity_in_days is None:
+			validity_in_days = 30
+		values["items"] = [
+			{"item": "Air Freight", **row} for row in (values.get("items") or [{"description": "Freight", "rate": 100, "units": 1}])
+		]
 	quote = frappe.get_doc(
 		{
 			"doctype": "Quote",

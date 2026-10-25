@@ -78,13 +78,11 @@ class CustomClearance(Document):
 			if not self.get(fieldname)
 		]
 		if missing:
+			# Frappe's own mandatory wording, so the app can point at each field.
 			frappe.throw(
-				_("Enter {0}: the Bayan is required once Clearance Status is {1}.").format(
-					", ".join(missing),
-					frappe.bold(_(self.clearance_status)),
-				),
+				"<br>".join(_("Value missing for {0}: {1}").format(_(self.doctype), label) for label in missing),
 				frappe.MandatoryError,
-				title=_("Bayan details missing"),
+				title=_("Bayan required once Clearance Status is {0}").format(_(self.clearance_status)),
 			)
 
 	def add_job_containers(self):

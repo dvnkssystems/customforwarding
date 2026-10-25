@@ -142,7 +142,7 @@ class TestServiceStatusSteps(R3BackendCase):
 
 		with self.assertRaisesRegex(frappe.ValidationError, "it can only move to"):
 			set_status("Custom Clearance", cc.name, "Released")
-		with self.assertRaisesRegex(frappe.MandatoryError, "Submit to Customs needs Bayan No., Bayan Date"):
+		with self.assertRaisesRegex(frappe.MandatoryError, "Value missing for Custom Clearance: Bayan No.<br>Value missing for Custom Clearance: Bayan Date"):
 			set_status("Custom Clearance", cc.name, "Submitted to Customs")
 		with self.assertRaisesRegex(frappe.ValidationError, "digits only"):
 			set_status("Custom Clearance", cc.name, "Submitted to Customs", {"bayyan_number": "abc", "bayyan_date": nowdate()})
@@ -332,7 +332,7 @@ class TestClearanceDocumentsShared(R3BackendCase):
 		self.assertEqual([r[0] for r in self.job_customs()], [self.docs[1], self.docs[3]])
 
 
-QUOTE_ITEMS = [{"description": "Ocean freight", "rate": 100, "units": 1}]
+QUOTE_ITEMS = [{"item": "Air Freight", "description": "Ocean freight", "rate": 100, "units": 1}]
 
 
 def quote(**values):
@@ -359,7 +359,7 @@ class TestQuoteCustomer(R3BackendCase):
 	# R3-43 --------------------------------------------------------------------
 
 	def test_customer_is_required(self):
-		with self.assertRaisesRegex(frappe.ValidationError, "Customer"):
+		with self.assertRaisesRegex(frappe.MandatoryError, "Value missing for Quote: Customer"):
 			quote()
 
 	def test_customer_fills_the_job(self):
@@ -521,3 +521,37 @@ class TestQuoteLists(R3BackendCase):
 	def test_incoterms_are_codes(self):
 		self.assertFalse(frappe.db.exists("Inco Terms", "DELIVERED AT PLACE"))
 		self.assertEqual(frappe.get_meta("Quote").get_field("shipping_terms").label, "Incoterms")
+
+
+class TestQuoteSubmitChecks(R3BackendCase):
+	# R3-47 --------------------------------------------------------------------
+
+	def test_every_problem_in_one_message(self):
+		from forwarding.tests.test_job_360 import CUSTOMER
+
+		q = quote(customer=CUSTOMER, validity=None, items=[{"description": "Freight", "rate": 0}, {"item": "Air Freight", "rate": 0}])
+		with self.assertRaises(frappe.ValidationError) as caught:
+			q.submit()
+		message = str(caught.exception)
+		for part in (
+			"Value missing for Quote: Validity",
+			"Rate is missing on row 1, 2",
+			"Item is missing on row 1",
+			"The total is 0",
+		):
+			self.assertIn(part, message)
+		self.assertEqual(frappe.db.get_value("Quote", q.name, "docstatus"), 0)
+
+	def test_no_rows_is_refused(self):
+		from forwarding.tests.test_job_360 import CUSTOMER
+
+		q = quote(customer=CUSTOMER, items=[])
+		with self.assertRaisesRegex(frappe.ValidationError, "Add at least one charge row"):
+			q.submit()
+
+	def test_complete_quote_submits(self):
+		from forwarding.tests.test_job_360 import CUSTOMER
+
+		q = quote(customer=CUSTOMER)
+		q.submit()
+		self.assertEqual(q.status, "Submitted")

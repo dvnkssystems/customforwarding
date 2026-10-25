@@ -16,7 +16,7 @@ from unittest.mock import patch
 
 import frappe
 from frappe.tests import IntegrationTestCase
-from frappe.utils import nowdate
+from frappe.utils import add_days, nowdate
 
 from forwarding import banners
 from forwarding.api import job_360, job_lifecycle
@@ -69,16 +69,17 @@ class TestCostSheetIsTheEstimate(EstimateCase):
 				"customer": customer,
 				"mode": "AIR",
 				"date": nowdate(),
+				"validity": add_days(nowdate(), 10),
 				"items": [
-					{"description": "Air Freight", "rate": 100, "units": 3, "amount": 300},
-					{"description": "Handling", "rate": 50, "units": 1, "amount": 50},
+					{"item": "Air Freight", "rate": 100, "units": 3},
+					{"item": "Air Freight", "description": "Handling", "rate": 50, "units": 1},
 				],
 			}
 		).insert(ignore_permissions=True)
 		quote.submit()
 
 		job = make_operations_from_quote(quote.name)
-		self.assertEqual([(r.item_name, r.rate) for r in job.cost_table], [("Air Freight", 300), ("Handling", 50)])
+		self.assertEqual([(r.item, r.rate) for r in job.cost_table], [("Air Freight", 300), ("Air Freight", 50)])
 		self.assertTrue(banners.has_estimate(job))
 
 

@@ -108,14 +108,14 @@ def set_party(doc):
 	shown in lists and on the print."""
 	if doc.get("quote_to") == PROSPECT:
 		if not doc.get("lead"):
-			frappe.throw(_("Choose the Prospect this quote is for."), frappe.MandatoryError, title=_("Customer missing"))
+			frappe.throw(_("Value missing for {0}: {1}").format(_("Quote"), _("Prospect")), frappe.MandatoryError)
 		doc.customer = None
 		lead = frappe.db.get_value("Lead", doc.lead, ["company_name", "lead_name"], as_dict=True) or {}
 		doc.party_name = lead.get("company_name") or lead.get("lead_name") or doc.lead
 		return
 	doc.quote_to = "Customer"
 	if not doc.get("customer"):
-		frappe.throw(_("Choose the Customer this quote is for."), frappe.MandatoryError, title=_("Customer missing"))
+		frappe.throw(_("Value missing for {0}: {1}").format(_("Quote"), _("Customer")), frappe.MandatoryError)
 	doc.lead = None
 	doc.party_name = frappe.db.get_value("Customer", doc.customer, "customer_name") or doc.customer
 
@@ -137,13 +137,33 @@ def job_customer(quote):
 
 
 def before_submit(doc, method=None):
-	"""Approving an expired quote would lock prices nobody can use."""
-	if is_expired(doc.validity):
-		frappe.throw(
+	"""Approving locks the prices, so the quote must be complete (R3-47):
+	a Validity that has not passed, a total above zero, and every row with an
+	Item and a Rate. Every problem is listed in one message."""
+	problems = []
+	if not doc.get("validity"):
+		problems.append(_("Value missing for {0}: {1}").format(_("Quote"), _("Validity")))
+	elif is_expired(doc.validity):
+		problems.append(
 			_("Quote {0} expired on {1}. Extend its validity before submitting it.").format(
 				doc.name, formatdate(doc.validity)
-			),
-			title=_("Quote expired"),
+			)
+		)
+	rows = doc.get("items") or []
+	if not rows:
+		problems.append(_("Add at least one charge row."))
+	no_rate = [str(r.idx) for r in rows if flt(r.get("rate")) <= 0]
+	if no_rate:
+		problems.append(_("Rate is missing on row {0}.").format(", ".join(no_rate)))
+	no_item = [str(r.idx) for r in rows if not r.get("item")]
+	if no_item:
+		problems.append(_("Item is missing on row {0}.").format(", ".join(no_item)))
+	if rows and flt(doc.get("total")) <= 0:
+		problems.append(_("The total is 0."))
+	if problems:
+		frappe.throw(
+			"<br>".join(problems),
+			title=_("Quote {0} cannot be submitted yet").format(doc.name),
 		)
 	doc.status = "Submitted"
 

@@ -161,10 +161,11 @@ def set_status(doctype, name, status, values=None):
 
 	missing = [_field(doc, f)["label"] for f in needs if not doc.get(f)]
 	if missing:
+		# Frappe's own mandatory wording, so the app can point at each field.
 		frappe.throw(
-			_("{0} needs {1}.").format(_(flow["labels"][status]), ", ".join(missing)),
+			"<br>".join(_("Value missing for {0}: {1}").format(_(doctype), label) for label in missing),
 			frappe.MandatoryError,
-			title=_("Details missing"),
+			title=_("{0} needs details").format(_(flow["labels"][status])),
 		)
 
 	doc.set(flow["field"], status)
