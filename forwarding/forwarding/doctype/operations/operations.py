@@ -848,6 +848,9 @@ def make_transportaion(source_name, target_doc=None, ignore_permissions=False):
 	def set_missing_values(source, target):
 		# A copied document is dated only once received (C16).
 		undate_unreceived_documents(target)
+		# The route opens filled from the job, not only on save (R3-42).
+		from forwarding.forwarding.doctype.transportation.transportation import set_route_from_job
+		set_route_from_job(target, source)
 		
 	doclist = get_mapped_doc("Operations", source_name, {
 		"Operations": {
