@@ -566,3 +566,54 @@ frappe.ui.form.on("Cost Table", {
 		});
 	},
 });
+
+// ---------------------------------------------------------------------------
+// The Saudi side of a job (R3-05). An Import job arrives in Saudi Arabia, an
+// Export job leaves from it: that side's country is filled and locked, and
+// its port only lists Saudi ports. LAND TRANSPORT / Others are left free.
+// The server applies the same (Operations.set_home_side).
+// ---------------------------------------------------------------------------
+
+const HOME_COUNTRY = "Saudi Arabia";
+const HOME_SIDE = {
+	Import: { country: "destination_country", port: "port_of_destination" },
+	Export: { country: "loading_country", port: "port_of_loading" },
+};
+
+function home_side(frm) {
+	return HOME_SIDE[frm.doc.job_type] || null;
+}
+
+function port_query(port_field) {
+	return (doc) => {
+		const side = HOME_SIDE[doc.job_type];
+		return side && side.port === port_field ? { filters: { country: HOME_COUNTRY } } : {};
+	};
+}
+
+function apply_home_side(frm) {
+	const side = home_side(frm);
+	Object.values(HOME_SIDE).forEach(({ country }) => {
+		frm.set_df_property(country, "read_only", side && side.country === country ? 1 : 0);
+	});
+	if (side && frm.doc.docstatus === 0 && frm.doc[side.country] !== HOME_COUNTRY) {
+		frm.set_value(side.country, HOME_COUNTRY);
+	}
+}
+
+frappe.ui.form.on("Operations", {
+	setup(frm) {
+		frm.set_query("port_of_destination", port_query("port_of_destination"));
+		frm.set_query("port_of_loading", port_query("port_of_loading"));
+	},
+	refresh(frm) {
+		// set_query again: the Vue app's form shim may not run setup.
+		frm.set_query("port_of_destination", port_query("port_of_destination"));
+		frm.set_query("port_of_loading", port_query("port_of_loading"));
+		apply_home_side(frm);
+	},
+	job_type: apply_home_side,
+	// The ports fetch their country into these fields; put the home side back.
+	port_of_destination: apply_home_side,
+	port_of_loading: apply_home_side,
+});

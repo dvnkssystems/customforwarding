@@ -46,6 +46,14 @@ AES_DEADLINE = "AES Deadline"
 SEA_CUTOFFS = ("Rail Cut-off", "Inland Cut-off", "Container Pickup", AES_DEADLINE, "SI Deadline", "Cargo Cut-off")
 AIR_CUTOFFS = ("SI Deadline", "Cargo Cut-off")
 
+# The Saudi side of a job (R3-05): an Import arrives here, an Export leaves
+# from here. Territory name; there is also a stray "SAUDI  ARABIA".
+HOME_COUNTRY = "Saudi Arabia"
+HOME_SIDE = {
+	"Import": ("destination_country", "port_of_destination"),
+	"Export": ("loading_country", "port_of_loading"),
+}
+
 # The Operations Status a closed job carries (R3-07).
 CLOSED_STATUS = "Closed"
 
@@ -225,6 +233,7 @@ class Operations(Document):
 		self.set_operation_id()
 		self.validate_shipment_type()
 		apply_services(self)
+		self.set_home_side()
 		self.validate_ports()
 		self.calculate_package_totals()
 		self.validate_weights()
@@ -377,6 +386,32 @@ class Operations(Document):
 	def set_operation_id(self):
 		"""Operation ID is the job number, not something typed in."""
 		self.operation_id = self.name
+
+	def set_home_side(self):
+		"""Import: Destination Country is Saudi Arabia and the Port of Discharge
+		a Saudi port. Export: the same for Loading Country and Port of
+		Loading (R3-05). Other job types are left as entered."""
+		side = HOME_SIDE.get(self.job_type)
+		if not side:
+			return
+		country_field, port_field = side
+		self.set(country_field, HOME_COUNTRY)
+		port = self.get(port_field)
+		if not port:
+			return
+		port_country = frappe.db.get_value("Port", port, "country")
+		if port_country == HOME_COUNTRY:
+			return
+		frappe.throw(
+			_("{0} {1} is {2}. An {3} job's {0} must be a port in {4}.").format(
+				_(self.meta.get_label(port_field)).strip(),
+				frappe.bold(port),
+				_("in {0}").format(port_country) if port_country else _("not linked to a country"),
+				_(self.job_type),
+				HOME_COUNTRY,
+			),
+			title=_("Port outside {0}").format(HOME_COUNTRY),
+		)
 
 	def validate_ports(self):
 		"""A shipment cannot leave from the port it is bound for.

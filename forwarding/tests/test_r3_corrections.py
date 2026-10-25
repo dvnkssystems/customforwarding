@@ -2,6 +2,7 @@
 """Round 3 corrections, section 2 ("fix first"). Uses the site's own masters;
 everything is rolled back."""
 
+import unittest
 from unittest.mock import patch
 
 import frappe
@@ -268,3 +269,42 @@ class TestDocumentsWarningAfterSave(R3Case):
 		frappe.clear_messages()
 		job.save()
 		self.assertIn("Not marked received", str(frappe.message_log))
+
+
+def port_in(saudi):
+	op = "=" if saudi else "!="
+	name = frappe.db.get_value("Port", {"country": [op, "Saudi Arabia"]}, "name")
+	if not name:
+		raise unittest.SkipTest("needs a Saudi and a non-Saudi Port")
+	return name
+
+
+class TestHomeSide(R3Case):
+	# R3-05 --------------------------------------------------------------------
+
+	def test_import_arrives_in_saudi_arabia(self):
+		job = make(job_type="Import", destination_country=None)
+		self.assertEqual(job.destination_country, "Saudi Arabia")
+
+	def test_export_leaves_from_saudi_arabia(self):
+		job = make(job_type="Export", loading_country="SAUDI  ARABIA" if frappe.db.exists("Territory", "SAUDI  ARABIA") else None)
+		self.assertEqual(job.loading_country, "Saudi Arabia")
+
+	def test_import_refuses_a_foreign_port_of_discharge(self):
+		with self.assertRaisesRegex(frappe.ValidationError, "must be a port in Saudi Arabia"):
+			make(job_type="Import", port_of_destination=port_in(False))
+
+	def test_export_refuses_a_foreign_port_of_loading(self):
+		with self.assertRaisesRegex(frappe.ValidationError, "must be a port in Saudi Arabia"):
+			make(job_type="Export", port_of_loading=port_in(False))
+
+	def test_saudi_ports_and_the_other_side_are_free(self):
+		job = make(job_type="Import", port_of_destination=port_in(True), port_of_loading=port_in(False))
+		self.assertEqual(job.destination_country, "Saudi Arabia")
+
+	def test_other_job_types_are_left_alone(self):
+		other = frappe.db.get_value("Job Type", {"name": ["not in", ["Import", "Export"]]}, "name")
+		if not other:
+			self.skipTest("needs a third Job Type")
+		job = make(job_type=other, port_of_destination=port_in(False), port_of_loading=port_in(False))
+		self.assertNotEqual(job.destination_country, "Saudi Arabia")
