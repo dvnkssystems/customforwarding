@@ -212,6 +212,64 @@ def job_services(job):
 	return out
 
 
+# -- Services a job starts with (R3-23) -----------------------------------------------
+
+# The service types a scope brings with it on its own. The others a scope may
+# allow (Warehousing, Trading, Insurance...) are offered, not assumed: the
+# user adds them.
+CORE_SERVICE_TYPES = ("Freight Forwarding", "Customs Clearance", "Transportation")
+
+
+def default_codes(job_type=None, mode_of_shipment=None, scopes=None):
+	"""The Freight Activity Codes a job of this type, mode and scope starts
+	with: one per core service type its scopes allow, the best fit for the
+	mode and job type (an exact job type before a blank one; for several
+	exact ones, the plain '<Mode> Freight <Job Type>' code). A job whose
+	scopes do not restrict service types gets none -- there is nothing to go
+	on."""
+	names = scope_names(scopes)
+	allowed = allowed_service_types(names)
+	if allowed is None:
+		return []
+	mode = code_mode(mode_of_shipment)
+	rows = frappe.get_all(
+		"Freight Activity Code",
+		filters={"is_hidden": 0, "service_type": ["in", [t for t in CORE_SERVICE_TYPES if t in allowed]]},
+		fields=["name", "service_type", "mode", "job_type"],
+		order_by="name asc",
+	)
+	plain = f"{mode} Freight {job_type}" if mode and job_type else None
+	out = []
+	for service_type in CORE_SERVICE_TYPES:
+		if service_type not in allowed:
+			continue
+		fits = [
+			r
+			for r in rows
+			if r.service_type == service_type and not code_problem(r.name, mode_of_shipment, job_type, allowed)
+		]
+		if not fits:
+			continue
+		fits.sort(
+			key=lambda r: (
+				0 if job_type and r.job_type == job_type else 1,
+				0 if mode and r.mode == mode else 1,
+				0 if plain and r.name == plain else 1,
+				r.name,
+			)
+		)
+		out.append(fits[0].name)
+	return out
+
+
+@frappe.whitelist()
+def default_services(job_type=None, mode_of_shipment=None, scopes_of_work=None):
+	"""default_codes for the job form and the New Job wizard (R3-23, R3-34):
+	a list of Freight Activity Code names."""
+	frappe.has_permission("Operations", "read", throw=True)
+	return default_codes(job_type, mode_of_shipment, scopes_of_work)
+
+
 # -- On the job ------------------------------------------------------------------------
 
 
@@ -221,6 +279,11 @@ def apply_services(job):
 	if not job.get("services") and job.get("activity_code"):
 		# A job given only an Activity Code (an older client, quote to job).
 		job.append("services", {"activity_code": job.activity_code})
+	if job.is_new() and not job.get("services") and not job.flags.skip_default_services:
+		# A new job with none chosen starts with what its type, mode and
+		# scope call for (R3-23); the user can remove or add after.
+		for code in default_codes(job.job_type, job.mode_of_shipment, job_scopes(job)):
+			job.append("services", {"activity_code": code})
 
 	codes = job_codes(job) if job.get("services") else []
 	job.activity_code = codes[0] if codes else None

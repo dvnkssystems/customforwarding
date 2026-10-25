@@ -510,3 +510,32 @@ class TestChosenServiceDropsOut(R3Case):
 		left = [r[0] for r in activity_code_query("Freight Activity Code", "", "name", 0, 500, {"exclude": frappe.as_json(all_codes[:1])})]
 		self.assertNotIn(all_codes[0], left)
 		self.assertEqual(len(left), len(all_codes) - 1)
+
+
+class TestDefaultServices(R3Case):
+	# R3-23 --------------------------------------------------------------------
+
+	def test_door_to_door_sea_export(self):
+		from forwarding.services import default_codes
+
+		if not frappe.db.exists("Scope Of Work", "Door to Door"):
+			self.skipTest("needs the Door to Door scope")
+		codes = default_codes("Export", "Sea", ["Door to Door"])
+		types = [frappe.db.get_value("Freight Activity Code", c, "service_type") for c in codes]
+		self.assertEqual(types, ["Freight Forwarding", "Customs Clearance", "Transportation"])
+		self.assertIn("Sea Freight Export", codes)
+
+	def test_new_job_starts_with_them_and_keeps_a_choice(self):
+		if not frappe.db.exists("Scope Of Work", "Door to Door"):
+			self.skipTest("needs the Door to Door scope")
+		job = make(job_type="Import", mode_of_shipment="Sea", scope_of_work="Door to Door", scopes_of_work=[{"scope_of_work": "Door to Door"}])
+		self.assertEqual(len(job.services), 3)
+		job.services = job.services[:1]
+		job.save()
+		job.reload()
+		self.assertEqual(len(job.services), 1)
+
+	def test_unrestricted_scope_gets_none(self):
+		from forwarding.services import default_codes
+
+		self.assertEqual(default_codes("Import", "Air", []), [])

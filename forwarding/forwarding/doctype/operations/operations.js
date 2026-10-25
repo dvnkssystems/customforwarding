@@ -674,3 +674,41 @@ frappe.ui.form.on("Operations", {
 		frm.set_query("weight_uom", () => ({ filters: { name: ["in", WEIGHT_UOMS] } }));
 	},
 });
+
+// Services fill in from Job Type + Mode + Scope of Work (R3-23): the codes
+// each scope's core service types call for (forwarding.services.
+// default_services). Services the user added that still fit are kept; ones
+// that no longer fit the new type / mode / scope are dropped.
+async function fill_default_services(frm) {
+	if (cint(frm.doc.docstatus) > 0 || !frm.doc.job_type || !frm.doc.mode_of_shipment) return;
+	const scopes = scope_names(frm.doc);
+	if (!scopes.length) return;
+	const asked = [frm.doc.job_type, frm.doc.mode_of_shipment, JSON.stringify(scopes)].join("|");
+	frm._services_for = asked;
+	const r = await frappe.call({
+		method: "forwarding.services.default_services",
+		args: { job_type: frm.doc.job_type, mode_of_shipment: frm.doc.mode_of_shipment, scopes_of_work: JSON.stringify(scopes) },
+	});
+	if (frm._services_for !== asked) return; // a later change is on its way
+	const defaults = (r && r.message) || [];
+	const current = (frm.doc.services || []).map((row) => row.activity_code).filter(Boolean);
+	let keep = [];
+	if (current.length) {
+		const q = await frappe.call({
+			method: "forwarding.services.activity_code_query",
+			args: { doctype: "Freight Activity Code", txt: "", searchfield: "name", start: 0, page_len: 500,
+				filters: services_query(Object.assign({}, frm.doc, { services: [] })).filters },
+		});
+		const fitting = new Set(((q && q.message) || []).map((row) => row[0]));
+		keep = current.filter((code) => fitting.has(code) && !defaults.includes(code));
+	}
+	const next = [...defaults, ...keep];
+	if (next.join("|") === current.join("|")) return;
+	frm.set_value("services", next.map((activity_code) => ({ activity_code })));
+}
+
+frappe.ui.form.on("Operations", {
+	job_type: fill_default_services,
+	mode_of_shipment: fill_default_services,
+	scopes_of_work: fill_default_services,
+});
