@@ -185,3 +185,49 @@ class TestServiceStatusSteps(R3BackendCase):
 		self.assertEqual((state["next_status"], [e["label"] for e in state["extra"]]), (None, ["Mark Container Returned"]))
 		self.assertTrue(frappe.db.get_value("Transportation", tt.name, "delivery_date"))
 		self.assertEqual(set_status("Transportation", tt.name, "Container Returned")["extra"], [])
+
+
+class TestTransportRoute(R3BackendCase):
+	# R3-42 --------------------------------------------------------------------
+
+	def job(self, job_type):
+		from forwarding.tests.test_job_360 import make
+
+		job = make()
+		port = frappe.db.get_value("Port", {"port_code": ["is", "set"]}, ["name", "port_name", "port_code"], as_dict=True)
+		if not port or not frappe.db.exists("Job Type", job_type):
+			self.skipTest("needs a Port with a code and the Job Type")
+		frappe.db.set_value(
+			"Operations",
+			job.name,
+			{
+				"job_type": job_type,
+				"port_of_loading": port.name,
+				"port_of_destination": port.name,
+				"pickup_address": "Warehouse 4, Industrial City\nRiyadh",
+				"delivery_address": "Al Noor Store,\nJeddah",
+			},
+		)
+		return job, f"{port.port_name} ({port.port_code})"
+
+	def transport(self, job, **values):
+		return frappe.get_doc({"doctype": "Transportation", "operations": job.name, **values}).insert(ignore_permissions=True)
+
+	def test_import_runs_port_of_discharge_to_delivery_address(self):
+		job, port = self.job("Import")
+		tt = self.transport(job)
+		self.assertEqual((tt.departure_location, tt.destination_location), (port, "Al Noor Store"))
+		self.assertEqual(tt.destination_location_address, "Al Noor Store,\nJeddah")
+
+	def test_export_runs_pickup_address_to_port_of_loading(self):
+		job, port = self.job("Export")
+		tt = self.transport(job)
+		self.assertEqual((tt.departure_location, tt.destination_location), ("Warehouse 4, Industrial City", port))
+
+	def test_typed_values_are_kept(self):
+		from forwarding.forwarding.doctype.transportation.transportation import get_route
+
+		job, port = self.job("Import")
+		tt = self.transport(job, departure_location="Dry port")
+		self.assertEqual((tt.departure_location, tt.destination_location), ("Dry port", "Al Noor Store"))
+		self.assertEqual(get_route(job.name)["departure_location"], port)

@@ -52,3 +52,4 @@ forwarding.patches.v1_0.r3_private_attachments
 forwarding.patches.v1_0.r3_total_cost_from_estimate
 forwarding.patches.v1_0.r3_submitted_to_customs
 forwarding.patches.v1_0.r3_weight_uom
+forwarding.patches.v1_0.r3_transport_route_from_job

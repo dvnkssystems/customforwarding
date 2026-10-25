@@ -12,6 +12,78 @@ from forwarding.child_tables import copy_from_job, sync_costs_to_job
 from forwarding.naming import service_name
 
 
+# Where the truck starts and ends, by the job's direction (R3-42): an import
+# is collected at the port of discharge and taken to the delivery address; an
+# export is collected at the pickup address and taken to the port of loading.
+ROUTE_FIELDS = (
+	"departure_location",
+	"departure_location_address",
+	"destination_location",
+	"destination_location_address",
+)
+
+
+def _port_place(port):
+	"""("Jeddah (SAJED)", None) for a Port, or (None, None)."""
+	if not port:
+		return None, None
+	row = frappe.db.get_value("Port", port, ["port_name", "port_code"], as_dict=True)
+	if not row:
+		return port, None
+	name = (row.port_name or port).strip()
+	return (f"{name} ({row.port_code})" if row.port_code else name), None
+
+
+def _address_place(address):
+	"""(first line, whole address) of a free-text address, or (None, None)."""
+	address = (address or "").strip()
+	if not address:
+		return None, None
+	return address.splitlines()[0].strip().rstrip(","), address
+
+
+def route_values(job):
+	"""The route fields a Transportation takes from its job (a name or a
+	document): {departure_location, departure_location_address,
+	destination_location, destination_location_address}, empty for a job
+	that is neither Import nor Export."""
+	if isinstance(job, str):
+		job = frappe.db.get_value(
+			"Operations",
+			job,
+			["job_type", "port_of_loading", "port_of_destination", "pickup_address", "delivery_address"],
+			as_dict=True,
+		)
+	if not job:
+		return {}
+	direction = (job.get("job_type") or "").strip().lower()
+	if direction == "import":
+		start, end = _port_place(job.get("port_of_destination")), _address_place(job.get("delivery_address"))
+	elif direction == "export":
+		start, end = _address_place(job.get("pickup_address")), _port_place(job.get("port_of_loading"))
+	else:
+		return {}
+	values = dict(zip(ROUTE_FIELDS, (*start, *end)))
+	return {k: v for k, v in values.items() if v}
+
+
+def set_route_from_job(doc, job=None):
+	"""Fill each empty route field from the job; a value already there (typed
+	by the user) is kept. For the make_transportaion mapper and new records."""
+	if not doc.get("operations") and not job:
+		return
+	for fieldname, value in route_values(job or doc.operations).items():
+		if not doc.get(fieldname):
+			doc.set(fieldname, value)
+
+
+@frappe.whitelist()
+def get_route(operations):
+	"""The route a new Transportation for this job starts with (R3-42)."""
+	frappe.has_permission("Operations", "read", operations, throw=True)
+	return route_values(operations)
+
+
 class Transportation(Document):
 	def autoname(self):
 		"""T + the job number without hyphens (TRIA2607014), a letter added
@@ -19,6 +91,9 @@ class Transportation(Document):
 		format names it, as before."""
 		if self.operations:
 			self.name = service_name("Transportation", "T", self.operations)
+
+	def before_insert(self):
+		set_route_from_job(self)
 
 	def after_insert(self):
 		# The job's containers and documents travel with the transport leg.
