@@ -126,3 +126,31 @@ class TestDocumentsAtClose(R3Case):
 		job.operations_status = "Closed"
 		job.save()
 		self.assertEqual(frappe.db.get_value("Operations", job.name, "operations_status"), "Closed")
+
+
+class TestSubmitProblemsAtOnce(R3Case):
+	# R3-08 --------------------------------------------------------------------
+
+	def test_every_problem_in_one_message(self):
+		job = make()
+		job.reload()
+		# A mandatory field gone missing (a save that skipped mandatory, or a
+		# field made mandatory since) and no estimate: both, in one message.
+		job.flags.ignore_mandatory = False
+		mandatory = next(
+			df.fieldname
+			for df in job.meta.fields
+			if df.reqd and df.fieldtype in ("Data", "Date", "Link") and df.fieldname not in ("company", "naming_series")
+		)
+		problems_before = job.submit_problems()
+		self.assertTrue(any("estimate" in p for p in problems_before))
+		job.set(mandatory, None)
+		problems = job.submit_problems()
+		self.assertGreaterEqual(len(problems), 2)
+		self.assertTrue(any(job.meta.get_label(mandatory) in p for p in problems), problems)
+
+	def test_single_message_lists_them(self):
+		job = make()
+		with self.assertRaises(frappe.ValidationError) as caught:
+			job.submit()
+		self.assertIn("Add an estimate", str(caught.exception))

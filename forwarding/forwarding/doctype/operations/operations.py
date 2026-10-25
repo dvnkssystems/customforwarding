@@ -232,15 +232,40 @@ class Operations(Document):
 			self.warn_missing_documents()
 
 	def before_submit(self):
-		self.validate_estimate()
+		self.validate_submit()
 
-	def validate_estimate(self):
-		"""A job is submitted with its estimate (M-02): at least one cost sheet
-		row with an Est. Selling above zero. A draft saves without one."""
+	def submit_problems(self):
+		"""Everything that stops this job being submitted, as one list (R3-08).
+
+		Frappe would otherwise stop at the first: the estimate here, then its
+		own mandatory check after before_submit, each only once the one
+		before it was fixed."""
 		from forwarding.banners import has_estimate
 
+		problems = []
+		missing = list(self._get_missing_mandatory_fields())
+		for row in self.get_all_children():
+			missing.extend(row._get_missing_mandatory_fields())
+		problems.extend(strip_html(msg) for _fieldname, msg in missing)
 		if not has_estimate(self):
-			frappe.throw(_("Add an estimate before submitting"), title=_("Estimate missing"))
+			problems.append(_("Add an estimate: a cost sheet row with an Est. Selling above 0."))
+		return problems
+
+	def validate_submit(self):
+		problems = self.submit_problems()
+		if not problems:
+			return
+		if len(problems) == 1:
+			message = _("Can't submit yet: {0}").format(problems[0])
+		else:
+			message = _("Can't submit yet. Still missing:") + "<ul>" + "".join(
+				"<li>{0}</li>".format(p) for p in problems
+			) + "</ul>"
+		frappe.throw(message, title=_("Not ready to submit"))
+
+	def validate_estimate(self):
+		"""Kept for callers of the old name; see validate_submit."""
+		self.validate_submit()
 
 	def outstanding_documents(self):
 		"""(missing, awaited): documents the Shipment Type expects that the job

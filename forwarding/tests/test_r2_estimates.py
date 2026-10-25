@@ -92,13 +92,13 @@ class TestEstimateIsMandatory(EstimateCase):
 
 	def test_submit_is_blocked_without_an_estimate(self):
 		job = make()
-		with self.assertRaisesRegex(frappe.ValidationError, "Add an estimate before submitting"):
+		with self.assertRaisesRegex(frappe.ValidationError, "Add an estimate"):
 			job.submit()
 		self.assertEqual(frappe.db.get_value("Operations", job.name, "docstatus"), 0)
 
 	def test_a_row_with_no_selling_is_not_an_estimate(self):
 		job = make(cost_table=[{"item_name": "Trucking", "cost": 500, "rate": 0}])
-		with self.assertRaisesRegex(frappe.ValidationError, "Add an estimate before submitting"):
+		with self.assertRaisesRegex(frappe.ValidationError, "Add an estimate"):
 			job.submit()
 
 	def test_submit_goes_through_with_an_estimate(self):
