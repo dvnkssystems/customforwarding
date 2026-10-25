@@ -258,24 +258,24 @@
    "set_only_once": 1
   },
   {
+   "description": "The first of the job's Scopes of Work, kept for job numbers, prints and older reports.",
    "fetch_from": "movement_type.scope_of_work",
    "fetch_if_empty": 1,
    "fieldname": "scope_of_work",
    "fieldtype": "Link",
+   "hidden": 1,
    "in_filter": 1,
    "label": "Primary Scope Of Work",
    "options": "Scope Of Work",
-   "description": "The first of the job's Scopes of Work, kept for job numbers, prints and older reports.",
-   "hidden": 1,
    "read_only": 1
   },
   {
+   "description": "Decides which services the job can hold: those of any scope chosen.",
    "fieldname": "scopes_of_work",
    "fieldtype": "Table MultiSelect",
    "label": "Scope Of Work",
-   "options": "Job Scope Of Work",
    "mandatory_depends_on": "eval:doc.__islocal",
-   "description": "Decides which services the job can hold: those of any scope chosen."
+   "options": "Job Scope Of Work"
   },
   {
    "fetch_from": "country.abbreviation",
@@ -913,27 +913,27 @@
    "description": "The first of the job's Services, kept for prints and older reports.",
    "fieldname": "activity_code",
    "fieldtype": "Link",
+   "hidden": 1,
    "label": "Primary Service",
    "link_filters": "[[\"Freight Activity Code\", \"mode\", \"=\", \"eval:(doc.mode_of_shipment||\\\"\\\").replace(/^sea.*/i,\\\"Sea\\\").replace(/^others$/i,\\\"Other\\\")\"]]",
    "options": "Freight Activity Code",
-   "hidden": 1,
    "read_only": 1
   },
   {
    "fetch_from": "activity_code.mode",
    "fieldname": "activity_mode",
    "fieldtype": "Data",
+   "hidden": 1,
    "label": "Mode",
-   "read_only": 1,
-   "hidden": 1
+   "read_only": 1
   },
   {
    "fetch_from": "activity_code.service_type",
    "fieldname": "activity_service_type",
    "fieldtype": "Data",
+   "hidden": 1,
    "label": "Primary Service",
-   "read_only": 1,
-   "hidden": 1
+   "read_only": 1
   },
   {
    "fieldname": "column_break_services",
@@ -1376,6 +1376,7 @@
    "allow_on_submit": 1,
    "fieldname": "wh_delivery_date",
    "fieldtype": "Date",
+   "hidden": 1,
    "label": "Delivery Date"
   },
   {
@@ -1553,7 +1554,7 @@
    "link_fieldname": "operations"
   }
  ],
- "modified": "2026-10-24 12:00:00.000000",
+ "modified": "2026-10-25 18:40:14.870689",
  "modified_by": "Administrator",
  "module": "Forwarding",
  "name": "Operations",
