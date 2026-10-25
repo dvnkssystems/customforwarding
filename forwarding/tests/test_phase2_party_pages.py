@@ -88,7 +88,7 @@ class TestPhase2PartyPages(IntegrationTestCase):
 			frappe.db.get_value("Supplier", self.supplier.name, ["is_shipping_line", "is_airline"]), (1, 1)
 		)
 
-		sea = make(shipping_line=line.name)
+		sea = make(mode_of_shipment="Sea", shipping_line=line.name)
 		air = make(carrier=carrier.name)
 		payload = fresh(self.supplier.name)
 		self.assertEqual(jobs_of(payload)[sea.name], ["Shipping Line"])
@@ -267,7 +267,7 @@ class TestPhase2PartyPages(IntegrationTestCase):
 		carrier = frappe.get_doc({"doctype": "Carrier", "carrier": f"P2 Air {frappe.generate_hash(length=5)}"}).insert(
 			ignore_permissions=True
 		)
-		job = make(shipping_line=line.name, carrier=carrier.name, handling_agent=self.supplier.name)
+		job = make(mode_of_shipment="Sea", shipping_line=line.name, carrier=carrier.name, handling_agent=self.supplier.name)
 		frappe.cache.delete_value(cache_key(job.name))
 		got = job_360.get(job.name)["job"]
 		self.assertEqual(

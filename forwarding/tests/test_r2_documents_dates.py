@@ -165,7 +165,8 @@ class TestModeFields(R2Case):
 		self.assertEqual(meta.get_field("chargable_weight").depends_on, 'eval:doc.mode_of_shipment=="Air"')
 		self.assertEqual(meta.get_field("air_line").depends_on, 'eval:doc.mode_of_shipment=="Air"')
 		self.assertEqual(meta.get_field("carrier").depends_on, 'eval:doc.mode_of_shipment!="Air"')
-		self.assertEqual(meta.get_field("shipping_line").depends_on, 'eval:doc.mode_of_shipment!="Air"')
+		# Sea only since R3-24 (Shipping Line for Sea, Airline for Air).
+		self.assertEqual(meta.get_field("shipping_line").depends_on, 'eval:(doc.mode_of_shipment||"").toLowerCase().startsWith("sea")')
 		self.assertTrue(frappe.get_meta("Document Table").get_field("document").reqd)
 
 

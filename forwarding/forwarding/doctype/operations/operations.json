@@ -724,7 +724,7 @@
   },
   {
    "allow_on_submit": 1,
-   "depends_on": "eval:doc.mode_of_shipment!=\"Air\"",
+   "depends_on": "eval:(doc.mode_of_shipment||\"\").toLowerCase().startsWith(\"sea\")",
    "fieldname": "shipping_line",
    "fieldtype": "Link",
    "label": "Shipping Line",
@@ -1581,7 +1581,7 @@
    "link_fieldname": "operations"
   }
  ],
- "modified": "2026-10-25 18:46:25.587768",
+ "modified": "2026-10-25 19:01:53.679259",
  "modified_by": "Administrator",
  "module": "Forwarding",
  "name": "Operations",

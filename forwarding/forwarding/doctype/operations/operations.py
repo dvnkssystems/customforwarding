@@ -23,6 +23,7 @@ from forwarding.child_tables import (
 )
 # A job's Services, its tick-boxes and which codes it may hold (M-05, M-06).
 from forwarding.services import apply_services
+from forwarding import job_rules
 
 # kg per cubic metre for air freight volumetric weight (IATA 1:6000)
 AIR_VOLUMETRIC_FACTOR = 167
@@ -242,6 +243,9 @@ class Operations(Document):
 		self.set_company()
 		self.set_operation_id()
 		self.validate_shipment_type()
+		# Each field narrows the next (R3-24): mode from job type, scopes,
+		# ports, carrier, estimate items.
+		job_rules.validate(self)
 		apply_services(self)
 		self.set_home_side()
 		self.validate_ports()

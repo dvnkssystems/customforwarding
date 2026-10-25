@@ -272,9 +272,10 @@ class TestDocumentsWarningAfterSave(R3Case):
 		self.assertIn("Not marked received", str(frappe.message_log))
 
 
-def port_in(saudi):
+def port_in(saudi, mode="Air"):
+	"""A port in (or outside) Saudi Arabia for the mode (R3-24: ports follow it)."""
 	op = "=" if saudi else "!="
-	name = frappe.db.get_value("Port", {"country": [op, "Saudi Arabia"]}, "name")
+	name = frappe.db.get_value("Port", {"country": [op, "Saudi Arabia"], "mode_of_shipment": mode}, "name")
 	if not name:
 		raise unittest.SkipTest("needs a Saudi and a non-Saudi Port")
 	return name
@@ -539,3 +540,47 @@ class TestDefaultServices(R3Case):
 		from forwarding.services import default_codes
 
 		self.assertEqual(default_codes("Import", "Air", []), [])
+
+
+class TestFieldsNarrow(R3Case):
+	# R3-24 --------------------------------------------------------------------
+
+	def test_land_transport_is_land(self):
+		if not frappe.db.exists("Job Type", "LAND TRANSPORT"):
+			self.skipTest("needs Job Type LAND TRANSPORT")
+		job = make(job_type="LAND TRANSPORT", mode_of_shipment="Air")
+		self.assertEqual(job.mode_of_shipment, "Land")
+
+	def test_land_has_no_port_to_port(self):
+		if not frappe.db.exists("Scope Of Work", "Port to Port"):
+			self.skipTest("needs Port to Port")
+		with self.assertRaisesRegex(frappe.ValidationError, "does not apply to a"):
+			make(job_type="Others", mode_of_shipment="Land", scope_of_work="Port to Port", scopes_of_work=[{"scope_of_work": "Port to Port"}])
+
+	def test_port_follows_mode(self):
+		air_port = frappe.db.get_value("Port", {"mode_of_shipment": "Air"}, "name")
+		if not air_port:
+			self.skipTest("needs an air port")
+		with self.assertRaisesRegex(frappe.ValidationError, "is a Air port; this is a"):
+			make(job_type="Others", mode_of_shipment="Sea", port_of_loading=air_port)
+
+	def test_air_job_drops_the_shipping_line(self):
+		line = frappe.db.get_value("Shipping Line", {}, "name")
+		if not line:
+			self.skipTest("needs a Shipping Line")
+		job = make(mode_of_shipment="Air", shipping_line=line, air_line="SV")
+		self.assertIsNone(job.shipping_line)
+		self.assertEqual(job.air_line, "SV")
+
+	def test_estimate_items(self):
+		from forwarding.job_rules import estimate_item_query
+
+		names = lambda f: [r[0] for r in estimate_item_query("Item", "", "name", 0, 500, f)]  # noqa: E731
+		export_items = names({"job_type": "Export", "mode_of_shipment": "Sea"})
+		air_items = names({"job_type": "Import", "mode_of_shipment": "Air"})
+		self.assertFalse([i for i in export_items if "Import VAT" in i])
+		self.assertFalse([i for i in air_items if "Demurrage" in i])
+		if frappe.db.exists("Item", "Demurrage"):
+			self.assertIn("Demurrage", names({"job_type": "Import", "mode_of_shipment": "Sea"}))
+			with self.assertRaisesRegex(frappe.ValidationError, "does not apply to this job"):
+				make(mode_of_shipment="Air", cost_table=[{"item": "Demurrage", "rate": 10, "cost": 5}])

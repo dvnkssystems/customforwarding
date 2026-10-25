@@ -616,10 +616,24 @@ function home_side(frm) {
 	return HOME_SIDE[frm.doc.job_type] || null;
 }
 
+// The Port.mode_of_shipment a job's mode lists (R3-24): seaports for Sea,
+// airports for Air, land ports for Land; any for Others.
+function port_mode(doc) {
+	const mode = String(doc.mode_of_shipment || "").toLowerCase();
+	if (mode.startsWith("sea")) return "Sea";
+	if (mode === "air") return "Air";
+	if (mode === "land") return "Land";
+	return null;
+}
+
 function port_query(port_field) {
 	return (doc) => {
+		const filters = {};
 		const side = HOME_SIDE[doc.job_type];
-		return side && side.port === port_field ? { filters: { country: HOME_COUNTRY } } : {};
+		if (side && side.port === port_field) filters.country = HOME_COUNTRY;
+		const mode = port_mode(doc);
+		if (mode) filters.mode_of_shipment = mode;
+		return { filters };
 	};
 }
 
@@ -711,4 +725,45 @@ frappe.ui.form.on("Operations", {
 	job_type: fill_default_services,
 	mode_of_shipment: fill_default_services,
 	scopes_of_work: fill_default_services,
+});
+
+// Each field narrows the next (R3-24); forwarding.job_rules applies the same
+// on save. LAND TRANSPORT fixes the mode to Land; Land has no Port to Port
+// scope; the estimate's items leave out what the job type / mode cannot carry.
+const MODE_FOR_JOB_TYPE = { "LAND TRANSPORT": "Land" };
+const SCOPES_NOT_FOR_MODE = { Land: ["Port to Port"] };
+
+function scope_query(doc) {
+	const excluded = SCOPES_NOT_FOR_MODE[port_mode(doc)] || [];
+	return excluded.length ? { filters: { name: ["not in", excluded] } } : {};
+}
+
+function estimate_item_query(doc) {
+	return {
+		query: "forwarding.job_rules.estimate_item_query",
+		filters: { job_type: doc.job_type || "", mode_of_shipment: doc.mode_of_shipment || "" },
+	};
+}
+
+function apply_job_type_mode(frm) {
+	const forced = MODE_FOR_JOB_TYPE[frm.doc.job_type];
+	frm.set_df_property("mode_of_shipment", "read_only", forced ? 1 : 0);
+	if (forced && frm.doc.mode_of_shipment !== forced && cint(frm.doc.docstatus) === 0) {
+		frm.set_value("mode_of_shipment", forced);
+	}
+}
+
+function set_narrowing_queries(frm) {
+	frm.set_query("scopes_of_work", scope_query);
+	frm.set_query("scope_of_work", "scopes_of_work", scope_query);
+	frm.set_query("item", "cost_table", estimate_item_query);
+}
+
+frappe.ui.form.on("Operations", {
+	setup: set_narrowing_queries,
+	refresh(frm) {
+		set_narrowing_queries(frm);
+		apply_job_type_mode(frm);
+	},
+	job_type: apply_job_type_mode,
 });
