@@ -503,11 +503,41 @@ frappe.ui.form.on("Document Table", {
 // The server refuses one too (Operations.validate_actual_dates).
 // ---------------------------------------------------------------------------
 
+const ACTUAL_DATE_FIELDS = ["atd_date", "ata_date"];
+
+// The last accepted value of each actual date, to go back to when a new one
+// is refused (R3-22).
+function remember_actual_dates(frm) {
+	frm._accepted_actuals = {};
+	ACTUAL_DATE_FIELDS.forEach((f) => (frm._accepted_actuals[f] = frm.doc[f] || null));
+}
+
+// Mark the field red, or clear the mark. The desk has $wrapper; the Vue
+// app's form shim may not, so both are optional.
+function mark_field_error(frm, fieldname, on) {
+	const field = frm.fields_dict && frm.fields_dict[fieldname];
+	const $wrapper = field && field.$wrapper;
+	if ($wrapper && $wrapper.toggleClass) $wrapper.toggleClass("has-error", !!on);
+	if (frm.set_df_property) frm.set_df_property(fieldname, "invalid", on ? 1 : 0);
+}
+
 function refuse_future_actual(frm, fieldname, label) {
 	const value = frm.doc[fieldname];
 	const today = frappe.datetime.get_today();
-	if (!value || String(value).slice(0, 10) <= today) return;
-	frm.set_value(fieldname, null);
+	if (!frm._accepted_actuals) remember_actual_dates(frm);
+	if (frm._restoring_actual === fieldname) return; // our own put-back below
+	if (!value || String(value).slice(0, 10) <= today) {
+		frm._accepted_actuals[fieldname] = value || null;
+		mark_field_error(frm, fieldname, false);
+		return;
+	}
+	// Back to what it was before (or empty), and red until it is fixed.
+	const previous = frm._accepted_actuals[fieldname] || null;
+	frm._restoring_actual = fieldname;
+	Promise.resolve(frm.set_value(fieldname, previous)).finally(() => {
+		frm._restoring_actual = null;
+		mark_field_error(frm, fieldname, true);
+	});
 	frappe.msgprint({
 		title: __("Date in the future"),
 		message: __("{0} cannot be after today ({1}): it records what has already happened.", [
@@ -534,6 +564,7 @@ async function fill_salesman_from_customer(frm) {
 }
 
 frappe.ui.form.on("Operations", {
+	refresh: remember_actual_dates,
 	atd_date: (frm) => refuse_future_actual(frm, "atd_date", __("ATD")),
 	ata_date: (frm) => refuse_future_actual(frm, "ata_date", __("ATA")),
 	customer: fill_salesman_from_customer,
