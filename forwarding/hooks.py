@@ -201,7 +201,7 @@ doc_events = {
 	},
 	"Customer": {
 		"before_insert": "forwarding.naming.set_customer_code",
-		"validate": "forwarding.party_documents.validate",
+		"validate": ["forwarding.party_documents.validate", "forwarding.party_validation.validate_cr_no"],
 		"on_update": "forwarding.job_events.on_customer_change",
 		"on_trash": "forwarding.job_events.on_customer_change",
 	},

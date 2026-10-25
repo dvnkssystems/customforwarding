@@ -79,3 +79,45 @@ class TestPublicShare(R3BackendCase):
 		out = share_invoice(name)
 		unshare_invoice(name)
 		self.assertIsNone(self.page(out["public_token"]).invoice)
+
+
+def clearance(**values):
+	from forwarding.tests.test_job_360 import make
+
+	job = make()
+	return frappe.get_doc({"doctype": "Custom Clearance", "operations": job.name, "clearance_status": "Draft", **values}).insert(
+		ignore_permissions=True
+	)
+
+
+class TestNumberOnlyFields(R3BackendCase):
+	# R3-41 --------------------------------------------------------------------
+
+	def test_bayan_no_is_digits_only(self):
+		cc = clearance()
+		cc.reload()
+		cc.bayyan_number = "effdq"
+		with self.assertRaisesRegex(frappe.ValidationError, "Bayan No. must contain digits only"):
+			cc.save()
+		cc.reload()
+		cc.bayyan_number = " 1234 5678 "
+		cc.save()
+		self.assertEqual(cc.bayyan_number, "12345678")
+
+	def test_old_placeholder_bayan_still_saves(self):
+		cc = clearance()
+		frappe.db.set_value("Custom Clearance", cc.name, "bayyan_number", "OLD-1")
+		cc.reload()
+		cc.do_number = "DO-1"
+		cc.save()
+
+	def test_cr_no_is_ten_digits(self):
+		from forwarding.tests.test_customer_360 import make_customer
+
+		for bad in ("12345T6Y", "123456789", "12345678901"):
+			with self.assertRaisesRegex(frappe.ValidationError, "CR No must be exactly 10 digits"):
+				make_customer(cr_no=bad, custom_vat_registration_number="300000000000003")
+		customer = make_customer(cr_no="1010999999", custom_vat_registration_number="300000000000003")
+		customer.cr_no = "2050 064692"
+		customer.save()
+		self.assertEqual(customer.cr_no, "2050064692")

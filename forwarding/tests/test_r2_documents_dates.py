@@ -251,7 +251,7 @@ class TestBayan(R2Case):
 			cc.save()
 		cc.reload()
 		cc.clearance_status = "Submitted to Customs"
-		cc.bayyan_number = "BY-R2"
+		cc.bayyan_number = "2002"
 		cc.bayyan_date = TODAY
 		cc.save()
 

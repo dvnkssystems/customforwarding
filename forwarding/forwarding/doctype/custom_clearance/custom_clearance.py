@@ -37,10 +37,27 @@ class CustomClearance(Document):
 		copy_from_job(self, "clearance_documents")
 
 	def validate(self):
+		self.validate_bayan_number()
 		self.validate_bayan()
 		# The job keeps a copy of every cost row (forwarding.child_tables).
 		sync_costs_to_job(self)
 		self.add_job_containers()
+
+	def validate_bayan_number(self):
+		"""Bayan No. is digits only (R3-41); no length rule yet. Spaces are
+		dropped. Checked when the number is entered or changed, so an old
+		record with a placeholder still saves until someone edits it."""
+		number = "".join((self.bayyan_number or "").split())
+		self.bayyan_number = number or None
+		if not number or number.isdigit() and number.isascii():
+			return
+		before = self.get_doc_before_save() if not self.is_new() else None
+		if before and before.bayyan_number == number:
+			return
+		frappe.throw(
+			_("{0} must contain digits only.").format(_(self.meta.get_label("bayyan_number"))),
+			title=_("Invalid Bayan No."),
+		)
 
 	def validate_bayan(self):
 		"""The Bayan is issued once the declaration is filed: Bayan No. and

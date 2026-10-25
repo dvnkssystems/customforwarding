@@ -59,7 +59,7 @@ def make_clearance(job, **values):
 		{
 			"doctype": "Custom Clearance",
 			"operations": job.name,
-			"bayyan_number": "BY-1",
+			"bayyan_number": "1001",
 			"bayyan_date": nowdate(),
 			**values,
 		}
@@ -111,7 +111,7 @@ class TestServices(P2TestCase):
 		job = job_with_rows()
 		cc = make_custom_clearance(job.name)
 		self.assertEqual([r.stage for r in cc.document_table], ["Customs Clearance"])
-		cc.bayyan_number = "BY-2"
+		cc.bayyan_number = "1002"
 		cc.bayyan_date = nowdate()
 		cc.insert(ignore_permissions=True)
 		cc.reload()

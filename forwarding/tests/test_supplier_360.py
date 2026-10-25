@@ -104,7 +104,7 @@ def make_clearance(job, broker=None, transporter=None, status="Draft"):
 			"broker_name": broker,
 			"transporter_name": transporter,
 			"clearance_status": status,
-			"bayyan_number": frappe.generate_hash(length=8),
+			"bayyan_number": "".join(str(ord(c) % 10) for c in frappe.generate_hash(length=8)),
 			"bayyan_date": nowdate(),
 		}
 	).insert(ignore_permissions=True)

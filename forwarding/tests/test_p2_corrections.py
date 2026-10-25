@@ -143,15 +143,15 @@ class TestCustomClearanceOwnsClearance(P2TestCase):
 		frappe.db.set_value(
 			"Operations",
 			job.name,
-			{"bayan_no": "BY-OLD", "do_no": "DO-9", "duty_amount_company": 250, "clearance_date": nowdate()},
+			{"bayan_no": "9001", "do_no": "DO-9", "duty_amount_company": 250, "clearance_date": nowdate()},
 		)
-		cc = make_clearance(job, bayyan_number="BY-KEEP")
+		cc = make_clearance(job, bayyan_number="7001")
 
 		self.assertEqual(fields_patch.copy_job_fields([job.name]), {"clearances": 1, "fields": 3})
 		values = frappe.db.get_value(
 			"Custom Clearance", cc.name, ["bayyan_number", "do_number", "duty_amount_company", "clearance_date"], as_dict=True
 		)
-		self.assertEqual(values.bayyan_number, "BY-KEEP")
+		self.assertEqual(values.bayyan_number, "7001")
 		self.assertEqual(values.do_number, "DO-9")
 		self.assertEqual(values.duty_amount_company, 250)
 		self.assertEqual(str(values.clearance_date), nowdate())
@@ -179,9 +179,9 @@ class TestCustomClearanceOwnsClearance(P2TestCase):
 
 	def test_d3_make_custom_clearance_maps_old_job_values(self):
 		job = make(mode_of_shipment="Sea")
-		frappe.db.set_value("Operations", job.name, {"bayan_no": "BY-77", "do_no": "DO-77"})
+		frappe.db.set_value("Operations", job.name, {"bayan_no": "7777", "do_no": "DO-77"})
 		cc = make_custom_clearance(job.name)
-		self.assertEqual((cc.bayyan_number, cc.do_number), ("BY-77", "DO-77"))
+		self.assertEqual((cc.bayyan_number, cc.do_number), ("7777", "DO-77"))
 
 	def test_d5_clearance_has_the_tables(self):
 		self.assertEqual(_field("Custom Clearance", "clearance_containers").options, "Operations Clearance Container")
@@ -234,7 +234,7 @@ class TestCustomClearanceOwnsClearance(P2TestCase):
 				"container_no": "ORPH0000001",
 			}
 		).db_insert()
-		cc = frappe.get_doc({"doctype": "Custom Clearance", "operations": job.name, "bayyan_number": "B", "bayyan_date": nowdate()})
+		cc = frappe.get_doc({"doctype": "Custom Clearance", "operations": job.name, "bayyan_number": "1", "bayyan_date": nowdate()})
 		cc.name = f"CC-{job.name}"
 		cc.db_insert()  # a clearance made before the move, with no rows
 
