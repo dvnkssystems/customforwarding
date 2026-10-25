@@ -125,12 +125,18 @@ doc_events = {
 			"forwarding.invoice_guard.validate",
 			"forwarding.sales_invoice.enforce_overseas_zero_rating",
 		],
-		"before_submit": "forwarding.sales_invoice.block_zero_value_job_invoice",
+		"before_submit": [
+			"forwarding.sales_invoice.block_zero_value_job_invoice",
+			"forwarding.sales_invoice.stamp_seller",
+		],
 		"on_update": [
 			"forwarding.custom_methods.update_cost_table_in_operations",
 			"forwarding.job_events.on_sales_invoice_change",
 		],
-		"on_submit": "forwarding.job_events.on_sales_invoice_change",
+		"on_submit": [
+			"forwarding.job_events.on_sales_invoice_change",
+			"forwarding.sales_invoice.warn_missing_seller_details",
+		],
 		"on_cancel": [
 			"forwarding.custom_methods.update_cost_table_in_operations_on_cancle",
 			"forwarding.job_events.on_sales_invoice_change",

@@ -128,3 +128,42 @@ def block_zero_value_job_invoice(doc, method=None):
 			),
 			title=_("Nothing to bill"),
 		)
+
+
+def stamp_seller(doc, method=None):
+	"""before_submit: the seller's VAT number and address come from the
+	Company record (R3-11) and are kept on the invoice as submitted, so the
+	print (and its QR) show them even if the Company changes later. Only
+	fills what is empty."""
+	if not doc.company:
+		return
+	if not doc.get("company_tax_id"):
+		doc.company_tax_id = frappe.get_cached_value("Company", doc.company, "tax_id")
+	if not doc.get("company_address"):
+		from frappe.contacts.doctype.address.address import get_company_address
+
+		doc.company_address = (get_company_address(doc.company) or frappe._dict()).get("company_address")
+	if doc.get("company_address") and not doc.get("company_address_display"):
+		from frappe.contacts.doctype.address.address import get_address_display
+
+		doc.company_address_display = get_address_display(doc.company_address)
+
+
+def warn_missing_seller_details(doc, method=None):
+	"""on_submit: say so (without blocking) when the invoice went out without
+	the seller's VAT number or address: a ZATCA tax invoice needs both, and
+	the QR is only printed with a VAT number. Here rather than before submit,
+	so the warning never leads a refused submit's messages."""
+	missing = []
+	if not doc.get("company_tax_id"):
+		missing.append(_("VAT number (Tax ID)"))
+	if not doc.get("company_address"):
+		missing.append(_("address"))
+	if not missing:
+		return
+	message = _("Company {0} has no {1}. Set it on the Company record; the invoice prints without it.").format(
+		frappe.bold(doc.company), _(" or ").join(missing)
+	)
+	if not doc.get("company_tax_id"):
+		message += " " + _("Without a VAT number there is no ZATCA QR code either.")
+	frappe.msgprint(message, title=_("Seller details missing"), indicator="orange")

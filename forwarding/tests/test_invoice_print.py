@@ -191,7 +191,9 @@ class TestTaxInvoiceFormat(InvoicePrintCase):
 		text = visible_text(html)
 		for label in INTERNAL_LABELS:
 			self.assertNotIn(label, text)
-		self.assertNotIn("<img", html)
+		# The only image is the ZATCA QR, built on its own once submitted (R3-11).
+		self.assertEqual(html.count("<img"), 1)
+		self.assertIn('src="data:image/png;base64,', html)
 
 	def test_qr_only_when_file_exists(self):
 		si = make_invoice()
@@ -210,3 +212,31 @@ class TestTaxInvoiceFormat(InvoicePrintCase):
 		download_pdf("Sales Invoice", si.name)
 		self.assertEqual(frappe.local.response.type, "pdf")
 		self.assertTrue(frappe.local.response.filecontent.startswith(b"%PDF"))
+
+
+class TestZatcaSeller(InvoicePrintCase):
+	"""R3-11: seller VAT number and address from the Company, QR on submit."""
+
+	def test_draft_has_no_qr(self):
+		si = make_invoice()
+		self.assertEqual(invoice_print.get_tax_invoice_context(si).qr, "")
+
+	def test_submitted_invoice_gets_a_phase_1_qr(self):
+		import base64
+
+		si = make_invoice(submit=True)
+		qr = invoice_print.get_tax_invoice_context(si).qr
+		self.assertTrue(qr.startswith("data:image/png;base64,"))
+		self.assertTrue(base64.b64decode(qr.split(",", 1)[1]).startswith(b"\x89PNG"))
+
+	def test_submit_keeps_the_company_vat_number(self):
+		si = make_invoice(submit=True)
+		self.assertEqual(frappe.db.get_value("Sales Invoice", si.name, "company_tax_id"), SELLER_VAT)
+
+	def test_no_vat_number_warns_and_prints_no_qr(self):
+		frappe.db.set_value("Company", self.company, "tax_id", None)
+		frappe.clear_cache(doctype="Company")
+		frappe.clear_messages()
+		si = make_invoice(submit=True)
+		self.assertIn("Seller details missing", str(frappe.message_log))
+		self.assertEqual(invoice_print.get_tax_invoice_context(si).qr, "")
