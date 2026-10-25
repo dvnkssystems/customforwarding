@@ -650,7 +650,7 @@
   {
    "fieldname": "cost_table",
    "fieldtype": "Table",
-   "label": "Cost Table",
+   "label": "Estimate",
    "options": "Cost Table"
   },
   {
@@ -708,7 +708,8 @@
   },
   {
    "fieldname": "section_break_76",
-   "fieldtype": "Section Break"
+   "fieldtype": "Section Break",
+   "label": "Estimate"
   },
   {
    "default": "Today",
@@ -1578,7 +1579,7 @@
    "link_fieldname": "operations"
   }
  ],
- "modified": "2026-10-25 18:41:36.203084",
+ "modified": "2026-10-25 18:43:42.767089",
  "modified_by": "Administrator",
  "module": "Forwarding",
  "name": "Operations",

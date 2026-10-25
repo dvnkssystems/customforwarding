@@ -29,13 +29,14 @@
    "options": "Item"
   },
   {
+   "description": "The charge as named on the quote line it came from, or the item name.",
    "fetch_from": "item.item_name",
    "fetch_if_empty": 1,
    "fieldname": "item_name",
    "fieldtype": "Data",
-   "label": "Item Name",
    "in_list_view": 1,
-   "description": "The charge as named on the quote line it came from, or the item name."
+   "label": "Item Name",
+   "read_only": 1
   },
   {
    "description": "Who the cost is bought from. New rows on a Transportation or Custom Clearance default to its transporter / broker.",
@@ -47,11 +48,13 @@
    "search_index": 1
   },
   {
+   "description": "The Item's default expense account for the company.",
    "fieldname": "account",
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Account",
-   "options": "Account"
+   "options": "Account",
+   "read_only": 1
   },
   {
    "fetch_from": "item.last_purchase_rate",
@@ -117,7 +120,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-10-23 12:00:29.553328",
+ "modified": "2026-10-25 18:43:42.766423",
  "modified_by": "Administrator",
  "module": "Forwarding",
  "name": "Cost Table",
