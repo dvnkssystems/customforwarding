@@ -113,6 +113,12 @@ fixtures = [
 		"dt": "DocType",
 		"filters": [["name", "in", ["Quote", "Quote Item"]]],
 	},
+	# The quote's print: Customer, Incoterms, ports by name; Est. Cost is
+	# never printed (R3-44). Site data, not a standard format.
+	{
+		"dt": "Print Format",
+		"filters": [["name", "in", ["Quote"]]],
+	},
 ]
 
 # Document Events

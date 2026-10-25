@@ -385,3 +385,50 @@ class TestQuoteCustomer(R3BackendCase):
 
 		frappe.db.set_value("Customer", CUSTOMER, "lead_name", lead.name)
 		self.assertEqual(make_operations_from_quote(q.name).customer, CUSTOMER)
+
+
+class TestQuoteChargeItems(R3BackendCase):
+	# R3-44 --------------------------------------------------------------------
+
+	def make(self):
+		from forwarding.tests.test_job_360 import CUSTOMER, ITEM
+
+		return quote(
+			customer=CUSTOMER,
+			items=[
+				{"item": ITEM, "units": 2, "rate": 500, "est_cost": 321.37, "has_vat": 1},
+				{"item": ITEM, "description": "Handling", "rate": 100, "currency": "USD", "ex_rate": 3.75, "est_cost": 40},
+			],
+		)
+
+	def test_amounts_are_worked_out_on_the_server(self):
+		from forwarding.tests.test_job_360 import ITEM
+
+		q = self.make()
+		first, second = q.items
+		self.assertEqual(first.description, frappe.db.get_value("Item", ITEM, "item_name"))
+		self.assertEqual((first.amount, first.vat, first.cost_amount, first.ex_rate), (1000, 150, 642.74, 1))
+		self.assertEqual((second.units, second.amount, second.vat, second.cost_amount), (1, 375, 0, 150))
+		self.assertEqual((q.sub_total, q.total_vat, q.total), (1375, 150, 1525))
+
+	def test_create_job_copies_rows_into_the_estimate(self):
+		from forwarding.quote_to_job import make_operations_from_quote
+		from forwarding.tests.test_job_360 import ITEM
+
+		q = self.make()
+		q.submit()
+		job = make_operations_from_quote(q.name)
+		self.assertEqual(
+			[(r.item, r.rate, r.cost) for r in job.cost_table], [(ITEM, 1000, 642.74), (ITEM, 375, 150)]
+		)
+		self.assertEqual(job.cost_table[0].item_name, frappe.db.get_value("Item", ITEM, "item_name"))
+
+	def test_est_cost_is_never_printed(self):
+		q = self.make()
+		meta = frappe.get_meta("Quote Item")
+		self.assertTrue(meta.get_field("est_cost").print_hide)
+		self.assertTrue(meta.get_field("cost_amount").print_hide)
+		for print_format in frappe.get_all("Print Format", filters={"doc_type": "Quote", "disabled": 0}, pluck="name"):
+			html = frappe.get_print("Quote", q.name, print_format=print_format)
+			for figure in ("321.37", "642.74"):
+				self.assertNotIn(figure, html, f"{print_format} prints the Est. Cost")

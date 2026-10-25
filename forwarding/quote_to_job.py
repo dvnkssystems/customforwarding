@@ -14,11 +14,10 @@ What the mapping can and cannot carry:
   of its own, so the converted figure is the only one that means anything
   beside the other lines. Multiplying rate by units would under-bill every
   foreign line.
-* A quote line names its charge in free text and has no Item. The Cost Table's
-  `item` and `account` are both optional, so the description lands in
-  `item_name` and the two links stay empty for whoever prices the job. Those
-  rows carry no Item or Account until someone fills them in, so they do not
-  reach the ledger on their own.
+* A quote line names its charge Item (R3-44), which the estimate row takes
+  along with Est. Selling (the line's amount) and Est. Cost (its Est. Cost
+  Amount). An older line has only free text: it lands in `item_name` and the
+  Item stays empty for whoever prices the job.
 * Ports are free text on a quote and Links on a job, and the port master holds
   42,000 records under several naming conventions — Jeddah alone is there three
   times. A port is filled only when the text names exactly one record for the
@@ -89,8 +88,17 @@ def make_operations_from_quote(source_name, target_doc=None):
 	customer = job_customer(frappe.get_doc("Quote", source_name))
 
 	def update_item(source, target, source_parent):
-		target.rate = flt(source.amount) or flt(source.rate) * flt(source.units or 1)
-		target.item_name = (source.description or "").strip()
+		"""A quote row becomes an estimate row (R3-44): its Item, Est.
+		Selling = the row's Amount and Est. Cost = its Est. Cost Amount, both
+		in company currency. Item Name is the Item's name; a row with no Item
+		(older quotes) keeps its description there."""
+		target.rate = flt(source.amount) or flt(source.rate) * flt(source.units or 1) * flt(source.get("ex_rate") or 1)
+		target.cost = flt(source.get("cost_amount")) or flt(source.get("est_cost")) * flt(source.units or 1) * flt(
+			source.get("ex_rate") or 1
+		)
+		target.item = source.get("item") or None
+		item_name = frappe.db.get_value("Item", target.item, "item_name") if target.item else None
+		target.item_name = item_name or (source.description or "").strip()
 
 	def postprocess(source, target):
 		target.customer = customer

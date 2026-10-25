@@ -13,7 +13,7 @@ doc_events (hooks.py).
 
 import frappe
 from frappe import _
-from frappe.utils import formatdate, getdate, nowdate
+from frappe.utils import flt, formatdate, getdate, nowdate
 
 STATUS_BY_DOCSTATUS = {0: "Draft", 1: "Submitted", 2: "Cancelled"}
 
@@ -27,9 +27,47 @@ def is_expired(validity, today=None):
 PROSPECT = "Prospect"
 
 
+VAT_RATE = 0.15
+
+
 def validate(doc, method=None):
 	set_status(doc)
 	set_party(doc)
+	set_amounts(doc)
+
+
+def set_amounts(doc):
+	"""Row and quote totals, on the server so every form gets the same
+	figures (R3-44; the desk script and the app did this on their own).
+
+	Rate and Est. Cost are per unit in the row's currency; Amount, VAT and
+	Est. Cost Amount are in company currency (x Ex Rate, 1 for company
+	currency). A row's Qty defaults to 1. Description defaults to the Item's
+	name. Est. Cost is internal: print_hide on the row, never on the print."""
+	import erpnext
+
+	company_currency = erpnext.get_default_currency()
+	names = {}
+	items = {r.item for r in doc.get("items") or [] if r.get("item")}
+	if items:
+		names = dict(frappe.get_all("Item", filters={"name": ["in", list(items)]}, fields=["name", "item_name"], as_list=True))
+	sub_total = total_vat = 0.0
+	for row in doc.get("items") or []:
+		if row.get("item") and not (row.get("description") or "").strip():
+			row.description = names.get(row.item) or row.item
+		if not flt(row.get("units")):
+			row.units = 1
+		if not row.get("currency") or row.currency == company_currency or not flt(row.get("ex_rate")):
+			row.ex_rate = 1
+		ex = flt(row.ex_rate)
+		row.amount = flt(flt(row.units) * flt(row.rate) * ex, 2)
+		row.vat = flt(row.amount * VAT_RATE, 2) if row.get("has_vat") else 0
+		row.cost_amount = flt(flt(row.units) * flt(row.get("est_cost")) * ex, 2)
+		sub_total += row.amount
+		total_vat += row.vat
+	doc.sub_total = flt(sub_total, 2)
+	doc.total_vat = flt(total_vat, 2)
+	doc.total = flt(sub_total + total_vat, 2)
 
 
 def set_status(doc, method=None):
