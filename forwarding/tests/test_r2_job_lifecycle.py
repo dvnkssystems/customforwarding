@@ -17,7 +17,7 @@ from forwarding.api import job_360, job_lifecycle
 from forwarding.forwarding.doctype.operations.operations import default_expense_account
 from forwarding.patches.v1_0 import job_actions_amend_delete
 from forwarding.quote_to_job import _match
-from forwarding.tests.test_job_360 import ITEM, make, make_sales_invoice, submit_job
+from forwarding.tests.test_job_360 import ITEM, ensure_submitted, make, make_sales_invoice, submit_job
 from forwarding.tests.test_job_360_p2 import make_transportation
 
 
@@ -28,6 +28,7 @@ def submitted(**values):
 
 
 def make_purchase_invoice(job, amount=500, submit=True):
+	ensure_submitted(job)
 	pi = frappe.get_doc(
 		{
 			"doctype": "Purchase Invoice",
@@ -136,8 +137,11 @@ class TestDelete(LifecycleCase):
 		self.assertTrue(frappe.db.exists("Operations", job.name))
 
 	def test_linked_invoice_blocks_and_is_named(self):
+		# A draft job can't be invoiced any more (R3-03); one invoiced before
+		# that rule still can't be deleted from under its invoice.
 		job = make()
 		si = make_sales_invoice(job, submit=False)
+		frappe.db.set_value("Operations", job.name, "docstatus", 0)
 		self.assertThrowsNaming(lambda: job_lifecycle.delete_job(job.name), si.name, "Sales Invoice")
 		self.assertTrue(frappe.db.exists("Operations", job.name))
 
@@ -147,6 +151,7 @@ class TestDelete(LifecycleCase):
 		job = make()
 		si = make_sales_invoice(job)
 		pe = make_payment(si, 100)
+		frappe.db.set_value("Operations", job.name, "docstatus", 0)  # as above
 		links = {r["name"] for r in job_lifecycle.linked_records(job.name)}
 		self.assertTrue({si.name, pe.name} <= links)
 		self.assertThrowsNaming(lambda: job_lifecycle.delete_job(job.name), pe.name, si.name)

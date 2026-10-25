@@ -90,7 +90,20 @@ def submit_job(job):
 	return job
 
 
+def ensure_submitted(job):
+	"""Submit a draft job (estimate added) so it can be invoiced (R3-03).
+	Takes the job or its name; returns the job's name."""
+	if not job:
+		return job
+	name = job if isinstance(job, str) else job.name
+	if frappe.db.get_value("Operations", name, "docstatus") == 0:
+		doc = job if not isinstance(job, str) else frappe.get_doc("Operations", name)
+		submit_job(doc)
+	return name
+
+
 def make_sales_invoice(job, amount=1000, submit=True):
+	ensure_submitted(job)
 	si = frappe.get_doc(
 		{
 			"doctype": "Sales Invoice",

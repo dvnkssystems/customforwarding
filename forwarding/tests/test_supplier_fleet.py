@@ -15,7 +15,7 @@ from forwarding.api import supplier_360
 from forwarding.forwarding.doctype.party_alert_settings.party_alert_settings import get_settings
 from forwarding.party_360 import default_company
 from forwarding.party_documents import EXPIRED, EXPIRING, NO_EXPIRY, VALID
-from forwarding.tests.test_job_360 import ITEM, _first, make
+from forwarding.tests.test_job_360 import ITEM, _first, ensure_submitted, make
 from forwarding.tests.test_supplier_360 import NO_ROLE_USER, codes, fresh, make_bill, make_bill_payment, make_supplier
 
 RATE_KEYS = {
@@ -304,6 +304,7 @@ class TestSupplierFleet(IntegrationTestCase):
 
 	def test_job_fills_project_and_cost_center(self):
 		job = make()
+		ensure_submitted(job)
 		company = default_company()
 		default_cc = frappe.get_cached_value("Company", company, "cost_center")
 		cost_center = _first("Cost Center", {"company": company, "is_group": 0, "name": ["!=", default_cc]})
@@ -336,6 +337,7 @@ class TestSupplierFleet(IntegrationTestCase):
 		frappe.db.set_value("Operations", job.name, "cost_center", leaves[0])
 		other_project = frappe.db.get_value("Project", {"name": ["!=", job.reload().project]}, "name")
 
+		ensure_submitted(job)
 		pi = frappe.get_doc(
 			{
 				"doctype": "Purchase Invoice",

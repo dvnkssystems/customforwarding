@@ -13,7 +13,7 @@ from frappe.utils import nowdate
 
 from forwarding import invoice_print
 from forwarding.patches.v1_0 import default_sales_invoice_print_format, fix_address_template_none
-from forwarding.tests.test_job_360 import CUSTOMER, ITEM, make
+from forwarding.tests.test_job_360 import CUSTOMER, ITEM, ensure_submitted, make
 
 PRINT_FORMAT = "Freight Tax Invoice"
 SELLER_VAT = "300000000000003"
@@ -51,6 +51,7 @@ def make_address(**values):
 
 def make_invoice(job=None, submit=False, **values):
 	company = job.company if job else frappe.db.get_value("Company", {}, "name")
+	ensure_submitted(job)
 	si = frappe.get_doc(
 		{
 			"doctype": "Sales Invoice",

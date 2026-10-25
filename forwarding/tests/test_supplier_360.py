@@ -17,7 +17,7 @@ from forwarding import supplier_banners
 from forwarding.api import supplier_360
 from forwarding.job_events import supplier_cache_key
 from forwarding.party_360 import default_company
-from forwarding.tests.test_job_360 import ITEM, _first, make
+from forwarding.tests.test_job_360 import ITEM, _first, ensure_submitted, make
 
 NO_ROLE_USER = "supplier360-norole@example.com"
 
@@ -49,6 +49,7 @@ def make_bill(supplier, amount, due_in_days=0, job=None, submit=True):
 	company = default_company()
 	due = add_days(nowdate(), due_in_days)
 	posting = min(nowdate(), due)
+	ensure_submitted(job)
 	pi = frappe.get_doc(
 		{
 			"doctype": "Purchase Invoice",

@@ -699,6 +699,11 @@ def _invoice_from_today(target):
 
 @frappe.whitelist()
 def make_sales_invoice(source_name, target_doc=None, ignore_permissions=False):
+	# Only a submitted job is invoiced (R3-03); the invoice's validate says so too.
+	from forwarding.invoice_guard import assert_job_submitted
+
+	assert_job_submitted(source_name, "Sales Invoice")
+
 	def postprocess(source, target):
 		set_missing_values(source, target)
 		#Get the advance paid Journal Entries in Sales Invoice Advance
@@ -776,6 +781,11 @@ def make_sales_invoice(source_name, target_doc=None, ignore_permissions=False):
 
 @frappe.whitelist()
 def make_purchase_invoice(source_name, target_doc=None, ignore_permissions=False):
+	# Only a submitted job is invoiced (R3-03); the invoice's validate says so too.
+	from forwarding.invoice_guard import assert_job_submitted
+
+	assert_job_submitted(source_name, "Purchase Invoice")
+
 	def postprocess(source, target):
 		set_missing_values(source, target)
 		#Get the advance paid Journal Entries in Purchase Invoice Advance

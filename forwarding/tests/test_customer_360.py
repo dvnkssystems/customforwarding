@@ -16,7 +16,7 @@ from frappe.utils import add_days, nowdate
 from forwarding import customer_banners
 from forwarding.api import customer_360
 from forwarding.job_events import customer_cache_key
-from forwarding.tests.test_job_360 import ITEM, _first, make, make_payment
+from forwarding.tests.test_job_360 import ITEM, _first, ensure_submitted, make, make_payment
 
 NO_ROLE_USER = "customer360-norole@example.com"
 
@@ -47,6 +47,7 @@ def make_invoice(customer, amount, due_in_days=0, job=None, submit=True):
 	"""A Sales Invoice due due_in_days from today (negative: already overdue)."""
 	due = add_days(nowdate(), due_in_days)
 	posting = min(nowdate(), due)
+	ensure_submitted(job)
 	si = frappe.get_doc(
 		{
 			"doctype": "Sales Invoice",

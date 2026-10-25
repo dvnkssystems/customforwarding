@@ -122,6 +122,7 @@ doc_events = {
 	"Sales Invoice": {
 		"validate": [
 			"forwarding.subscription.enforce_limit",
+			"forwarding.invoice_guard.validate",
 			"forwarding.sales_invoice.enforce_overseas_zero_rating",
 		],
 		"before_submit": "forwarding.sales_invoice.block_zero_value_job_invoice",
@@ -141,6 +142,7 @@ doc_events = {
 		"before_validate": "forwarding.purchase_invoice.fill_from_job",
 		"validate": [
 			"forwarding.subscription.enforce_limit",
+			"forwarding.invoice_guard.validate",
 			"forwarding.purchase_invoice.warn_unlinked",
 		],
 		"on_update": [
