@@ -117,6 +117,14 @@ def make_private(file_name):
 		filters={"file_url": old_url, "name": ["!=", file_doc.name]},
 		fields=["attached_to_doctype", "attached_to_name"],
 	)
+	# A file uploaded from a child row (a document row's Attach) is attached to
+	# the parent with attached_to_field naming the row's field, which the
+	# parent does not have. Frappe's File then fails writing the new URL into
+	# that field on the parent ("Unknown column 'attach'"). Drop the pointer:
+	# replace_attach_urls below rewrites the parent's and its rows' fields.
+	field = file_doc.attached_to_field
+	if field and file_doc.attached_to_doctype and not frappe.get_meta(file_doc.attached_to_doctype).has_field(field):
+		file_doc.attached_to_field = None
 	file_doc.is_private = 1
 	file_doc.flags.ignore_permissions = True
 	file_doc.save()  # Frappe moves the file and updates File records sharing it
