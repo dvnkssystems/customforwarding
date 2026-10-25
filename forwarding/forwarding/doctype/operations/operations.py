@@ -15,7 +15,12 @@ from frappe.contacts.doctype.address.address import get_company_address
 from erpnext.stock.doctype.item.item import get_item_defaults
 from erpnext.setup.doctype.item_group.item_group import get_item_group_defaults
 
-from forwarding.child_tables import undate_unreceived_documents, job_containers, add_clearance_containers
+from forwarding.child_tables import (
+	add_clearance_containers,
+	job_containers,
+	undate_unreceived_documents,
+	validate_document_rows,
+)
 # A job's Services, its tick-boxes and which codes it may hold (M-05, M-06).
 from forwarding.services import apply_services
 
@@ -324,6 +329,7 @@ class Operations(Document):
 		self.validate_cutoffs()
 		self.set_cutoff_status()
 		self.sync_container_rows()
+		validate_document_rows(self)
 		self.validate_close()
 
 	def on_update_after_submit(self):

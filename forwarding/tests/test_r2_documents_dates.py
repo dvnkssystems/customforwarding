@@ -52,7 +52,8 @@ class TestDocumentRows(R2Case):
 	def test_a_row_needs_a_document(self):
 		job = make()
 		job.append("document_table", {"received": "No"})
-		with self.assertRaises(frappe.MandatoryError):
+		# Refused by validate_document_rows (R3-06) before Frappe's own check.
+		with self.assertRaisesRegex(frappe.ValidationError, "has no Document"):
 			job.save()
 
 	def test_received_dates_the_row_and_unreceived_clears_it(self):

@@ -9,6 +9,7 @@ the Vue app) saved them.
 """
 
 import frappe
+from frappe import _
 from frappe.utils import cstr, flt, nowdate
 
 ACTIVITY_DONE = "Done"
@@ -17,10 +18,39 @@ ACTIVITY_DONE = "Done"
 def apply(doc, method=None):
 	if doc.docstatus == 2:
 		return
+	validate_document_rows(doc)
 	set_document_received(doc)
 	set_cost_amounts(doc)
 	set_cost_suppliers(doc)
 	set_activity_dates(doc)
+
+
+def validate_document_rows(doc, method=None):
+	"""A document row names its document (R3-06).
+
+	"+ Add document" left rows with nothing chosen, which saved as
+	"Document 1 - Awaiting" and stayed on the job. Refuse them on the
+	Documents table (Document) and on the clearance documents table
+	(Document Type), naming the rows, so the user picks one or removes it.
+	Runs on validate and, for a submitted job, before_update_after_submit."""
+	if doc.docstatus == 2:
+		return
+	problems = []
+	for fieldname, column in (("document_table", "document"), ("clearance_documents", "document_type")):
+		if not doc.meta.has_field(fieldname):
+			continue
+		blank = [row.idx for row in doc.get(fieldname) or [] if not cstr(row.get(column)).strip()]
+		if blank:
+			label = _(doc.meta.get_label(fieldname))
+			what = _(frappe.get_meta(doc.meta.get_field(fieldname).options).get_label(column))
+			rows = ", ".join(str(i) for i in blank)
+			if len(blank) == 1:
+				message = _("{0}: row {1} has no {2}. Choose one or remove the row.")
+			else:
+				message = _("{0}: rows {1} have no {2}. Choose one or remove the rows.")
+			problems.append(message.format(label, rows, what))
+	if problems:
+		frappe.throw("<br>".join(problems), title=_("Document missing"))
 
 
 def set_document_received(doc):

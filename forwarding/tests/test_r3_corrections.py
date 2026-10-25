@@ -197,3 +197,56 @@ class TestCutoffsBeforeEtd(R3Case):
 	def test_short_date(self):
 		self.assertEqual(short_date(f"{getdate(nowdate()).year}-10-24"), "24 Oct")
 		self.assertEqual(short_date("2031-10-04"), "4 Oct 2031")
+
+
+class TestBlankDocumentRows(R3Case):
+	# R3-06 --------------------------------------------------------------------
+
+	def test_job_refuses_a_row_with_no_document(self):
+		job = make()
+		job.append("document_table", {"received": "No"})
+		job.flags.ignore_mandatory = True  # the rule holds even then
+		with self.assertRaisesRegex(frappe.ValidationError, "has no Document"):
+			job.save()
+
+	def test_submitted_job_refuses_it_too(self):
+		job = submit_job(make())
+		job.append("document_table", {"received": "No"})
+		job.flags.ignore_mandatory = True
+		with self.assertRaisesRegex(frappe.ValidationError, "has no Document"):
+			job.save()
+
+	def test_custom_clearance_refuses_a_blank_clearance_document(self):
+		job = make()
+		cc = frappe.get_doc(
+			{
+				"doctype": "Custom Clearance",
+				"operations": job.name,
+				"clearance_status": "Draft",
+				"clearance_documents": [{"document_number": "X-1"}],
+			}
+		)
+		with self.assertRaisesRegex(frappe.ValidationError, "Clearance Documents: row 1 has no"):
+			cc.insert(ignore_permissions=True)
+
+	def test_patch_drops_blank_rows_only(self):
+		from forwarding.patches.v1_0 import r3_drop_blank_document_rows
+
+		job = job_with_rows()
+		named = len(job.document_table)
+		for i in range(2):
+			frappe.get_doc(
+				{
+					"doctype": "Document Table",
+					"parent": job.name,
+					"parenttype": "Operations",
+					"parentfield": "document_table",
+					"idx": named + i + 1,
+					"received": "No",
+				}
+			).db_insert()
+		r3_drop_blank_document_rows.execute()
+		job.reload()
+		self.assertEqual(len(job.document_table), named)
+		self.assertEqual([r.idx for r in job.document_table], list(range(1, named + 1)))
+		job.save()  # saves again
