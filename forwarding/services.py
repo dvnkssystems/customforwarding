@@ -326,8 +326,9 @@ def activity_code_query(doctype, txt, searchfield, start, page_len, filters):
 	"""Freight Activity Codes that suit a job's mode, job type and scope.
 
 	filters: {mode_of_shipment, job_type, scopes_of_work (a list of scope
-	names, or their JSON), scope_of_work (one, from an older client)}, each
-	optional."""
+	names, or their JSON), scope_of_work (one, from an older client),
+	exclude (codes already on the job, a list or its JSON: they drop out of
+	the list, R3-25)}, each optional."""
 	if isinstance(filters, str):
 		filters = frappe.parse_json(filters)
 	filters = filters or {}
@@ -353,4 +354,10 @@ def activity_code_query(doctype, txt, searchfield, start, page_len, filters):
 		query = query.where(fac.job_type.isnull() | (fac.job_type == "") | (fac.job_type == job_type))
 	if allowed is not None:
 		query = query.where(fac.service_type.isin(sorted(allowed)))
+	exclude = filters.get("exclude")
+	if isinstance(exclude, str):
+		exclude = frappe.parse_json(exclude) if exclude.lstrip().startswith("[") else [exclude]
+	exclude = [cstr(c) for c in exclude or [] if c]
+	if exclude:
+		query = query.where(fac.name.notin(exclude))
 	return query.run()

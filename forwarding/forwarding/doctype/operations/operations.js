@@ -131,6 +131,8 @@ function services_query(doc) {
 		mode_of_shipment: doc.mode_of_shipment || "",
 		job_type: doc.job_type || "",
 		scopes_of_work: JSON.stringify(scope_names(doc)),
+		// A service already on the job drops out of the list (R3-25).
+		exclude: JSON.stringify((doc.services || []).map((r) => r.activity_code).filter(Boolean)),
 	};
 	// A form without the table (an older meta) still sends its one scope.
 	if (!doc.scopes_of_work) filters.scope_of_work = doc.scope_of_work || "";

@@ -497,3 +497,16 @@ class TestEstimationNotBilled(R3Case):
 
 		rows = [{"billed": 0, "actual_income": 0, "actual_expense": 0}] * 32
 		self.assertIn("32 jobs have no invoices or bills linked yet.", get_message(rows))
+
+
+class TestChosenServiceDropsOut(R3Case):
+	# R3-25 --------------------------------------------------------------------
+
+	def test_exclude(self):
+		from forwarding.services import activity_code_query
+
+		all_codes = [r[0] for r in activity_code_query("Freight Activity Code", "", "name", 0, 500, {})]
+		self.assertTrue(all_codes)
+		left = [r[0] for r in activity_code_query("Freight Activity Code", "", "name", 0, 500, {"exclude": frappe.as_json(all_codes[:1])})]
+		self.assertNotIn(all_codes[0], left)
+		self.assertEqual(len(left), len(all_codes) - 1)
