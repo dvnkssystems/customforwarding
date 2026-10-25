@@ -14,6 +14,7 @@ from forwarding.child_tables import (
 	job_containers,
 	sync_costs_to_job,
 )
+from forwarding.clearance_documents import mark_customs_rows, sync_to_job
 from forwarding.naming import service_name
 
 
@@ -35,10 +36,14 @@ class CustomClearance(Document):
 		# Only the job's documents for the customs stage belong to the clearance.
 		copy_from_job(self, "document_table", is_customs_document)
 		# Container clearance and clearance documents moved here from the job
-		# (D5); a job that still carries rows hands them over once.
+		# (D5); a job that still carries rows hands them over once. That
+		# Clearance Documents table is hidden now (R3-36): documents live in
+		# the Documents table, shared with the job.
 		copy_from_job(self, "clearance_documents")
 
 	def validate(self):
+		# Its Documents table is the job's Customs Clearance rows (R3-36).
+		mark_customs_rows(self)
 		self.validate_bayan_number()
 		self.validate_bayan()
 		# The job keeps a copy of every cost row (forwarding.child_tables).
@@ -94,6 +99,7 @@ class CustomClearance(Document):
 		add_clearance_containers(self, job_containers(job))
 
 	def on_update(self):
+		sync_to_job(self)
 		fields_to_transfer = ['awb_number']
 		if self.operations:
 			for field in fields_to_transfer:

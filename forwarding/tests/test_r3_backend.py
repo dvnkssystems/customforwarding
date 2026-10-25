@@ -231,3 +231,102 @@ class TestTransportRoute(R3BackendCase):
 		tt = self.transport(job, departure_location="Dry port")
 		self.assertEqual((tt.departure_location, tt.destination_location), ("Dry port", "Al Noor Store"))
 		self.assertEqual(get_route(job.name)["departure_location"], port)
+
+
+class TestClearanceDocumentsShared(R3BackendCase):
+	# R3-36 (clearance side) ---------------------------------------------------
+
+	def setUp(self):
+		super().setUp()
+		from forwarding.tests.test_job_360_p2 import _documents, job_with_rows, make_clearance
+
+		self.docs = _documents(5)
+		self.job = job_with_rows()
+		self.cc = make_clearance(self.job)
+		self.cc.reload()
+
+	def job_customs(self):
+		return [
+			(r.document, r.received, r.remark)
+			for r in frappe.get_all(
+				"Document Table",
+				filters={"parenttype": "Operations", "parent": self.job.name, "stage": "Customs Clearance"},
+				fields=["document", "received", "remark"],
+				order_by="idx",
+			)
+		]
+
+	def clearance_rows(self):
+		return [
+			(r.document, r.received, r.remark, r.stage)
+			for r in frappe.get_all(
+				"Document Table",
+				filters={"parenttype": "Custom Clearance", "parent": self.cc.name},
+				fields=["document", "received", "remark", "stage"],
+				order_by="idx",
+			)
+		]
+
+	def test_clearance_starts_with_the_jobs_customs_rows_only(self):
+		self.assertEqual(self.clearance_rows(), [(self.docs[1], "No", None, "Customs Clearance")])
+
+	def test_change_add_remove_on_the_clearance_reach_the_job(self):
+		self.cc.document_table[0].received = "Yes"
+		self.cc.document_table[0].remark = "original seen"
+		self.cc.append("document_table", {"document": self.docs[3], "received": "No"})
+		self.cc.save()
+		self.assertEqual(
+			self.job_customs(), [(self.docs[1], "Yes", "original seen"), (self.docs[3], "No", None)]
+		)
+		self.assertEqual(self.cc.document_table[1].stage, "Customs Clearance")
+
+		self.cc.reload()
+		self.cc.remove(self.cc.document_table[0])
+		self.cc.save()
+		self.assertEqual(self.job_customs(), [(self.docs[3], "No", None)])
+		# The job's other stages are untouched.
+		self.assertEqual(
+			frappe.db.count("Document Table", {"parenttype": "Operations", "parent": self.job.name}), 3
+		)
+
+	def test_change_add_remove_on_the_job_reach_the_clearance(self):
+		job = frappe.get_doc("Operations", self.job.name)
+		customs = next(r for r in job.document_table if r.stage == "Customs Clearance")
+		customs.remark = "from the job"
+		job.append("document_table", {"document": self.docs[3], "stage": "Customs Clearance", "received": "No"})
+		job.append("document_table", {"document": self.docs[4], "stage": "Delivery", "received": "No"})
+		job.save()
+		self.assertEqual(
+			self.clearance_rows(),
+			[(self.docs[1], "No", "from the job", "Customs Clearance"), (self.docs[3], "No", None, "Customs Clearance")],
+		)
+
+		job.reload()
+		job.remove(next(r for r in job.document_table if r.document == self.docs[1]))
+		job.save()
+		self.assertEqual(self.clearance_rows(), [(self.docs[3], "No", None, "Customs Clearance")])
+
+	def test_a_stale_job_form_cannot_write_old_rows_back(self):
+		stale = frappe.get_doc("Operations", self.job.name)
+		self.cc.append("document_table", {"document": self.docs[3], "received": "No"})
+		self.cc.save()
+		stale.remark = "x" if stale.meta.has_field("remark") else None
+		with self.assertRaises(frappe.TimestampMismatchError):
+			stale.save()
+
+	def test_a_row_added_on_the_job_since_is_kept_when_the_clearance_saves(self):
+		frappe.get_doc(
+			{
+				"doctype": "Document Table",
+				"parenttype": "Operations",
+				"parent": self.job.name,
+				"parentfield": "document_table",
+				"idx": 10,
+				"document": self.docs[3],
+				"stage": "Customs Clearance",
+			}
+		).db_insert()
+		self.cc.document_table[0].remark = "edited"
+		self.cc.save()
+		self.assertEqual([r[0] for r in self.clearance_rows()], [self.docs[1], self.docs[3]])
+		self.assertEqual([r[0] for r in self.job_customs()], [self.docs[1], self.docs[3]])

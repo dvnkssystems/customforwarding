@@ -178,8 +178,12 @@ doc_events = {
 			"forwarding.subscription.enforce_limit",
 			"forwarding.child_tables.apply",
 		],
-		"on_update": "forwarding.job_events.on_job_change",
-		"on_update_after_submit": "forwarding.job_events.on_job_change",
+		# The clearance's Documents table mirrors the job's customs rows (R3-36).
+		"on_update": ["forwarding.clearance_documents.sync_from_job", "forwarding.job_events.on_job_change"],
+		"on_update_after_submit": [
+			"forwarding.clearance_documents.sync_from_job",
+			"forwarding.job_events.on_job_change",
+		],
 		"on_cancel": "forwarding.job_events.on_job_change",
 		"on_trash": "forwarding.job_events.on_job_change",
 	},
