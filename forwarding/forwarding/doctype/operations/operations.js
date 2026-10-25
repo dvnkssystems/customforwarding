@@ -637,11 +637,16 @@ function port_query(port_field) {
 	};
 }
 
-function apply_home_side(frm) {
+// `fill` is false on refresh: opening a job must not change it (that marked
+// every old job unsaved). Existing jobs were back-filled by a patch and the
+// server sets the country on save; a new job, a Job Type change or a port
+// pick fills it here.
+function apply_home_side(frm, fill = true) {
 	const side = home_side(frm);
 	Object.values(HOME_SIDE).forEach(({ country }) => {
 		frm.set_df_property(country, "read_only", side && side.country === country ? 1 : 0);
 	});
+	if (!fill && !frm.is_new()) return;
 	if (side && frm.doc.docstatus === 0 && frm.doc[side.country] !== HOME_COUNTRY) {
 		frm.set_value(side.country, HOME_COUNTRY);
 	}
@@ -656,12 +661,12 @@ frappe.ui.form.on("Operations", {
 		// set_query again: the Vue app's form shim may not run setup.
 		frm.set_query("port_of_destination", port_query("port_of_destination"));
 		frm.set_query("port_of_loading", port_query("port_of_loading"));
-		apply_home_side(frm);
+		apply_home_side(frm, false);
 	},
-	job_type: apply_home_side,
+	job_type: (frm) => apply_home_side(frm),
 	// The ports fetch their country into these fields; put the home side back.
-	port_of_destination: apply_home_side,
-	port_of_loading: apply_home_side,
+	port_of_destination: (frm) => apply_home_side(frm),
+	port_of_loading: (frm) => apply_home_side(frm),
 });
 
 // Company is shown only when the site has more than one (R3-33).
