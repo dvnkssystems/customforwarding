@@ -1123,7 +1123,7 @@
   {
    "fieldname": "shipment_extra_section",
    "fieldtype": "Section Break",
-   "label": "Shipment"
+   "label": "Port Details"
   },
   {
    "fieldname": "volume",
@@ -1554,7 +1554,7 @@
    "link_fieldname": "operations"
   }
  ],
- "modified": "2026-10-25 18:40:14.870689",
+ "modified": "2026-10-25 18:40:14.924489",
  "modified_by": "Administrator",
  "module": "Forwarding",
  "name": "Operations",
