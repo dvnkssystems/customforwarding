@@ -380,3 +380,17 @@ class TestPrivateAttachments(R3Case):
 		self.assertTrue(os.path.exists(f.get_full_path()))
 		self.assertFalse(os.path.exists(public_path))
 		self.assertEqual(frappe.db.get_value("Document Table", job.document_table[0].name, "attach"), f.file_url)
+
+
+class TestFormCleanUp(R3Case):
+	# R3-33 --------------------------------------------------------------------
+
+	def test_total_cost_is_the_estimate_cost(self):
+		job = make(cost_table=[{"item_name": "A", "rate": 100, "cost": 60}, {"item_name": "B", "rate": 50, "cost": 15.5}])
+		self.assertEqual(job.custom_total_cost, 75.5)
+		meta = frappe.get_meta("Operations")
+		self.assertTrue(meta.get_field("custom_total_cost").read_only)
+		for fieldname in ("posting_date", "operation_id"):
+			self.assertTrue(meta.get_field(fieldname).hidden, fieldname)
+		for fieldname in ("operations_status", "billing_status"):
+			self.assertTrue(meta.get_field(fieldname).read_only, fieldname)

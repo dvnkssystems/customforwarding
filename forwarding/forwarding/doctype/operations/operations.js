@@ -647,3 +647,17 @@ frappe.ui.form.on("Operations", {
 	port_of_destination: apply_home_side,
 	port_of_loading: apply_home_side,
 });
+
+// Company is shown only when the site has more than one (R3-33).
+frappe.ui.form.on("Operations", {
+	async refresh(frm) {
+		if (frm._company_count === undefined) {
+			try {
+				frm._company_count = await frappe.db.count("Company");
+			} catch (e) {
+				frm._company_count = 2;
+			}
+		}
+		frm.toggle_display("company", frm._company_count > 1 || !frm.doc.company);
+	},
+});

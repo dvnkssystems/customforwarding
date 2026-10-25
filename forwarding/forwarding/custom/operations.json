@@ -1,0 +1,32 @@
+{
+ "custom_fields": [
+  {
+   "doctype": "Custom Field",
+   "dt": "Operations",
+   "fieldname": "mbl_number",
+   "fieldtype": "Data",
+   "insert_after": "awb_number",
+   "label": "MBL / Master BL Number",
+   "modified": "2026-10-25 19:00:00.000000",
+   "name": "Operations-mbl_number"
+  },
+  {
+   "description": "The estimate's total cost (sum of the Estimate rows' Cost).",
+   "doctype": "Custom Field",
+   "dt": "Operations",
+   "fieldname": "custom_total_cost",
+   "fieldtype": "Currency",
+   "insert_after": "billing_status",
+   "label": "Total Cost",
+   "modified": "2026-10-25 19:00:00.000000",
+   "name": "Operations-custom_total_cost",
+   "no_copy": 1,
+   "options": "Company:company:default_currency",
+   "read_only": 1
+  }
+ ],
+ "custom_perms": [],
+ "doctype": "Operations",
+ "property_setters": [],
+ "sync_on_migrate": 1
+}

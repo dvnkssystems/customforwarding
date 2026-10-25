@@ -246,10 +246,17 @@ class Operations(Document):
 		self.sync_container_rows()
 		self.set_billing_status()
 		self.set_cost_accounts()
+		self.set_total_cost()
 		self.validate_close()
 
 	def before_submit(self):
 		self.validate_submit()
+
+	def set_total_cost(self):
+		"""Total Cost is the estimate's: the Estimate rows' Cost added up
+		(R3-33). Read-only on the form."""
+		if self.meta.has_field("custom_total_cost"):
+			self.custom_total_cost = sum(flt(r.cost) for r in self.get("cost_table") or [])
 
 	def submit_problems(self):
 		"""Everything that stops this job being submitted, as one list (R3-08).

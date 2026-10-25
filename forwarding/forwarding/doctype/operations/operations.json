@@ -57,17 +57,12 @@
   "svc_warehousing",
   "customer_details_section",
   "customer",
-  "secondary_customers",
   "to_attention",
   "po_no",
   "po_date",
   "salesman",
   "column_break_23",
   "company",
-  "company_address_name",
-  "company_address",
-  "serial_no",
-  "company_ref_no",
   "cargo_flags_section",
   "cargo_type",
   "dg_status",
@@ -97,7 +92,6 @@
   "house_number",
   "shipping_line",
   "air_line",
-  "customer_supplier",
   "handling_agent",
   "column_break_35",
   "voyage_number",
@@ -150,6 +144,13 @@
   "chargable_weight",
   "column_break_55",
   "cargo_description",
+  "more_details_section",
+  "secondary_customers",
+  "customer_supplier",
+  "company_address_name",
+  "company_address",
+  "serial_no",
+  "company_ref_no",
   "tab_clearance",
   "clearance_docs_section",
   "type_of_clearance",
@@ -776,6 +777,7 @@
   {
    "fieldname": "operation_id",
    "fieldtype": "Data",
+   "hidden": 1,
    "label": "Operation Id",
    "read_only": 1,
    "unique": 1
@@ -822,10 +824,12 @@
   {
    "allow_on_submit": 1,
    "default": "Open",
+   "description": "Changed by the job's actions (Put on hold, Close job...).",
    "fieldname": "operations_status",
    "fieldtype": "Link",
    "label": "Operations Status",
-   "options": "Operations Status"
+   "options": "Operations Status",
+   "read_only": 1
   },
   {
    "fieldname": "lifecycle_section",
@@ -1005,6 +1009,7 @@
    "default": "Today",
    "fieldname": "posting_date",
    "fieldtype": "Date",
+   "hidden": 1,
    "label": "Posting Date"
   },
   {
@@ -1550,6 +1555,12 @@
   {
    "fieldname": "column_break_schedule",
    "fieldtype": "Column Break"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "more_details_section",
+   "fieldtype": "Section Break",
+   "label": "More details"
   }
  ],
  "is_submittable": 1,
@@ -1567,7 +1578,7 @@
    "link_fieldname": "operations"
   }
  ],
- "modified": "2026-10-25 18:40:33.822632",
+ "modified": "2026-10-25 18:41:36.203084",
  "modified_by": "Administrator",
  "module": "Forwarding",
  "name": "Operations",
