@@ -54,3 +54,4 @@ forwarding.patches.v1_0.r3_submitted_to_customs
 forwarding.patches.v1_0.r3_weight_uom
 forwarding.patches.v1_0.r3_transport_route_from_job
 forwarding.patches.v1_0.r3_job_360_tile_labels
+forwarding.patches.v1_0.r3_cutoff_deadline

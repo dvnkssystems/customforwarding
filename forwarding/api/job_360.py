@@ -251,9 +251,11 @@ def build(job):
 	cutoffs = [
 		{
 			"milestone": row.milestone,
+			"deadline": row.deadline,
+			# Before R3-54; kept for older clients (latest = deadline after the patch).
 			"earliest": row.earliest,
 			"latest": row.latest,
-			"cutoff_status": get_cutoff_status(row.latest),
+			"cutoff_status": get_cutoff_status(row.deadline, done=bool(doc.atd_date)),
 		}
 		for row in doc.get("cutoffs") or []
 	]

@@ -153,9 +153,9 @@ class TestCutoffs(P1TestCase):
 	def test_sea_export(self):
 		job = make(job_type="Export", mode_of_shipment="Sea", destination_country="Saudi Arabia")
 		self.assertEqual(
-			self.milestones(job), ["Rail Cut-off", "Inland Cut-off", "Container Pickup", "SI Deadline", "Cargo Cut-off"]
+			self.milestones(job), ["SI Deadline", "VGM Cut-off", "Cargo Cut-off", "Container Pickup"]
 		)
-		self.assertTrue(all(not r.latest and not r.cutoff_status for r in job.cutoffs))
+		self.assertTrue(all(not r.deadline and not r.cutoff_status for r in job.cutoffs))
 
 	def test_sea_export_to_the_united_states_adds_aes(self):
 		job = make(job_type="Export", mode_of_shipment="Sea", destination_country="United States")

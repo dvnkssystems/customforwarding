@@ -172,7 +172,7 @@ class TestCutoffsBeforeEtd(R3Case):
 				job_type="Export",
 				mode_of_shipment="Sea",
 				etd_date=etd,
-				cutoffs=[{"milestone": "Rail Cut-off", "latest": f"{add_days(etd, 7)} 12:00:00"}],
+				cutoffs=[{"milestone": "Rail Cut-off", "deadline": f"{add_days(etd, 7)} 12:00:00"}],
 			)
 
 	def test_message_names_the_etd(self):
@@ -182,7 +182,7 @@ class TestCutoffsBeforeEtd(R3Case):
 				job_type="Export",
 				mode_of_shipment="Sea",
 				etd_date=etd,
-				cutoffs=[{"milestone": "Rail Cut-off", "earliest": f"{add_days(etd, 1)} 08:00:00"}],
+				cutoffs=[{"milestone": "Rail Cut-off", "deadline": f"{add_days(etd, 1)} 08:00:00"}],
 			)
 		self.assertIn(f"({short_date(etd)})", str(caught.exception))
 
@@ -192,7 +192,7 @@ class TestCutoffsBeforeEtd(R3Case):
 			job_type="Export",
 			mode_of_shipment="Sea",
 			etd_date=etd,
-			cutoffs=[{"milestone": "Rail Cut-off", "latest": f"{etd} 18:00:00"}],
+			cutoffs=[{"milestone": "Rail Cut-off", "deadline": f"{etd} 18:00:00"}],
 		)
 		self.assertTrue(job.name)
 
@@ -413,3 +413,31 @@ class TestEstimateAndActual(R3Case):
 		self.assertEqual(kpis["estimate_margin_pct"], 25.0)
 		self.assertEqual((kpis["actual_billed"], kpis["actual_cost"]), (2300, 1600))
 		self.assertEqual(kpis["actual_margin_pct"], round((2300 - 1600) / 2300 * 100, 2))
+
+
+class TestCutoffDeadline(R3Case):
+	# R3-54 --------------------------------------------------------------------
+
+	def test_sea_export_defaults(self):
+		job = make(job_type="Export", mode_of_shipment="Sea", destination_country="Saudi Arabia")
+		self.assertEqual([r.milestone for r in job.cutoffs], ["SI Deadline", "VGM Cut-off", "Cargo Cut-off", "Container Pickup"])
+
+	def test_statuses(self):
+		from frappe.utils import add_to_date, now_datetime
+
+		from forwarding.forwarding.doctype.operations.operations import get_cutoff_status
+
+		self.assertEqual(get_cutoff_status(add_to_date(now_datetime(), days=3)), "Upcoming")
+		self.assertEqual(get_cutoff_status(add_to_date(now_datetime(), minutes=5)), "Due today")
+		self.assertEqual(get_cutoff_status(add_to_date(now_datetime(), days=-1)), "Missed")
+		self.assertEqual(get_cutoff_status(None, done=True), "Done")
+
+	def test_patch_moves_latest_to_deadline(self):
+		from forwarding.patches.v1_0 import r3_cutoff_deadline
+
+		job = make(job_type="Export", mode_of_shipment="Sea", destination_country="Saudi Arabia")
+		row = job.cutoffs[0]
+		frappe.db.set_value("Job Cutoff", row.name, {"deadline": None, "latest": f"{add_days(nowdate(), 3)} 10:00:00"})
+		r3_cutoff_deadline.execute()
+		self.assertEqual(str(frappe.db.get_value("Job Cutoff", row.name, "deadline")), f"{add_days(nowdate(), 3)} 10:00:00")
+		self.assertEqual(frappe.db.get_value("Job Cutoff", row.name, "cutoff_status"), "Upcoming")

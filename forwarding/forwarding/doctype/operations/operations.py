@@ -28,22 +28,28 @@ from forwarding.services import apply_services
 AIR_VOLUMETRIC_FACTOR = 167
 
 
-def get_cutoff_status(latest):
-	"""Upcoming, Due Today or Passed for a cut-off's latest time."""
-	if not latest:
+def get_cutoff_status(deadline, done=False):
+	"""Upcoming, Due today, Missed or Done for a cut-off (R3-54). Done once
+	the shipment has left (the job's ATD is recorded): every cut-off before
+	it was met. Missed when its deadline has passed without that."""
+	if done:
+		return "Done"
+	if not deadline:
 		return None
-	latest = get_datetime(latest)
+	deadline = get_datetime(deadline)
 	now = now_datetime()
-	if latest < now:
-		return "Passed"
-	if latest.date() == now.date():
-		return "Due Today"
+	if deadline < now:
+		return "Missed"
+	if deadline.date() == now.date():
+		return "Due today"
 	return "Upcoming"
 
 
 # Cut-off milestones, in the order the Job Cutoff options list them.
 AES_DEADLINE = "AES Deadline"
-SEA_CUTOFFS = ("Rail Cut-off", "Inland Cut-off", "Container Pickup", AES_DEADLINE, "SI Deadline", "Cargo Cut-off")
+# A Saudi sea export starts with these (R3-54); Rail and Inland Cut-off are
+# added by hand when they apply.
+SEA_CUTOFFS = ("SI Deadline", "VGM Cut-off", "Cargo Cut-off", "Container Pickup", AES_DEADLINE)
 AIR_CUTOFFS = ("SI Deadline", "Cargo Cut-off")
 
 # The Saudi side of a job (R3-05): an Import arrives here, an Export leaves
@@ -581,12 +587,12 @@ class Operations(Document):
 
 	def validate_cutoffs_before_etd(self):
 		"""A cut-off falls before the vessel or flight leaves (R3-12): no row's
-		earliest or latest date may be after the ETD."""
+		deadline may be after the ETD."""
 		if not self.etd_date:
 			return
 		etd = getdate(self.etd_date)
 		for row in self.get("cutoffs") or []:
-			for fieldname in ("earliest", "latest"):
+			for fieldname in ("deadline",):
 				value = row.get(fieldname)
 				if value and getdate(value) > etd:
 					frappe.throw(
@@ -611,7 +617,7 @@ class Operations(Document):
 
 	def set_cutoff_status(self):
 		for row in self.get("cutoffs") or []:
-			row.cutoff_status = get_cutoff_status(row.latest)
+			row.cutoff_status = get_cutoff_status(row.deadline, done=bool(self.atd_date))
 
 	def sync_container_rows(self):
 		"""Carry the job's containers into its Transportation tab.

@@ -194,7 +194,7 @@ class TestCutoffs(P2TestCase):
 	def test_default_cutoffs(self):
 		sea = job_360.default_cutoffs("Sea", "Saudi Arabia")
 		self.assertEqual(
-			sea, ["Rail Cut-off", "Inland Cut-off", "Container Pickup", "SI Deadline", "Cargo Cut-off"]
+			sea, ["SI Deadline", "VGM Cut-off", "Cargo Cut-off", "Container Pickup"]
 		)
 		self.assertIn("AES Deadline", job_360.default_cutoffs("Sea", "United States"))
 		self.assertEqual(job_360.default_cutoffs("SEA-FCL", "France"), sea)
@@ -203,7 +203,7 @@ class TestCutoffs(P2TestCase):
 		self.assertEqual(job_360.default_cutoffs(None, None), [])
 
 	def test_aes_only_for_the_united_states(self):
-		cutoff = {"milestone": "AES Deadline", "latest": add_days(nowdate(), 5)}
+		cutoff = {"milestone": "AES Deadline", "deadline": add_days(nowdate(), 5)}
 		with self.assertRaises(frappe.ValidationError):
 			make(job_type="Export", mode_of_shipment="Sea", destination_country="Saudi Arabia", cutoffs=[cutoff])
 		job = make(job_type="Export", mode_of_shipment="Sea", destination_country="United States", cutoffs=[cutoff])

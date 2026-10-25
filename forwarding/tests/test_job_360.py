@@ -241,7 +241,7 @@ class TestJob360(IntegrationTestCase):
 			job_type="Export",
 			container_details=[{"container_no": "TEST1234567", "size": "40"}, {"size": "20"}],
 			cost_table=[{"item": ITEM, "cost": 300, "rate": 500}],
-			cutoffs=[{"milestone": "Cargo Cut-off", "latest": add_to_date(now_datetime(), hours=-1)}],
+			cutoffs=[{"milestone": "Cargo Cut-off", "deadline": add_to_date(now_datetime(), hours=-1)}],
 		)
 		make_sales_invoice(job, amount=1000)
 		frappe.cache.delete_value(cache_key(job.name))
@@ -306,7 +306,7 @@ class TestJob360(IntegrationTestCase):
 		self.assertEqual(payload["job"]["billing_status"], "Invoiced")
 
 		self.assertEqual([u["attention"] for u in payload["units"]], [False, True])
-		self.assertEqual(payload["cutoffs"][0]["cutoff_status"], "Passed")
+		self.assertEqual(payload["cutoffs"][0]["cutoff_status"], "Missed")
 		self.assertEqual(payload["charges"][0]["source_doctype"], "Operations")
 		self.assertIn("billed", {m["key"] for m in payload["milestones"]})
 		self.assertTrue(frappe.cache.get_value(cache_key(job.name)))
@@ -332,7 +332,8 @@ class TestJob360(IntegrationTestCase):
 		self.assertIn(("Transportation", transport.name), sources)
 
 	def test_cutoff_status(self):
-		self.assertEqual(get_cutoff_status(add_to_date(now_datetime(), days=-1)), "Passed")
+		self.assertEqual(get_cutoff_status(add_to_date(now_datetime(), days=-1)), "Missed")
+		self.assertEqual(get_cutoff_status(add_to_date(now_datetime(), days=-1), done=True), "Done")
 		self.assertEqual(get_cutoff_status(add_to_date(now_datetime(), days=3)), "Upcoming")
 		self.assertIsNone(get_cutoff_status(None))
 

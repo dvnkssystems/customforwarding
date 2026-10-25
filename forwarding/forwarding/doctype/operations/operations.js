@@ -449,7 +449,7 @@ frappe.ui.form.on("Operations", {
 // Cut-offs: an export job with none starts with the milestones for its mode
 // (Sea: all but AES unless bound for the US; Air: SI Deadline + Cargo Cut-off).
 // The server adds the same rows when the job is inserted (Operations.
-// before_insert); adding them here shows them before the first save. Latest
+// before_insert); adding them here shows them before the first save. Deadline
 // is optional, so the rows can be saved undated. A job that already has
 // cut-offs is left alone.
 // ---------------------------------------------------------------------------
@@ -467,7 +467,7 @@ async function prefill_cutoffs(frm) {
 
 	milestones.forEach((milestone) => frm.add_child("cutoffs", { milestone }));
 	frm.refresh_field("cutoffs");
-	frappe.show_alert({ message: __("Cut-offs added for this export job: enter each Latest Time, or remove the rows you do not need."), indicator: "blue" }, 7);
+	frappe.show_alert({ message: __("Cut-offs added for this export job: enter each Deadline, or remove the rows you do not need."), indicator: "blue" }, 7);
 }
 
 frappe.ui.form.on("Operations", {
