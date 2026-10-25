@@ -382,6 +382,25 @@ class TestPrivateAttachments(R3Case):
 		self.assertFalse(os.path.exists(public_path))
 		self.assertEqual(frappe.db.get_value("Document Table", job.document_table[0].name, "attach"), f.file_url)
 
+	def test_patch_handles_a_file_uploaded_from_a_document_row(self):
+		# A row upload is attached to the job with attached_to_field "attach",
+		# a field the job does not have; Frappe's File writes the new URL into
+		# that field on the job and failed with "Unknown column 'attach'".
+		from forwarding.patches.v1_0 import r3_private_attachments
+
+		job = job_with_rows()
+		with patch("forwarding.private_files.on_file_insert"):
+			f = self.file(job, "r3-10-row-upload")
+		frappe.db.set_value("File", f.name, "attached_to_field", "attach")
+		frappe.db.set_value("Document Table", job.document_table[0].name, "attach", f.file_url)
+
+		with patch("frappe.core.doctype.file.file.File.on_rollback"):
+			r3_private_attachments.execute()
+
+		f.reload()
+		self.assertEqual(f.is_private, 1)
+		self.assertEqual(frappe.db.get_value("Document Table", job.document_table[0].name, "attach"), f.file_url)
+
 
 class TestFormCleanUp(R3Case):
 	# R3-33 --------------------------------------------------------------------
