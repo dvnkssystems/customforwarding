@@ -303,7 +303,7 @@ def apply_services(job):
 	):
 		validate_codes(job, codes)
 	if scopes_changed:
-		validate_linked_records(job)
+		validate_linked_records(job, had_scopes=bool(job_scopes(before)))
 	if codes_changed and codes:
 		tick_service_boxes(job, codes)
 
@@ -342,11 +342,18 @@ def set_scope_flags(job, names):
 		job.set(field, "1" if on else "0")
 
 
-def validate_linked_records(job):
+def validate_linked_records(job, had_scopes=False):
 	"""A scope cannot be removed while a live record does work it covered:
 	a Custom Clearance, Transportation or Freight not cancelled whose service
-	type the remaining scopes leave out."""
-	allowed = allowed_service_types(job_scopes(job))
+	type the remaining scopes leave out.
+
+	No scope at all means "unrestricted" for a job that never had one, but
+	removing a job's last scope covers nothing (A-01: 07048 dropped its only
+	scope while CJIS2607048 was live, and saved)."""
+	remaining = job_scopes(job)
+	allowed = allowed_service_types(remaining)
+	if allowed is None and had_scopes and not remaining:
+		allowed = set()
 	if allowed is None:
 		return
 	problems = []
