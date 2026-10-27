@@ -347,6 +347,8 @@ def build(job):
 
 	documents = _documents(doc, linked, children)
 	charges = _charges(doc, linked, children)
+	units = _units(doc)
+	_tag_units(units, [*documents, *charges], linked, children)
 	submitted_si = [si for si in invoices["sales"] if si.docstatus == 1 and not si.is_return]
 	credit_notes = [si for si in invoices["sales"] if si.docstatus == 1 and si.is_return]
 	kpis, ctx = job_kpis(doc, documents, charges, linked, submitted_si, today, credit_notes)
@@ -397,13 +399,13 @@ def build(job):
 				_pick(r, LINKED_FIELDS["Custom Clearance"]) for r in linked["Custom Clearance"]
 			],
 		},
-		"units": _units(doc),
+		"units": units,
 		"documents": documents,
 		"charges": charges,
 		# Est. and actual income, expense, profit and variance: the job's row of
 		# the Estimation vs Actual report, from the same function (M-03).
 		"estimate": job_figures(doc.name),
-		"milestones": _milestones(doc, submitted_si, today),
+		"milestones": [*_milestones(doc, submitted_si, today), *_unit_milestones(doc, units, today)],
 		"cutoffs": cutoffs,
 		"invoices": {
 			"sales": [_pick(si, INVOICE_FIELDS) for si in invoices["sales"]],
@@ -501,6 +503,7 @@ def _child_rows(parents):
 				"date",
 				"attach",
 				"remark",
+				"unit",
 				"idx",
 			],
 		),
@@ -520,9 +523,12 @@ def _child_rows(parents):
 				"ref_id",
 				"ref_docname",
 				"creation",
+				"unit",
 				"idx",
 			],
 		),
+		# A linked record's containers: one alone tags its rows (A-23).
+		("Container Details", ["name", "parent", "parenttype", "container_no", "idx"]),
 		("Operations Service", ["name", "parent", "parenttype", "activity_code", "idx"]),
 		("Job Scope Of Work", ["name", "parent", "parenttype", "scope_of_work", "idx"]),
 	):
@@ -548,6 +554,7 @@ def _documents(doc, linked, children):
 			"date": r.date,
 			"attach": r.attach,
 			"document_number": r.get("remark") or None,
+			"unit_ref": r.get("unit") or None,
 			"source_doctype": source_doctype,
 			"source_name": source_name,
 			"row_name": r.name,
@@ -580,6 +587,7 @@ def _charges(doc, linked, children):
 			"amount": flt(r.cost),
 			"paid_amount": flt(r.paid_amount),
 			"received_amount": flt(r.received_amount),
+			"unit_ref": r.get("unit") or None,
 			"source_doctype": source_doctype,
 			"source_name": source_name,
 			"row_name": r.name,
@@ -717,6 +725,60 @@ def _units(doc):
 			}
 		)
 	return units
+
+
+def _unit_key_by_ref(units):
+	"""A unit's key by its label, upper case: a container's number, a package
+	group's "2 × Pallet"."""
+	return {cstr(u["label"]).strip().upper(): u["key"] for u in units if cstr(u.get("label")).strip()}
+
+
+def _tag_units(units, rows, linked, children):
+	"""Each document / charge row's `unit` (A-23): the container or package
+	its Container / Package field names, else the one container of the
+	Transportation or Custom Clearance it came from. Untagged rows are the
+	whole job's and show under every unit."""
+	by_ref = _unit_key_by_ref(units)
+	single = {}
+	for dt in LINKED:
+		for parent in linked[dt]:
+			numbers = {
+				cstr(c.container_no).strip().upper()
+				for c in children.get((dt, parent.name), {}).get("Container Details", [])
+				if cstr(c.get("container_no")).strip()
+			}
+			if len(numbers) == 1:
+				single[(dt, parent.name)] = numbers.pop()
+	for r in rows:
+		ref = cstr(r.pop("unit_ref", None)).strip().upper() or single.get((r.get("source_doctype"), r.get("source_name")))
+		r["unit"] = by_ref.get(ref) if ref else None
+
+
+def _unit_milestones(doc, units, today):
+	"""Pull out, delivery and empty return per container (A-23), from the
+	job's transport legs; each row belongs to its container's unit."""
+	by_ref = _unit_key_by_ref(units)
+	rows = []
+	for leg in doc.get("transport_container_legs") or []:
+		number = cstr(leg.reference_no).strip()
+		key = by_ref.get(number.upper())
+		if not key:
+			continue
+		for field, label in (("pull_out", _("Pull out")), ("trans_delivery_date", _("Delivered")), ("empty_return", _("Empty returned"))):
+			value = leg.get(field)
+			rows.append(
+				{
+					"key": f"{field}_{leg.name}",
+					"label": f"{label} · {number}",
+					"planned": None,
+					"actual": value,
+					"status": "done" if value else "upcoming",
+					"source_doctype": "Operations",
+					"source_name": doc.name,
+					"unit": key,
+				}
+			)
+	return rows
 
 
 def _milestone_status(planned, actual, today):

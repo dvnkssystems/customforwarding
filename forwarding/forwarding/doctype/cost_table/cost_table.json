@@ -18,7 +18,8 @@
   "pending_amount_to_receive",
   "project",
   "ref_id",
-  "ref_docname"
+  "ref_docname",
+  "unit"
  ],
  "fields": [
   {
@@ -115,12 +116,19 @@
    "fieldname": "ref_docname",
    "fieldtype": "Data",
    "label": "ref docname"
+  },
+  {
+   "allow_on_submit": 1,
+   "description": "The container or package this row is for (its number). Empty: the whole job.",
+   "fieldname": "unit",
+   "fieldtype": "Data",
+   "label": "Container / Package"
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-10-25 18:43:42.766423",
+ "modified": "2026-10-27 23:00:00.000000",
  "modified_by": "Administrator",
  "module": "Forwarding",
  "name": "Cost Table",

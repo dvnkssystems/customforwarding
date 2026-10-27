@@ -14,7 +14,8 @@
   "ocr_status",
   "extracted_data",
   "uploaded_on",
-  "uploaded_by"
+  "uploaded_by",
+  "unit"
  ],
  "fields": [
   {
@@ -96,12 +97,19 @@
    "fieldtype": "Link",
    "label": "Uploaded By",
    "options": "User"
+  },
+  {
+   "allow_on_submit": 1,
+   "description": "The container or package this row is for (its number). Empty: the whole job.",
+   "fieldname": "unit",
+   "fieldtype": "Data",
+   "label": "Container / Package"
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-10-25 18:39:46.088036",
+ "modified": "2026-10-27 23:00:00.000000",
  "modified_by": "Administrator",
  "module": "Forwarding",
  "name": "Document Table",
