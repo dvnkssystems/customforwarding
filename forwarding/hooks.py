@@ -259,7 +259,11 @@ doc_events = {
 	},
 	"Supplier": {
 		"before_insert": "forwarding.naming.set_supplier_code",
-		"validate": ["forwarding.supplier.validate", "forwarding.party_documents.validate"],
+		"validate": [
+			"forwarding.supplier.validate",
+			"forwarding.party_documents.validate",
+			"forwarding.party_validation.validate_cr_no",
+		],
 		"on_update": "forwarding.job_events.on_supplier_change",
 		"on_trash": "forwarding.job_events.on_supplier_change",
 	},

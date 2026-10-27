@@ -30,7 +30,8 @@ AIR_VOLUMETRIC_FACTOR = 167
 
 
 def get_cutoff_status(deadline, done=False):
-	"""Upcoming, Due today, Missed or Done for a cut-off (R3-54). Done once
+	"""Upcoming, Due today, Missed or Done for a cut-off (R3-54). Done when
+	the row is ticked Done (the SI or VGM filed days before sailing), or once
 	the shipment has left (the job's ATD is recorded): every cut-off before
 	it was met. Missed when its deadline has passed without that."""
 	if done:
@@ -637,7 +638,10 @@ class Operations(Document):
 
 	def set_cutoff_status(self):
 		for row in self.get("cutoffs") or []:
-			row.cutoff_status = get_cutoff_status(row.deadline, done=bool(self.atd_date))
+			# Recording ATD marks every cut-off Done.
+			if self.atd_date:
+				row.is_done = 1
+			row.cutoff_status = get_cutoff_status(row.deadline, done=bool(row.get("is_done") or self.atd_date))
 
 	def sync_container_rows(self):
 		"""Carry the job's containers into its Transportation tab.
