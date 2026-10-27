@@ -102,6 +102,25 @@ def get(job):
 
 
 @frappe.whitelist(methods=["POST"])
+def set_cutoff_done(job, row, done=1):
+	"""Tick (or untick) one cut-off Done: the SI or VGM filed days before
+	sailing. row is the Job Cutoff row's name. Works on a submitted job, as
+	ops update cut-offs through its life."""
+	doc = frappe.get_doc("Operations", job)
+	doc.check_permission("write")
+	if doc.docstatus == 2:
+		frappe.throw(_("Job {0} is cancelled.").format(frappe.bold(job)))
+	cutoff = next((r for r in doc.get("cutoffs") or [] if r.name == row), None)
+	if not cutoff:
+		frappe.throw(_("No such cut-off on job {0}.").format(frappe.bold(job)))
+	cutoff.is_done = 1 if cint(done) else 0
+	doc.set_cutoff_status()
+	cutoff.db_set({"is_done": cutoff.is_done, "cutoff_status": cutoff.cutoff_status})
+	clear_job_cache(job)
+	return {"is_done": cutoff.is_done, "cutoff_status": cutoff.cutoff_status}
+
+
+@frappe.whitelist(methods=["POST"])
 def record_actual(job, field, value=None):
 	"""Record (or with an empty value, clear) the job's ATD or ATA."""
 	fieldname = ACTUAL_FIELDS.get(field)
@@ -130,6 +149,10 @@ def record_actual(job, field, value=None):
 		doc.set(fieldname, value)
 		doc.set_free_time_expiry()
 		doc.db_set({fieldname: value, "free_time_expiry": doc.free_time_expiry})
+		# ATD means every cut-off was met: tick them Done.
+		doc.set_cutoff_status()
+		for row in doc.get("cutoffs") or []:
+			row.db_set({"is_done": row.is_done, "cutoff_status": row.cutoff_status})
 		doc.add_comment(
 			"Info",
 			_("{0} recorded as {1}").format(
@@ -268,7 +291,9 @@ def build(job):
 			# Before R3-54; kept for older clients (latest = deadline after the patch).
 			"earliest": row.earliest,
 			"latest": row.latest,
-			"cutoff_status": get_cutoff_status(row.deadline, done=bool(doc.atd_date)),
+			"name": row.name,
+			"is_done": cint(row.get("is_done")),
+			"cutoff_status": get_cutoff_status(row.deadline, done=bool(row.get("is_done") or doc.atd_date)),
 		}
 		for row in doc.get("cutoffs") or []
 	]
