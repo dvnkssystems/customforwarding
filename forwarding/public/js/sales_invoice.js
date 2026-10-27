@@ -1,7 +1,7 @@
 // Create → Credit Note on a submitted Sales Invoice (Addendum A-11): a return
 // invoice against it for the full or a partial amount, with the reason ZATCA
 // needs. forwarding.credit_note makes the draft; it is reviewed and submitted
-// from its own form.
+// from its own form. Record Payment while it is owed (A-12).
 // Wrapped: the desk evaluates doctype JS at global scope, once per DocType.
 (() => {
 	// The desk's format_currency; the app has none, so plain figures there.
@@ -58,6 +58,13 @@
 		refresh(frm) {
 			if (frm.doc.docstatus === 1 && !frm.doc.is_return) {
 				frm.add_custom_button(__("Credit Note"), () => credit_note_dialog(frm), __("Create"));
+			}
+			// Record Payment while anything is outstanding (A-12): ERPNext's own
+			// Payment Entry for the balance, opened unsaved.
+			if (frm.doc.docstatus === 1 && !frm.doc.is_return && flt(frm.doc.outstanding_amount) > 0) {
+				frm.add_custom_button(__("Record Payment"), () =>
+					frappe.model.open_mapped_doc({ method: "forwarding.sales_invoice.make_payment", frm })
+				);
 			}
 		},
 	});

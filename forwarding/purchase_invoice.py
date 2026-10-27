@@ -71,3 +71,39 @@ def warn_unlinked(doc, method=None):
 		title=_("No job"),
 		indicator="orange",
 	)
+
+
+def due_from_credit_period(doc, method=None):
+	"""before_validate: a draft bill's due date is its posting date plus the
+	party's Credit Period (A-15), so it is not Overdue the day it is raised.
+
+	Only a due date left at the posting date (the default) is moved; one the
+	user set later is kept. A party with a Payment Terms Template, or no
+	Credit Period, is left to ERPNext."""
+	from frappe.utils import add_days, cint, getdate
+
+	if doc.docstatus != 0 or doc.get("is_return") or doc.get("payment_terms_template"):
+		return
+	party_type = "Customer" if doc.doctype == "Sales Invoice" else "Supplier"
+	party = doc.get(party_type.lower())
+	period = frappe.db.get_value(party_type, party, "credit_period") if party else None
+	days = cint(str(period or "").split(" ")[0])
+	posting = doc.get("posting_date")
+	if not days or not posting:
+		return
+	if doc.get("due_date") and getdate(doc.due_date) > getdate(posting):
+		return
+	doc.due_date = add_days(posting, days)
+	# ERPNext rebuilds the schedule from the due date when it is empty.
+	doc.set("payment_schedule", [])
+
+
+def branch_for_naming(doc, method=None):
+	"""before_insert: the bill's Branch from its job, and that branch's
+	abbreviation in b_abb, before the name is made — the series is
+	PI-.{b_abb}.-.YY.-.##### (A-19: "PI--00001" had no branch). The job's
+	Project and Cost Center follow in fill_from_job."""
+	if doc.get("operations") and not doc.get("branch"):
+		doc.branch = frappe.db.get_value("Operations", doc.operations, "branch")
+	if doc.get("branch") and doc.meta.has_field("b_abb"):
+		doc.b_abb = frappe.db.get_value("Branch", doc.branch, "abbreviation") or doc.get("b_abb")

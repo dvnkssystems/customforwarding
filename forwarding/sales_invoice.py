@@ -167,3 +167,14 @@ def warn_missing_seller_details(doc, method=None):
 	if not doc.get("company_tax_id"):
 		message += " " + _("Without a VAT number there is no ZATCA QR code either.")
 	frappe.msgprint(message, title=_("Seller details missing"), indicator="orange")
+
+
+@frappe.whitelist()
+def make_payment(source_name):
+	"""Record Payment on a Sales Invoice (A-12): ERPNext's own Payment Entry
+	for what is still outstanding, unsaved, for the form to open. Named
+	source_name so frappe.model.open_mapped_doc can call it."""
+	from erpnext.accounts.doctype.payment_entry.payment_entry import get_payment_entry
+
+	frappe.get_doc("Sales Invoice", source_name).check_permission("read")
+	return get_payment_entry("Sales Invoice", source_name)

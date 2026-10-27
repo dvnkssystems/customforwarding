@@ -66,3 +66,20 @@ class TestJobBill(IntegrationTestCase):
 		doc.items[0].cost_center = ":Company"
 		purchase_invoice.fill_from_job(doc)
 		self.assertEqual(doc.items[0].cost_center, self.other_cc)
+
+	def test_due_date_from_the_credit_period(self):
+		# A-15: posting date + the supplier's Credit Period.
+		from frappe.utils import add_days, getdate, nowdate
+
+		supplier = frappe.get_all("Supplier", pluck="name", limit=1)
+		if not supplier or not frappe.get_meta("Supplier").has_field("credit_period"):
+			self.skipTest("no supplier / credit_period")
+		frappe.db.set_value("Supplier", supplier[0], "credit_period", "30 Days")
+		doc = bill(None, supplier=supplier[0], posting_date=nowdate(), due_date=nowdate())
+		purchase_invoice.due_from_credit_period(doc)
+		self.assertEqual(getdate(doc.due_date), getdate(add_days(nowdate(), 30)))
+
+		later = add_days(nowdate(), 60)
+		doc = bill(None, supplier=supplier[0], posting_date=nowdate(), due_date=later)
+		purchase_invoice.due_from_credit_period(doc)
+		self.assertEqual(getdate(doc.due_date), getdate(later))

@@ -133,7 +133,10 @@ fixtures = [
 
 doc_events = {
 	"Sales Invoice": {
-		"before_validate": "forwarding.purchase_invoice.fill_from_job",
+		"before_validate": [
+			"forwarding.purchase_invoice.fill_from_job",
+			"forwarding.purchase_invoice.due_from_credit_period",
+		],
 		"validate": [
 			"forwarding.subscription.enforce_limit",
 			"forwarding.invoice_guard.validate",
@@ -160,7 +163,11 @@ doc_events = {
 		"on_trash": "forwarding.job_events.on_sales_invoice_change",
 	},
     "Purchase Invoice": {
-		"before_validate": "forwarding.purchase_invoice.fill_from_job",
+		"before_insert": "forwarding.purchase_invoice.branch_for_naming",
+		"before_validate": [
+			"forwarding.purchase_invoice.fill_from_job",
+			"forwarding.purchase_invoice.due_from_credit_period",
+		],
 		"validate": [
 			"forwarding.subscription.enforce_limit",
 			"forwarding.invoice_guard.validate",

@@ -63,3 +63,7 @@ forwarding.patches.v1_0.r3_quote_ports_incoterms
 forwarding.patches.v1_0.r3_home_side_country
 forwarding.patches.v1_0.r3_wizard_destination_country
 forwarding.patches.v1_0.a03_project_optional_on_bills
+forwarding.patches.v1_0.a12_invoice_connections
+forwarding.patches.v1_0.a13_invoice_list_columns
+forwarding.patches.v1_0.a14_hide_stock_fields_on_bills
+forwarding.patches.v1_0.a19_purchase_invoice_series
