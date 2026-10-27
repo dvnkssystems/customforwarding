@@ -61,3 +61,4 @@ forwarding.patches.v1_0.r3_quote_customer
 forwarding.patches.v1_0.r3_land_shipment_types
 forwarding.patches.v1_0.r3_quote_ports_incoterms
 forwarding.patches.v1_0.r3_home_side_country
+forwarding.patches.v1_0.r3_wizard_destination_country

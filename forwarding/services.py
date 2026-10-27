@@ -3,7 +3,7 @@
 """A job's Services (M-05, M-06, R2-23).
 
 A job holds several Freight Activity Codes in its Services table (a door-to-door
-import: Sea Import Freehand + Sea Import Clearance + Land Local Freight). Each
+import: Sea Freight Import + Sea Import Clearance + Land Local Freight). Each
 code has a service type, and the job's service types decide what it offers:
 the Activity & Services tick-boxes, Create ▾, the Services tab and the alerts.
 
