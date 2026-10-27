@@ -160,15 +160,17 @@ def _for_user(payload):
 # -- Building the payload -------------------------------------------------------
 
 
-def job_kpis(doc, documents, charges, linked, submitted_si, today):
+def job_kpis(doc, documents, charges, linked, submitted_si, today, credit_notes=()):
 	"""The job's KPIs, and the ctx its banner conditions and messages see.
 
 	Shared by build() and worklist(), so a job's worklist entries are exactly
-	the banners its Job 360 page shows."""
+	the banners its Job 360 page shows. credit_notes (submitted returns, with
+	negative totals) net billed, collected and revenue down (A-11)."""
 	received = sum(1 for d in documents if d["received"])
 	pending = list(dict.fromkeys(d["document"] for d in documents if not d["received"] and d["document"]))
 	cost_total = sum(flt(c["cost"]) for c in charges)
-	revenue_total = sum(flt(si.base_net_total) for si in submitted_si)
+	billed_si = [*submitted_si, *credit_notes]
+	revenue_total = sum(flt(si.base_net_total) for si in billed_si)
 
 	kpis = {
 		"docs_received": received,
@@ -179,8 +181,8 @@ def job_kpis(doc, documents, charges, linked, submitted_si, today):
 		"revenue_total": flt(revenue_total, 2),
 		# No cost booked yet is not a 100% margin.
 		"margin_pct": flt((revenue_total - cost_total) / revenue_total * 100, 2) if revenue_total and cost_total else None,
-		"billed": flt(sum(flt(si.grand_total) for si in submitted_si), 2),
-		"collected": flt(sum(flt(si.grand_total) - flt(si.outstanding_amount) for si in submitted_si), 2),
+		"billed": flt(sum(flt(si.grand_total) for si in billed_si), 2),
+		"collected": flt(sum(flt(si.grand_total) - flt(si.outstanding_amount) for si in billed_si), 2),
 		# The estimate (R3-35): the cost sheet's Est. Cost / Est. Selling. The
 		# actuals beside it are added by build().
 		**_estimate(charges),
@@ -255,7 +257,8 @@ def build(job):
 	documents = _documents(doc, linked, children)
 	charges = _charges(doc, linked, children)
 	submitted_si = [si for si in invoices["sales"] if si.docstatus == 1 and not si.is_return]
-	kpis, ctx = job_kpis(doc, documents, charges, linked, submitted_si, today)
+	credit_notes = [si for si in invoices["sales"] if si.docstatus == 1 and si.is_return]
+	kpis, ctx = job_kpis(doc, documents, charges, linked, submitted_si, today, credit_notes)
 	kpis.update(_actuals(invoices))
 
 	cutoffs = [
