@@ -24,7 +24,11 @@ from frappe.utils import cint, cstr, date_diff, flt, get_datetime, getdate, nowd
 from forwarding import banners as job_banners
 from forwarding import party_360
 from forwarding.estimation import job_figures
-from forwarding.forwarding.doctype.operations.operations import default_cutoff_milestones, get_cutoff_status
+from forwarding.forwarding.doctype.operations.operations import (
+	default_cutoff_milestones,
+	get_cutoff_status,
+	validate_date_order,
+)
 from forwarding.job_events import cache_key, clear_job_cache, worklist_version
 from forwarding.services import job_allowed_service_types, job_scopes, job_service_types, job_services
 
@@ -101,6 +105,63 @@ def get(job):
 	return _for_user(payload)
 
 
+def _job_for_update(job):
+	doc = frappe.get_doc("Operations", job)
+	doc.check_permission("write")
+	if doc.docstatus == 2:
+		frappe.throw(_("Job {0} is cancelled.").format(frappe.bold(job)))
+	return doc
+
+
+@frappe.whitelist(methods=["POST"])
+def record_delivery(job, value=None):
+	"""The free-time banner's Record delivery (A-22): the job's Delivery
+	Date, which ends its free-time alert. Not after today."""
+	doc = _job_for_update(job)
+	value = getdate(value) if value else getdate(nowdate())
+	if value > getdate(nowdate()):
+		frappe.throw(_("The delivery date cannot be after today."), title=_("Date in the future"))
+	if doc.docstatus == 0:
+		doc.delivery_date = value
+		doc.save()
+	else:
+		doc.db_set("delivery_date", value)
+		doc.add_comment("Info", _("Delivered on {0}").format(frappe.format(value, "Date")))
+	clear_job_cache(job)
+	return get(job)
+
+
+@frappe.whitelist(methods=["POST"])
+def extend_free_time(job, until):
+	"""The free-time banner's Request extension (A-22): a new free-time end
+	date, recorded as the Free Time (Days) that reach it from the day free time
+	started, so the expiry keeps following ATA / pickup."""
+	doc = _job_for_update(job)
+	until = getdate(until)
+	start = doc.free_time_start()
+	if not start:
+		frappe.throw(_("Free time has not started yet, so there is nothing to extend."), title=_("No free time"))
+	days = date_diff(until, start)
+	if days <= cint(doc.free_time_days):
+		frappe.throw(
+			_("Pick a date after the current end ({0}).").format(frappe.format(doc.free_time_expiry, "Date")),
+			title=_("Not an extension"),
+		)
+	previous = doc.free_time_expiry
+	doc.free_time_days = days
+	doc.set_free_time_expiry()
+	if doc.docstatus == 0:
+		doc.save()
+	else:
+		doc.db_set({"free_time_days": days, "free_time_expiry": doc.free_time_expiry})
+	doc.add_comment(
+		"Info",
+		_("Free time extended from {0} to {1}").format(frappe.format(previous, "Date"), frappe.format(doc.free_time_expiry, "Date")),
+	)
+	clear_job_cache(job)
+	return get(job)
+
+
 @frappe.whitelist(methods=["POST"])
 def set_cutoff_done(job, row, done=1):
 	"""Tick (or untick) one cut-off Done: the SI or VGM filed days before
@@ -147,6 +208,7 @@ def record_actual(job, field, value=None):
 	else:
 		# A submitted job cannot be saved; set the date and what follows from it.
 		doc.set(fieldname, value)
+		validate_date_order(doc, pairs=(("atd_date", "ata_date"),))
 		doc.set_free_time_expiry()
 		doc.db_set({fieldname: value, "free_time_expiry": doc.free_time_expiry})
 		# ATD means every cut-off was met: tick them Done.
@@ -171,8 +233,14 @@ def _cached_build(job):
 
 
 def _for_user(payload):
-	"""Drop the lists the current user may not read. Works on a copy."""
+	"""Drop the lists the current user may not read, and the banners they
+	dismissed (A-22). Works on a copy."""
+	from forwarding.banner_dismissal import hide_dismissed
+
 	payload = dict(payload)
+	job_name = (payload.get("job") or {}).get("name")
+	if job_name:
+		payload["banners"] = hide_dismissed("Operations", job_name, payload.get("banners"))
 	for (section, key), doctype in GUARDED.items():
 		if not frappe.has_permission(doctype, "read"):
 			payload[section] = dict(payload[section])

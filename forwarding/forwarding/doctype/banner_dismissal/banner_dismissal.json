@@ -1,0 +1,30 @@
+{
+ "actions": [],
+ "autoname": "hash",
+ "creation": "2026-10-27 22:00:00.000000",
+ "description": "A banner a user closed with × (A-22). It stays hidden while its fingerprint (the situation it describes) is unchanged.",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": ["user", "reference_doctype", "reference_name", "rule_code", "fingerprint"],
+ "fields": [
+  {"fieldname": "user", "fieldtype": "Link", "in_list_view": 1, "label": "User", "options": "User", "reqd": 1, "search_index": 1},
+  {"fieldname": "reference_doctype", "fieldtype": "Link", "in_list_view": 1, "label": "Reference DocType", "options": "DocType", "reqd": 1},
+  {"fieldname": "reference_name", "fieldtype": "Dynamic Link", "in_list_view": 1, "label": "Reference Name", "options": "reference_doctype", "reqd": 1, "search_index": 1},
+  {"fieldname": "rule_code", "fieldtype": "Data", "in_list_view": 1, "label": "Rule Code", "reqd": 1},
+  {"fieldname": "fingerprint", "fieldtype": "Data", "label": "Fingerprint", "length": 140}
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-10-27 22:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Forwarding",
+ "name": "Banner Dismissal",
+ "owner": "Administrator",
+ "permissions": [
+  {"create": 1, "delete": 1, "read": 1, "report": 1, "role": "System Manager", "write": 1}
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 0
+}

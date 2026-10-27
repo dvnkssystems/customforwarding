@@ -64,8 +64,16 @@ def ata_missing(job, ctx):
 
 
 def free_time_expiring(job, ctx):
+	"""Free time runs out within three days. A recorded delivery clears it
+	(A-22: Record delivery)."""
 	days = ctx.get("free_days_left")
-	return days is not None and days <= 3 and _status(job) not in FINISHED and _status(job) not in INACTIVE
+	return (
+		days is not None
+		and days <= 3
+		and not job.get("delivery_date")
+		and _status(job) not in FINISHED
+		and _status(job) not in INACTIVE
+	)
 
 
 def not_invoiced(job, ctx):
@@ -160,6 +168,25 @@ def format_date(value):
 	return f"{d.day} {d.strftime('%b %Y')}"
 
 
+def _free_time_state(job, ctx):
+	days = ctx.get("free_days_left") or 0
+	return "expired" if days <= 0 else "last day" if days == 1 else "soon"
+
+
+# What a dismissed banner is waiting to change (A-22): one listed here comes
+# back when this changes; any other when its message does.
+FINGERPRINTS = {
+	"invoice_overdue": lambda job, ctx: ",".join(sorted(ctx.get("overdue_invoices") or [])),
+	"free_time_expiring": _free_time_state,
+}
+
+# Banners that act in place (A-22): their buttons, first is the main one.
+ACTIONS = {
+	"invoice_overdue": ["record_payment", "send_reminder"],
+	"free_time_expiring": ["record_delivery", "request_extension"],
+}
+
+
 def get_rules(applies_to="Operations"):
 	"""Enabled rules for one page, lowest priority first."""
 	return frappe.get_all(
@@ -205,14 +232,23 @@ def evaluate(job, ctx, rules=None):
 			)
 			continue
 
+		from forwarding.banner_dismissal import fingerprint_of
+
 		colour_fn = COLOURS.get(rule.condition_key)
+		fingerprint = FINGERPRINTS.get(rule.condition_key)
+		actions = ACTIONS.get(rule.condition_key) or ([rule.action] if rule.action else [])
+		overdue = ctx.get("overdue_invoices") or []
 		banners.append(
 			{
 				"rule_code": rule.rule_code,
 				"priority": cint(rule.priority),
 				"colour": colour_fn(job, ctx, rule.colour) if colour_fn else (rule.colour or "info"),
 				"message": message.strip(),
-				"action": rule.action or None,
+				"action": actions[0] if actions else None,
+				"actions": actions,
+				"fingerprint": fingerprint_of(fingerprint(job, ctx) if fingerprint else message.strip()),
+				# The invoice an overdue banner's buttons act on: the first overdue.
+				"invoice": overdue[0] if rule.condition_key == "invoice_overdue" and overdue else None,
 			}
 		)
 	return banners

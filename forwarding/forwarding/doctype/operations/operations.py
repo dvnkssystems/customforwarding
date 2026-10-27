@@ -150,6 +150,32 @@ def validate_actual_dates(doc, fields=ACTUAL_DATE_FIELDS):
 		)
 
 
+# Arrival never before departure (A-25): planned against planned, actual
+# against actual.
+DATE_ORDER = (("etd_date", "eta_date"), ("atd_date", "ata_date"))
+
+
+def validate_date_order(doc, pairs=DATE_ORDER):
+	"""Refuse an arrival before its departure (ETA before ETD, ATA before
+	ATD). Checked when either date is set or changed in this save, so a job
+	saved before the rule is not blocked over dates nobody touched."""
+	for departure, arrival in pairs:
+		left, arrived = doc.get(departure), doc.get(arrival)
+		if not (left and arrived) or getdate(arrived) >= getdate(left):
+			continue
+		if not (doc.is_new() or doc.has_value_changed(departure) or doc.has_value_changed(arrival)):
+			continue
+		frappe.throw(
+			_("{0} ({1}) cannot be before {2} ({3}): it arrives after it leaves.").format(
+				_(doc.meta.get_label(arrival)),
+				frappe.format(getdate(arrived), "Date"),
+				_(doc.meta.get_label(departure)),
+				frappe.format(getdate(left), "Date"),
+			),
+			title=_("Dates out of order"),
+		)
+
+
 def document_table_field(doctype):
 	"""Fieldname of the doctype's Document Table, or None."""
 	if not frappe.db.exists("DocType", doctype):
@@ -254,6 +280,7 @@ class Operations(Document):
 		self.validate_weights()
 		self.validate_weight_uom()
 		self.validate_actual_dates()
+		validate_date_order(self)
 		self.set_default_salesman()
 		self.set_free_time_expiry()
 		self.set_chargeable_weight()

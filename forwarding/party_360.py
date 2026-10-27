@@ -96,10 +96,16 @@ def for_user(payload, header_key, guarded):
 	guarded maps a payload list to the DocType a user must be able to read
 	to see it; the header's primary contact and address follow Contact and
 	Address read permission."""
+	from forwarding.banner_dismissal import hide_dismissed
+
 	payload = dict(payload)
 	for key, doctype in guarded.items():
 		if not frappe.has_permission(doctype, "read"):
 			payload[key] = []
+	party = (payload.get(header_key) or {}).get("name")
+	if party:
+		# Banners this user closed, until their situation changes (A-22).
+		payload["banners"] = hide_dismissed(header_key.title(), party, payload.get("banners"))
 	header = dict(payload[header_key])
 	if not frappe.has_permission("Contact", "read"):
 		header["primary_contact"] = None
@@ -324,6 +330,8 @@ def evaluate_rules(applies_to, conditions, ctx):
 				reference_name=rule.rule_code,
 			)
 			continue
+		from forwarding.banner_dismissal import fingerprint_of
+
 		out.append(
 			{
 				"code": rule.rule_code,
@@ -331,6 +339,8 @@ def evaluate_rules(applies_to, conditions, ctx):
 				"colour": rule.colour or "info",
 				"message": message.strip(),
 				"action": rule.action or None,
+				# A dismissed banner comes back when its message changes (A-22).
+				"fingerprint": fingerprint_of(message.strip()),
 			}
 		)
 	return out
