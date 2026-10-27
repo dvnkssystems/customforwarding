@@ -21,6 +21,8 @@
 		for (const field of JOB_BILL_FIELDS) {
 			if (frm.fields_dict[field]) frm.set_df_property(field, "read_only", locked);
 		}
+		// A saved bill stays with its job (A-14); a new one picks it.
+		if (frm.fields_dict.operations) frm.set_df_property("operations", "read_only", !frm.is_new() && locked ? 1 : 0);
 	}
 
 	async function job_bill_values(job) {
