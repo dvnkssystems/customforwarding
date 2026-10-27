@@ -83,3 +83,17 @@ class TestJobBill(IntegrationTestCase):
 		doc = bill(None, supplier=supplier[0], posting_date=nowdate(), due_date=later)
 		purchase_invoice.due_from_credit_period(doc)
 		self.assertEqual(getdate(doc.due_date), getdate(later))
+
+	def test_payment_takes_the_bill_branch(self):
+		# A-20: Branch from the bill it pays.
+		invoice = frappe.get_all("Purchase Invoice", filters={"branch": ["is", "set"]}, fields=["name", "branch"], limit=1)
+		if not invoice:
+			self.skipTest("no Purchase Invoice with a branch")
+		pe = frappe.get_doc(
+			{
+				"doctype": "Payment Entry",
+				"references": [{"reference_doctype": "Purchase Invoice", "reference_name": invoice[0].name}],
+			}
+		)
+		purchase_invoice.payment_branch_from_bill(pe)
+		self.assertEqual(pe.branch, invoice[0].branch)
