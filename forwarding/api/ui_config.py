@@ -215,6 +215,7 @@ WIZARDS = {
 				"fields": [
 					"port_of_loading",
 					"port_of_destination",
+					"destination_country",
 					"shipping_line",
 					"air_line",
 					"vessel_name",
