@@ -39,6 +39,7 @@ app_license = "MIT"
 doctype_js = {
 	"Purchase Invoice": ["public/js/job_bill.js", "public/js/purchase_invoice.js"],
 	"Sales Invoice": ["public/js/job_bill.js", "public/js/sales_invoice.js"],
+	"Payment Entry": "public/js/payment_entry.js",
 }
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
@@ -186,6 +187,7 @@ doc_events = {
 		"on_trash": "forwarding.job_events.on_linked_change",
 	},
 	"Payment Entry": {
+		"before_validate": "forwarding.purchase_invoice.payment_branch_from_bill",
 		"on_update": "forwarding.job_events.clear_payment_party_cache",
 		"on_trash": "forwarding.job_events.clear_payment_party_cache",
 		"on_submit": "forwarding.job_events.on_payment_change",

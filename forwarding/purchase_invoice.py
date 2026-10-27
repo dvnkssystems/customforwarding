@@ -107,3 +107,17 @@ def branch_for_naming(doc, method=None):
 		doc.branch = frappe.db.get_value("Operations", doc.operations, "branch")
 	if doc.get("branch") and doc.meta.has_field("b_abb"):
 		doc.b_abb = frappe.db.get_value("Branch", doc.branch, "abbreviation") or doc.get("b_abb")
+
+
+def payment_branch_from_bill(doc, method=None):
+	"""before_validate: a payment against bills takes their Branch (A-20),
+	which is their job's; one left empty only. The first referenced invoice
+	with a branch decides."""
+	if doc.get("branch") or not doc.meta.has_field("branch"):
+		return
+	for ref in doc.get("references") or []:
+		if ref.reference_doctype in ("Sales Invoice", "Purchase Invoice") and ref.reference_name:
+			branch = frappe.db.get_value(ref.reference_doctype, ref.reference_name, "branch")
+			if branch:
+				doc.branch = branch
+				return
