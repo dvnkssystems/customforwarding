@@ -105,8 +105,6 @@ GUARDED = {
 	"drivers": "Driver",
 }
 
-# A supplier in one of these roles quotes rates (SU5): the Rates tab.
-RATE_ROLES = ("is_shipping_line", "is_airline", "is_transporter", "is_overseas_agent")
 
 JOB_FIELDS = [
 	"name",
@@ -186,7 +184,8 @@ def build(supplier, date_range=None):
 	document_kpis, expiring_documents, expired_documents = party_documents.summary(own_documents)
 	header = _supplier_header(doc, today, contacts, addresses)
 	# Rates and fleet describe the supplier, so the date range never narrows them.
-	show_rates = any(doc.get(field) for field in RATE_ROLES)
+	# Every supplier can bill us at an agreed rate, handling agents too (A-27).
+	show_rates = True
 	show_fleet = bool(doc.get("is_transporter"))
 	rates = _rates(supplier, today, settings.rate_expiry_days)
 	vehicles, drivers = _fleet(supplier, today, settings.document_expiry_days)

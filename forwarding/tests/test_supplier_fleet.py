@@ -154,14 +154,15 @@ class TestSupplierFleet(IntegrationTestCase):
 			"is_airline": (True, False),
 			"is_overseas_agent": (True, False),
 			"is_transporter": (True, True),
-			"is_broker": (False, False),
-			"is_handling_agent": (False, False),
+			# Every supplier has the Rates tab (A-27).
+			"is_broker": (True, False),
+			"is_handling_agent": (True, False),
 		}
 		for role, expected in cases.items():
 			payload = fresh(make_supplier(**{role: 1}).name)
 			self.assertEqual((payload["show_rates"], payload["show_fleet"]), expected, role)
 		payload = fresh(make_supplier().name)
-		self.assertEqual((payload["show_rates"], payload["show_fleet"]), (False, False))
+		self.assertEqual((payload["show_rates"], payload["show_fleet"]), (True, False))
 
 	# -- Vehicles and drivers (SU6, §5.5) -------------------------------------------------
 

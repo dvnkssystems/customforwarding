@@ -34,6 +34,12 @@ app_license = "MIT"
 
 # include js in doctype views
 # doctype_js = {"doctype" : "public/js/doctype.js"}
+# A bill's job decides its Project, Branch and Cost Center (A-02, A-03); a
+# Purchase Invoice's supplier its currency and price list (A-07, A-08).
+doctype_js = {
+	"Purchase Invoice": ["public/js/job_bill.js", "public/js/purchase_invoice.js"],
+	"Sales Invoice": "public/js/job_bill.js",
+}
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
@@ -127,6 +133,7 @@ fixtures = [
 
 doc_events = {
 	"Sales Invoice": {
+		"before_validate": "forwarding.purchase_invoice.fill_from_job",
 		"validate": [
 			"forwarding.subscription.enforce_limit",
 			"forwarding.invoice_guard.validate",

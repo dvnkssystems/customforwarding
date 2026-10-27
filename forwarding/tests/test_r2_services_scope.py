@@ -323,6 +323,21 @@ class TestSeveralScopes(IntegrationTestCase):
 		job.save(ignore_permissions=True)
 		self.assertEqual(services.job_scopes(job), [scope("Port to Port")])
 
+	def test_removing_the_last_scope_a_clearance_needs(self):
+		# A-01: no scope left is not "unrestricted" for a job that had one.
+		job = sea_import("Customs Clearance + Transportation", SEA_IMPORT_CLEARANCE)
+		clearance = frappe.get_doc(
+			{"doctype": "Custom Clearance", "operations": job.name, "clearance_status": "Draft"}
+		)
+		clearance.flags.ignore_mandatory = True
+		clearance.insert(ignore_permissions=True)
+
+		job.reload()
+		job.scopes_of_work = []
+		with self.assertRaises(frappe.ValidationError) as caught:
+			job.save(ignore_permissions=True)
+		self.assertIn(clearance.name, str(caught.exception))
+
 	def test_removing_a_scope_a_service_needs(self):
 		job = sea_import(("Port to Port", "Custom Clearance"), FREEHAND, SEA_IMPORT_CLEARANCE)
 		job.scopes_of_work = [r for r in job.scopes_of_work if r.scope_of_work == scope("Port to Port")]
