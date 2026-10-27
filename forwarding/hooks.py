@@ -38,7 +38,7 @@ app_license = "MIT"
 # Purchase Invoice's supplier its currency and price list (A-07, A-08).
 doctype_js = {
 	"Purchase Invoice": ["public/js/job_bill.js", "public/js/purchase_invoice.js"],
-	"Sales Invoice": "public/js/job_bill.js",
+	"Sales Invoice": ["public/js/job_bill.js", "public/js/sales_invoice.js"],
 }
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
@@ -138,6 +138,7 @@ doc_events = {
 			"forwarding.subscription.enforce_limit",
 			"forwarding.invoice_guard.validate",
 			"forwarding.sales_invoice.enforce_overseas_zero_rating",
+			"forwarding.credit_note.validate",
 		],
 		"before_submit": [
 			"forwarding.sales_invoice.block_zero_value_job_invoice",

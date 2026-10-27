@@ -314,6 +314,7 @@ def _invoices(customer, company, currency, today, date_range=None):
 			si.outstanding_amount,
 			si.status,
 			si.docstatus,
+			si.is_return,
 			si.operations,
 			si.company,
 			si.party_account_currency,
@@ -351,6 +352,7 @@ def _invoices(customer, company, currency, today, date_range=None):
 			"outstanding_amount": r.outstanding_amount,
 			"status": r.status,
 			"docstatus": r.docstatus,
+			"is_return": r.is_return,
 			"operations": r.operations,
 			"overdue": is_overdue(r),
 		}
