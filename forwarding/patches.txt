@@ -68,3 +68,4 @@ forwarding.patches.v1_0.a13_invoice_list_columns
 forwarding.patches.v1_0.a14_hide_stock_fields_on_bills
 forwarding.patches.v1_0.a19_purchase_invoice_series
 forwarding.patches.v1_0.r3_answers_merges
+forwarding.patches.v1_0.a21_services_from_orders
