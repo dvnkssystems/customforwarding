@@ -29,7 +29,7 @@ from frappe import _
 from frappe.query_builder.functions import Min, Sum
 from frappe.utils import cint, date_diff, flt, fmt_money, formatdate, getdate, nowdate
 
-from forwarding.party_360 import default_company
+from forwarding.party_360 import default_company, vat_number
 
 # Party type -> the invoice DocType a user must be able to read to see it.
 PARTY_TYPES = {"Customer": "Sales Invoice", "Supplier": "Purchase Invoice"}
@@ -194,7 +194,7 @@ def build(party_type, party, from_date=None, to_date=None, company=None):
 		"party_type": party_type,
 		"party": party,
 		"party_name": party_name or party,
-		"tax_id": frappe.db.get_value(party_type, party, "tax_id"),
+		"tax_id": vat_number(frappe.db.get_value(party_type, party, ["tax_id"], as_dict=True) or {}),
 		"company": company,
 		"currency": currency,
 		"from_date": from_date,

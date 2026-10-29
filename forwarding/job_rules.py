@@ -105,6 +105,54 @@ def estimate_item_query(doctype, txt, searchfield, start, page_len, filters):
 	return query.run()
 
 
+@frappe.whitelist()
+@frappe.validate_and_sanitize_search_inputs
+def customer_query(doctype, txt, searchfield, start, page_len, filters):
+	"""A job's Customer picker: each enabled customer with its city, not
+	Customer's search fields (group, territory, mobile and the whole address,
+	retest #10). The city is the primary address's, else that of the first
+	linked address that has one (most customers have no primary address)."""
+	customer = frappe.qb.DocType("Customer")
+	rows = (
+		frappe.qb.from_(customer)
+		.select(customer.name, customer.customer_primary_address)
+		.where(customer.disabled == 0)
+		.where(customer.name.like(f"%{txt}%") | customer.customer_name.like(f"%{txt}%"))
+		.orderby(customer.name)
+		.limit(cint(page_len) or 20)
+		.offset(cint(start))
+		.run()
+	)
+	if not rows:
+		return []
+
+	address = frappe.qb.DocType("Address")
+	link = frappe.qb.DocType("Dynamic Link")
+	primary = {
+		name: city
+		for name, city in frappe.qb.from_(address)
+		.select(address.name, address.city)
+		.where(address.name.isin([r[1] for r in rows if r[1]] or [""]))
+		.run()
+	}
+	linked = {}
+	for customer_name, city in (
+		frappe.qb.from_(link)
+		.join(address)
+		.on(address.name == link.parent)
+		.select(link.link_name, address.city)
+		.where(link.parenttype == "Address")
+		.where(link.link_doctype == "Customer")
+		.where(link.link_name.isin([r[0] for r in rows]))
+		.where(address.city.isnotnull() & (address.city != ""))
+		.orderby(address.is_primary_address, order=frappe.qb.desc)
+		.orderby(address.creation)
+		.run()
+	):
+		linked.setdefault(customer_name, city)
+	return [(name, primary.get(primary_address) or linked.get(name) or "") for name, primary_address in rows]
+
+
 def _changed(job, fieldname):
 	return job.is_new() or job.has_value_changed(fieldname)
 

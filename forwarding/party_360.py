@@ -26,6 +26,17 @@ ADDRESS_FIELDS = [
 ]
 
 
+def vat_number(doc):
+	"""The party's VAT number: ERPNext's tax_id, else the one ksa_compliance
+	keeps. A placeholder of zeros ("0", 172 suppliers in the client's data)
+	is no number, so the page shows none rather than "VAT 0"."""
+	for value in (doc.get("tax_id"), doc.get("custom_vat_registration_number")):
+		value = cstr(value).strip()
+		if value.strip("0 .-"):
+			return value
+	return None
+
+
 def default_company():
 	"""The site's default company. Not the user's: the payload is shared."""
 	return frappe.db.get_single_value("Global Defaults", "default_company") or frappe.db.get_value(

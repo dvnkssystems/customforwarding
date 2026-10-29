@@ -34,12 +34,25 @@ def fill_from_job(doc, method=None):
 		for row in rows:
 			if row.get("project") and frappe.db.exists("Operations", row.project):
 				row.project = None
+		# With no job, the Branch is the Cost Center's (A-02 retest).
+		for row in rows:
+			if row.meta.has_field("branch") and not row.get("branch"):
+				row.branch = branch_for_cost_center(row.get("cost_center") or doc.get("cost_center"))
 		return
 	dimensions = job_dimensions(doc.operations, doc.company)
 	for row in rows:
 		for field, value in dimensions.items():
 			if value and row.meta.has_field(field):
 				row.set(field, value)
+
+
+def branch_for_cost_center(cost_center):
+	"""The Branch whose Cost Center this is (Branch.cost_center), when exactly
+	one branch has it; else None."""
+	if not cost_center:
+		return None
+	branches = frappe.get_all("Branch", filters={"cost_center": cost_center}, pluck="name", limit=2)
+	return branches[0] if len(branches) == 1 else None
 
 
 def job_dimensions(job, company):
@@ -105,6 +118,8 @@ def branch_for_naming(doc, method=None):
 	Project and Cost Center follow in fill_from_job."""
 	if doc.get("operations") and not doc.get("branch"):
 		doc.branch = frappe.db.get_value("Operations", doc.operations, "branch")
+	if not doc.get("operations") and not doc.get("branch") and doc.meta.has_field("branch"):
+		doc.branch = branch_for_cost_center(doc.get("cost_center"))
 	if doc.get("branch") and doc.meta.has_field("b_abb"):
 		doc.b_abb = frappe.db.get_value("Branch", doc.branch, "abbreviation") or doc.get("b_abb")
 
