@@ -675,6 +675,7 @@ def _invoices(job):
 
 def _units(doc):
 	units = []
+	uom = cstr(doc.get("weight_uom")) or "Kg"
 	for r in doc.get("container_details") or []:
 		size = f"{r.size}'" if r.size else ""
 		kind = " ".join(p for p in (size, cstr(r.container_type)) if p)
@@ -684,7 +685,8 @@ def _units(doc):
 				kind if r.container_no else None,
 				f"Seal {r.seal_no}" if r.seal_no else None,
 				f"{cint(r.packages)} pkgs" if r.packages else None,
-				f"{flt(r.weight):g} kg" if r.weight else None,
+				f"{flt(r.weight):g} {uom}" if r.weight else None,
+				f"{flt(r.volume):g} m³" if r.volume else None,
 			)
 			if p
 		)
@@ -694,6 +696,14 @@ def _units(doc):
 				"kind": "container",
 				"label": r.container_no or kind or _("Container {0}").format(r.idx),
 				"detail": detail,
+				# The container's own share of the job's Cargo Details.
+				"cargo": {
+					"packages": cint(r.packages),
+					"net_weight": flt(r.net_weight),
+					"gross_weight": flt(r.weight),
+					"cbm": flt(r.volume),
+					"weight_uom": uom,
+				},
 				# Nothing can be tracked or delivered without a container number.
 				"attention": not cstr(r.container_no).strip(),
 			}

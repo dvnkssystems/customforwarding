@@ -8,14 +8,15 @@
   "size",
   "container_type",
   "qty",
+  "packages",
+  "net_weight",
+  "weight",
+  "volume",
   "container_detail",
   "container_no",
   "temperature",
   "dg_shipment_type",
-  "weight",
-  "volume",
   "seal_no",
-  "packages",
   "cargo_description",
   "no_units",
   "qty_type",
@@ -33,14 +34,16 @@
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Container Type",
-   "options": "Container Type"
+   "options": "Container Type",
+   "columns": 1
   },
   {
    "allow_on_submit": 1,
    "fieldname": "qty",
    "fieldtype": "Int",
    "in_list_view": 1,
-   "label": "Qty"
+   "label": "Qty",
+   "columns": 1
   },
   {
    "allow_on_submit": 1,
@@ -48,21 +51,24 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Size(Ft)",
-   "options": "\n40\n45\n20"
+   "options": "\n40\n45\n20",
+   "columns": 1
   },
   {
    "allow_on_submit": 1,
    "fieldname": "container_detail",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Container Detail"
+   "label": "Container Detail",
+   "columns": 1
   },
   {
    "allow_on_submit": 1,
    "fieldname": "container_no",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Container No"
+   "label": "Container No",
+   "columns": 2
   },
   {
    "allow_on_submit": 1,
@@ -78,16 +84,29 @@
    "options": "\nDG\nNon DG"
   },
   {
+   "fieldname": "net_weight",
+   "fieldtype": "Float",
+   "label": "Net Weight",
+   "in_list_view": 1,
+   "columns": 1,
+   "description": "In the job's Weight UOM."
+  },
+  {
    "allow_on_submit": 1,
    "fieldname": "weight",
    "fieldtype": "Float",
-   "label": "Gross Weight (Kg)"
+   "label": "Gross Weight",
+   "in_list_view": 1,
+   "columns": 1,
+   "description": "In the job's Weight UOM. The job's Cargo Details add up these rows."
   },
   {
    "allow_on_submit": 1,
    "fieldname": "volume",
    "fieldtype": "Float",
-   "label": "Volume (m3)"
+   "label": "CBM",
+   "in_list_view": 1,
+   "columns": 1
   },
   {
    "allow_on_submit": 1,
@@ -99,8 +118,10 @@
    "allow_on_submit": 1,
    "fieldname": "packages",
    "fieldtype": "Int",
-   "label": "No of Packages",
-   "non_negative": 1
+   "label": "Packages",
+   "non_negative": 1,
+   "in_list_view": 1,
+   "columns": 1
   },
   {
    "allow_on_submit": 1,
@@ -150,7 +171,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2026-10-21 16:30:00.000000",
+ "modified": "2026-10-29 18:00:00.000000",
  "modified_by": "Administrator",
  "module": "Forwarding",
  "name": "Container Details",

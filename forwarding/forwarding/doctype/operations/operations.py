@@ -3,6 +3,8 @@
 # For license information, please see license.txt
 
 from __future__ import unicode_literals
+import re
+
 import frappe
 from frappe import _
 from frappe.model.document import Document
@@ -62,6 +64,54 @@ HOME_SIDE = {
 	"Import": ("destination_country", "port_of_destination"),
 	"Export": ("loading_country", "port_of_loading"),
 }
+
+# A job's Cargo Details field and the Container Details field it adds up.
+CONTAINER_CARGO = (
+	("packages", "packages"),
+	("net_weight", "net_weight"),
+	("gross_weight", "weight"),
+	("cbm", "volume"),
+)
+
+
+def leading_number(text):
+	"""The number a Packages value starts with: 17 for "17 PALLETS"."""
+	match = re.match(r"\s*(\d+(?:\.\d+)?)", cstr(text))
+	return flt(match.group(1)) if match else 0.0
+
+
+def seed_container_cargo(job):
+	"""A job whose container rows carry no cargo figures yet, but whose Cargo
+	Details does (jobs from before the figures moved to the rows, or one
+	keyed in through the New Job wizard), gets them on its first row, so the
+	totals stay the same. Returns that row, or None."""
+	rows = job.get("container_details") or []
+	if not rows or any(flt(row.get(f)) for row in rows for _job_field, f in CONTAINER_CARGO):
+		return None
+	figures = {
+		"packages": cint(leading_number(job.packages)),
+		"net_weight": flt(job.net_weight),
+		"weight": flt(job.gross_weight),
+		"volume": flt(job.cbm) or flt(job.volume),
+	}
+	if not any(figures.values()):
+		return None
+	rows[0].update(figures)
+	return rows[0]
+
+
+def set_cargo_totals(job):
+	"""Cargo Details = the sum of the container rows. A Packages value that
+	already says the total ("17 PALLETS" for 17) keeps its wording."""
+	rows = job.get("container_details") or []
+	pieces = sum(cint(row.packages) for row in rows)
+	if leading_number(job.packages) != pieces:
+		job.packages = f"{pieces:g}" if pieces else ""
+	job.no_of_pieces = pieces
+	job.net_weight = sum(flt(row.net_weight) for row in rows)
+	job.gross_weight = sum(flt(row.weight) for row in rows)
+	job.cbm = job.volume = flt(sum(flt(row.volume) for row in rows), 3)
+
 
 # The units a job's weights may be in (R3-31), Kg first as the default.
 WEIGHT_UOMS = ("Kg", "Tonne", "Pound")
@@ -277,6 +327,7 @@ class Operations(Document):
 		self.set_home_side()
 		self.validate_ports()
 		self.calculate_package_totals()
+		self.set_cargo_from_containers()
 		self.validate_weights()
 		self.validate_weight_uom()
 		self.validate_actual_dates()
@@ -395,6 +446,8 @@ class Operations(Document):
 		self.set_free_time_expiry()
 		self.validate_cutoffs()
 		self.set_cutoff_status()
+		self.set_cargo_from_containers()
+		self.validate_weights()
 		self.sync_container_rows()
 		validate_document_rows(self)
 		self.validate_close()
@@ -594,6 +647,15 @@ class Operations(Document):
 		self.cbm = flt(self.total_package_volume, 3)
 		self.volume = flt(self.total_package_volume, 3)
 		self.chargable_weight = flt(self.total_chargeable_weight)
+
+	def set_cargo_from_containers(self):
+		"""With container rows (and no package rows), the header cargo figures
+		are the rows' totals: each container carries its own packages and
+		weights, and Cargo Details is read-only while rows exist."""
+		if self.get("package_details") or not self.get("container_details"):
+			return
+		seed_container_cargo(self)
+		set_cargo_totals(self)
 
 	def free_time_start(self):
 		"""When the job's free time starts counting (R3-52), or None while
