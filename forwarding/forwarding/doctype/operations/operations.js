@@ -227,6 +227,7 @@ frappe.ui.form.on("Operations", {
 
 	// row deletions fire on the parent form, not on the child doctype
 	package_details_remove: calculate_package_totals,
+	container_details_remove: set_cargo_from_containers,
 
 	refresh: function (frm) {
 		frm.set_query("services", services_query);
@@ -243,6 +244,33 @@ frappe.ui.form.on("Package", {
 	length: calculate_package_totals,
 	width: calculate_package_totals,
 	height: calculate_package_totals,
+});
+
+// Mirrors Operations.set_cargo_from_containers / set_cargo_totals: with
+// container rows and no package rows, Cargo Details is the rows' total.
+function set_cargo_from_containers(frm) {
+	if (frm.doctype !== "Operations") return;
+	const rows = frm.doc.container_details || [];
+	if (!rows.length || (frm.doc.package_details || []).length) return;
+
+	const sum = (field) => rows.reduce((total, row) => total + flt(row[field]), 0);
+	const pieces = rows.reduce((total, row) => total + cint(row.packages), 0);
+	const typed = parseFloat(frm.doc.packages) || 0;
+	if (typed !== pieces) frm.set_value("packages", pieces ? String(pieces) : "");
+	frm.set_value("no_of_pieces", pieces);
+	frm.set_value("net_weight", sum("net_weight"));
+	frm.set_value("gross_weight", sum("weight"));
+	frm.set_value("cbm", flt(sum("volume"), 3));
+	frm.set_value("volume", flt(sum("volume"), 3));
+}
+
+// Container Details is shared with quotations and invoices; the handler
+// checks it is on a job.
+frappe.ui.form.on("Container Details", {
+	packages: set_cargo_from_containers,
+	net_weight: set_cargo_from_containers,
+	weight: set_cargo_from_containers,
+	volume: set_cargo_from_containers,
 });
 
 // Bulk-create identical container rows, mirroring the LCS "Count -> Create" control.
@@ -313,6 +341,7 @@ function import_containers(frm) {
 				row.vgm = flt(c[7]);
 			});
 			frm.refresh_field("container_details");
+			set_cargo_from_containers(frm);
 			dialog.hide();
 			frappe.show_alert({ message: __("Imported {0} containers", [lines.length]), indicator: "green" });
 		},
