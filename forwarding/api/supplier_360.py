@@ -294,8 +294,7 @@ def _supplier_header(doc, today, contacts, addresses):
 		"supplier_name": doc.supplier_name,
 		"supplier_group": doc.supplier_group,
 		"country": doc.country,
-		# ERPNext's tax_id, else a VAT number ksa_compliance may keep.
-		"tax_id": doc.tax_id or doc.get("custom_vat_registration_number") or None,
+		"tax_id": party_360.vat_number(doc),
 		"supplier_code": doc.get("supplier_code") or None,
 		"cr_no": doc.get("cr_no") or None,
 		# Role pills (§4), from the role tick-boxes.

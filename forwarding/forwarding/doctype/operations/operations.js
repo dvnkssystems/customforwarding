@@ -723,6 +723,13 @@ frappe.ui.form.on("Operations", {
 	},
 });
 
+// The Customer picker shows name and city, not the whole address (retest #10).
+const CUSTOMER_QUERY = () => ({ query: "forwarding.job_rules.customer_query" });
+frappe.ui.form.on("Operations", {
+	setup: (frm) => frm.set_query("customer", CUSTOMER_QUERY),
+	refresh: (frm) => frm.set_query("customer", CUSTOMER_QUERY),
+});
+
 // Services fill in from Job Type + Mode + Scope of Work (R3-23): the codes
 // each scope's core service types call for (forwarding.services.
 // default_services). Services the user added that still fit are kept; ones

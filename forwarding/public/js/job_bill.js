@@ -1,13 +1,16 @@
 // A bill's job (Purchase Invoice, Sales Invoice) decides its Project, Branch
 // and Cost Center, on the bill and every item row (A-02); they are read-only
-// while a job is set. With no job the Project is cleared (A-03). Only a
-// submitted job that is still open can be billed (A-04). The server applies
-// the same in forwarding.purchase_invoice.fill_from_job.
+// while a job is set. With no job the Project is cleared (A-03) and the
+// Branch follows the Cost Center. Only a submitted job that is still open can
+// be billed (A-04). The server applies the same in
+// forwarding.purchase_invoice.fill_from_job.
 // Wrapped: the desk evaluates doctype JS at global scope, once per DocType.
 (() => {
 	const JOB_BILL_FIELDS = ["project", "branch", "cost_center"];
 
 	function job_bill_query(frm) {
+		// A job is made through New Job, never from a bill (A-36).
+		if (frm.fields_dict.operations) frm.fields_dict.operations.df.only_select = 1;
 		frm.set_query("operations", () => ({
 			filters: [
 				["Operations", "docstatus", "=", 1],
@@ -45,6 +48,18 @@
 		job_bill_lock(frm);
 	}
 
+	// With no job, the Branch is the Cost Center's (Branch.cost_center), as
+	// forwarding.purchase_invoice.branch_for_cost_center does on save.
+	async function job_bill_branch_from_cost_center(frm) {
+		if (frm.doc.operations || frm.doc.branch || !frm.doc.cost_center || !frm.fields_dict.branch) return;
+		const branches = await frappe.db.get_list("Branch", {
+			filters: { cost_center: frm.doc.cost_center },
+			fields: ["name"],
+			limit: 2,
+		});
+		if (branches.length === 1 && !frm.doc.branch) frm.set_value("branch", branches[0].name);
+	}
+
 	// Loaded with each invoice DocType; register both once.
 	if (frappe.flags.job_bill_registered) return;
 	frappe.flags.job_bill_registered = true;
@@ -57,8 +72,10 @@
 				job_bill_lock(frm);
 				// A new bill with no job carries no leftover job Project (A-03).
 				if (frm.is_new() && !frm.doc.operations && frm.doc.project) frm.set_value("project", "");
+				if (frm.is_new()) job_bill_branch_from_cost_center(frm);
 			},
 			operations: job_bill_apply,
+			cost_center: job_bill_branch_from_cost_center,
 		});
 		frappe.ui.form.on(`${doctype} Item`, {
 			items_add(frm, cdt, cdn) {

@@ -204,8 +204,7 @@ def _customer_header(doc, company, credit_limit, contacts, addresses):
 		if doc.customer_group
 		else None,
 		"territory": doc.territory,
-		# ERPNext's tax_id, else the VAT number ksa_compliance keeps.
-		"tax_id": doc.tax_id or doc.get("custom_vat_registration_number") or None,
+		"tax_id": party_360.vat_number(doc),
 		"cr_no": doc.get("cr_no") or None,
 		"disabled": doc.disabled,
 		"status": status,
