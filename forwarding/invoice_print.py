@@ -99,6 +99,60 @@ def _company_address(doc):
 	return _render_address(name)
 
 
+def company_header(company_name):
+	"""What a bilingual print header shows for a company: logo, names, VAT, CR
+	and address in English and Arabic. Anything not filled in on the Company
+	comes back empty, so the header simply leaves it out."""
+	company = _values(
+		"Company",
+		company_name,
+		["company_name", "company_logo", "tax_id", "tax_number", "cr_number", "company_arabic_name", "address_arabic"],
+	)
+	address = ""
+	if company_name:
+		from frappe.contacts.doctype.address.address import get_company_address
+
+		address = _render_address((get_company_address(company_name) or frappe._dict()).get("company_address"))
+	return frappe._dict(
+		name=company.get("company_name") or company_name or "",
+		name_ar=company.get("company_arabic_name") or "",
+		logo=_existing_file(company.get("company_logo")),
+		tax_id=company.get("tax_id") or company.get("tax_number") or "",
+		cr=company.get("cr_number") or "",
+		address=address_lines(address),
+		address_ar=address_lines(company.get("address_arabic")),
+	)
+
+
+def company_bank(company_name):
+	"""The company's default bank account for "pay to" details, or {}.
+
+	The default company Bank Account first, else the first one that is not
+	hidden."""
+	if not company_name or not frappe.db.exists("DocType", "Bank Account"):
+		return frappe._dict()
+	meta = frappe.get_meta("Bank Account")
+	filters = {"company": company_name, "is_company_account": 1}
+	if meta.has_field("disabled"):
+		filters["disabled"] = 0
+	if meta.has_field("is_hidden"):
+		filters["is_hidden"] = 0
+	names = frappe.get_all("Bank Account", filters=filters, pluck="name", order_by="is_default desc, creation asc", limit=1)
+	if not names:
+		return frappe._dict()
+	account = _values("Bank Account", names[0], ["bank", "account_name", "bank_account_no", "iban", "swift_code", "branch_code"])
+	swift = account.get("swift_code") or (
+		frappe.db.get_value("Bank", account.bank, "swift_number") if account.get("bank") else ""
+	)
+	return frappe._dict(
+		bank=account.get("bank") or "",
+		account_name=account.get("account_name") or "",
+		account_no=account.get("bank_account_no") or "",
+		iban=account.get("iban") or "",
+		swift=swift or "",
+	)
+
+
 def zatca_qr(doc, seller_name, seller_tax_id):
 	"""The invoice's ZATCA QR as an <img> src, or "" (R3-11).
 
@@ -239,6 +293,7 @@ def get_tax_invoice_context(doc):
 
 	seller_name = company.get("company_name") or doc.company
 	seller_tax_id = doc.get("company_tax_id") or company.get("tax_id") or ""
+	header = company_header(doc.company)
 	return frappe._dict(
 		seller=frappe._dict(
 			name=seller_name,
@@ -246,7 +301,10 @@ def get_tax_invoice_context(doc):
 			tax_id=seller_tax_id,
 			address=address_lines(_company_address(doc)),
 			address_ar=address_lines(company.get("address_arabic")),
+			logo=header.logo,
+			cr=header.cr,
 		),
+		bank=company_bank(doc.company),
 		buyer=frappe._dict(
 			name=doc.customer_name or doc.customer,
 			name_ar=doc.get("customer_name_in_arabic") or customer.get("customer_name_in_arabic") or "",
