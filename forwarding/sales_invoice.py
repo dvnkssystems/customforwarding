@@ -169,6 +169,29 @@ def warn_missing_seller_details(doc, method=None):
 	frappe.msgprint(message, title=_("Seller details missing"), indicator="orange")
 
 
+def warn_missing_buyer_vat(doc, method=None):
+	"""on_submit: a B2B tax invoice needs the buyer's VAT number (ZATCA), so
+	say so (without blocking) when a Saudi company customer has none. Not
+	for overseas customers, who have no Saudi VAT, or individuals (R3 item
+	16; Simran, 2 Nov)."""
+	if doc.get("is_return") or not doc.customer:
+		return
+	from forwarding.party_360 import vat_number
+
+	customer = frappe.get_cached_doc("Customer", doc.customer)
+	if customer.customer_type != "Company" or vat_number(customer):
+		return
+	if is_overseas_customer(doc.customer, customer.customer_group, doc.company):
+		return
+	frappe.msgprint(
+		_("{0} has no VAT number, so the invoice prints without the buyer's VAT. A B2B tax invoice needs it: add it on the customer.").format(
+			frappe.bold(doc.customer_name or doc.customer)
+		),
+		title=_("Buyer VAT missing"),
+		indicator="orange",
+	)
+
+
 @frappe.whitelist()
 def make_payment(source_name):
 	"""Record Payment on a Sales Invoice (A-12): ERPNext's own Payment Entry
