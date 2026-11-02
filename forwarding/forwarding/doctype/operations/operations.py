@@ -697,7 +697,10 @@ class Operations(Document):
 
 	def validate_cutoffs_before_etd(self):
 		"""A cut-off falls before the vessel or flight leaves (R3-12): no row's
-		deadline may be after the ETD."""
+		deadline may be after the ETD.
+
+		The message starts "<table label> Row #<idx> (<milestone>):", the shape
+		the app reads to mark that row and scroll to it (Batch 2, item 10)."""
 		if not self.etd_date:
 			return
 		etd = getdate(self.etd_date)
@@ -706,8 +709,11 @@ class Operations(Document):
 				value = row.get(fieldname)
 				if value and getdate(value) > etd:
 					frappe.throw(
-						_("Row {0} ({1}): Cut-off can't be after ETD ({2}).").format(
-							row.idx, _(row.milestone or ""), short_date(etd)
+						_("{0} Row #{1} ({2}): Cut-off can't be after ETD ({3}).").format(
+							_(self.meta.get_label("cutoffs")),
+							row.idx,
+							_(row.milestone or ""),
+							short_date(etd),
 						),
 						title=_("Cut-offs"),
 					)

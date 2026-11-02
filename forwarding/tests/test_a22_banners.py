@@ -28,6 +28,7 @@ class TestBanners(IntegrationTestCase):
 
 	def test_free_time_comes_back_on_its_last_day(self):
 		job = make()
+		job.docstatus = 1  # free-time alerts are for submitted jobs (Batch 2, item 3)
 		r = [rule("free_time_expiring")]
 		three = banners.evaluate(job, {"free_days_left": 3, "msg": "3 days"}, rules=r)[0]["fingerprint"]
 		two = banners.evaluate(job, {"free_days_left": 2, "msg": "2 days"}, rules=r)[0]["fingerprint"]

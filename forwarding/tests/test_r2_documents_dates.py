@@ -134,8 +134,9 @@ class TestActualDates(R2Case):
 		job.save()
 
 	def test_record_actual_refuses_a_future_date(self):
+		# A draft is refused before the date is looked at (Batch 2, item 3).
 		draft = make()
-		with self.assertRaisesRegex(frappe.ValidationError, "cannot be after today"):
+		with self.assertRaisesRegex(frappe.ValidationError, "Submit job"):
 			job_360.record_actual(draft.name, "atd", add_days(TODAY, 1))
 
 		submitted = make()

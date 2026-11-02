@@ -469,7 +469,7 @@ class TestAtaAlertAfterDeparture(R3Case):
 	def test_no_ata_alert_before_departure(self):
 		from forwarding import banners
 
-		job = frappe._dict(docstatus=0, operations_status="Open", etd_date=add_days(nowdate(), -5), eta_date=add_days(nowdate(), -1))
+		job = frappe._dict(docstatus=1, operations_status="Open", etd_date=add_days(nowdate(), -5), eta_date=add_days(nowdate(), -1))
 		ctx = {"today": nowdate()}
 		self.assertTrue(banners.atd_missing(job, ctx))
 		self.assertFalse(banners.ata_missing(job, ctx))
