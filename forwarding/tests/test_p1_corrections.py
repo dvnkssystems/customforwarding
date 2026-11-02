@@ -367,6 +367,7 @@ class TestDuplicateQuote(P1TestCase):
 		from forwarding.quote_to_job import duplicate_quote
 
 		customer = frappe.get_all("Customer", pluck="name", limit=1)[0]
+		item = frappe.db.get_value("Item", {"disabled": 0, "is_stock_item": 0}, "name")
 		old = frappe.get_doc(
 			{
 				"doctype": "Quote",
@@ -374,7 +375,8 @@ class TestDuplicateQuote(P1TestCase):
 				"mode": "SEA",
 				"date": add_days(nowdate(), -40),
 				"validity": add_days(nowdate(), -26),
-				"items": [{"description": "Ocean Freight", "rate": 100, "units": 1, "amount": 100}],
+				# A quote row names its Item (B3-13).
+				"items": [{"item": item, "description": "Ocean Freight", "rate": 100, "units": 1, "amount": 100}],
 			}
 		).insert(ignore_permissions=True)
 
