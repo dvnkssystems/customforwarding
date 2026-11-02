@@ -233,7 +233,10 @@ doc_events = {
 		"validate": "forwarding.subscription.enforce_limit",
 	},
 	"Customer": {
-		"before_insert": "forwarding.naming.set_customer_code",
+		"before_insert": [
+			"forwarding.naming.set_customer_code",
+			"forwarding.customer_contact.set_primary_contact_email",
+		],
 		"before_validate": "forwarding.party_accounts.set_party_accounts",
 		"validate": [
 			"forwarding.party_documents.validate",

@@ -939,6 +939,21 @@ def make_custom_clearance(source_name, target_doc=None, ignore_permissions=False
 
 	return doclist
 
+# The Item Group whose charges a Transportation costs (B3-11). Its items, and
+# those of any group under it, are the land-transport charges.
+TRANSPORT_ITEM_GROUP = "Transport Charges"
+
+
+def is_transport_charge(item):
+	"""True when the item sits in the Transport Charges group or under it."""
+	if not item or not frappe.db.exists("Item Group", TRANSPORT_ITEM_GROUP):
+		return False
+	from frappe.utils.nestedset import get_descendants_of
+
+	groups = {TRANSPORT_ITEM_GROUP, *get_descendants_of("Item Group", TRANSPORT_ITEM_GROUP)}
+	return frappe.get_cached_value("Item", item, "item_group") in groups
+
+
 @frappe.whitelist()
 def make_transportaion(source_name, target_doc=None, ignore_permissions=False):
 	def postprocess(source, target):
@@ -957,7 +972,14 @@ def make_transportaion(source_name, target_doc=None, ignore_permissions=False):
 			"field_map": {
 
 			}
-		}
+		},
+		# Only the job's transport charges become the Transportation's Costs
+		# (B3-11). Copied as a same-named table, the whole estimate came across
+		# (Documentation Fee and all) and the costs counted twice.
+		"Cost Table": {
+			"doctype": "Cost Table",
+			"condition": lambda row: is_transport_charge(row.item),
+		},
 	}, target_doc, postprocess, ignore_permissions= ignore_permissions)
 
 	return doclist

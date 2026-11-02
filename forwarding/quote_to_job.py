@@ -141,6 +141,10 @@ def make_operations_from_quote(source_name, target_doc=None):
 		target.date = nowdate()
 		target.posting_date = nowdate()
 
+		# Each estimate row opens with its Account, as the job's save fills it
+		# (B3-13): the form showed "—" until the job was first saved.
+		target.set_cost_accounts()
+
 	return get_mapped_doc(
 		"Quote",
 		source_name,

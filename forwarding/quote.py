@@ -34,7 +34,20 @@ def validate(doc, method=None):
 	set_status(doc)
 	set_party(doc)
 	set_mode(doc)
+	validate_items(doc)
 	set_amounts(doc)
+
+
+def validate_items(doc):
+	"""Every charge row names its Item (B3-13): the job's estimate row takes
+	the Item and books to its account, and a row with none had no account."""
+	missing = [str(r.idx) for r in doc.get("items") or [] if not r.get("item")]
+	if missing:
+		frappe.throw(
+			_("Item is missing on charge row {0}. Pick the charge Item on each row.").format(", ".join(missing)),
+			frappe.MandatoryError,
+			title=_("Item required"),
+		)
 
 
 def set_mode(doc):

@@ -75,3 +75,6 @@ forwarding.patches.v1_0.a08_buying_defaults
 forwarding.patches.v1_0.kanoo_handling_agent
 forwarding.patches.v1_0.b1_party_accounts
 forwarding.patches.v1_0.b1_invoice_fields
+forwarding.patches.v1_0.b3_transport_charges
+forwarding.patches.v1_0.b3_estimate_row_accounts
+forwarding.patches.v1_0.b3_riyadh_city_port
