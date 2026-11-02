@@ -34,10 +34,11 @@ def figures(filters=None):
 	names = [job.name for job in jobs]
 	estimates = get_estimates(names)
 	actuals = get_actuals(names, filters)
+	costed = get_costed(names)
 
 	data = []
 	for job in jobs:
-		row = job_row(job, estimates.get(job.name, {}), actuals.get(job.name, {}))
+		row = job_row(job, estimates.get(job.name, {}), actuals.get(job.name, {}), job.name in costed)
 		if filters.get("only_with_variance") and not row["variance"]:
 			continue
 		if filters.get("only_untagged") and (row["actual_income"] or row["actual_expense"]):
@@ -64,7 +65,7 @@ def job_figures(job):
 	return rows[0] if rows else None
 
 
-def job_row(job, estimate, actual):
+def job_row(job, estimate, actual, has_costs=True):
 	est_income = flt(estimate.get("income"))
 	est_expense = flt(estimate.get("expense"))
 	act_income = flt(actual.get("income"))
@@ -72,6 +73,15 @@ def job_row(job, estimate, actual):
 	est_profit = est_income - est_expense
 	act_profit = act_income - act_expense
 	variance = act_profit - est_profit
+	# No variance until the job is billed (R3-59) and has its costs: a
+	# submitted Purchase Invoice for it (B3-19). Income with no bill read as
+	# +200% and counted as beating the estimate.
+	if not act_income:
+		variance_label = _("Not billed yet")
+	elif not has_costs:
+		variance_label = _("No costs yet")
+	else:
+		variance_label = None
 
 	last_posting = actual.get("last_posting")
 	return {
@@ -80,9 +90,9 @@ def job_row(job, estimate, actual):
 		"customer": job.customer,
 		"branch": job.branch,
 		"mode_of_shipment": job.mode_of_shipment,
-		# A cancelled job reads as Cancelled whatever its operations status
-		# said when it was cancelled (M-19).
-		"status": "Cancelled" if is_cancelled(job) else job.operations_status,
+		# The Jobs list's status (B3-18): Draft, Submitted, On Hold, Closed or
+		# Cancelled (M-19), not the raw operations status ("Open" on all).
+		"status": job_status(job),
 		"docstatus": cint(job.docstatus),
 		"estimated_income": est_income,
 		"estimated_expense": est_expense,
@@ -97,14 +107,16 @@ def job_row(job, estimate, actual):
 		# identically to one that was billed and genuinely lost money — the
 		# two need entirely different follow-up.
 		"billed": 1 if act_income else 0,
+		# A submitted Purchase Invoice is linked to the job (B3-19).
+		"has_costs": 1 if has_costs else 0,
 		# What the Variance column says instead of a number until the job has
-		# been billed (R3-59): an open job is not a loss. Such a job counts as
+		# been billed (R3-59) and has its costs (B3-19). Such a job counts as
 		# neither beating nor falling short of its estimate.
-		"variance_label": None if act_income else _("Not billed yet"),
+		"variance_label": variance_label,
 		# A percentage of the estimated profit only means something when that
 		# profit is positive: against a loss it reads backwards (+300% on a job
 		# estimated at -1,000), and against zero it is undefined (M-20).
-		"variance_pct": variance / est_profit * 100 if est_profit > 0 and act_income else None,
+		"variance_pct": variance / est_profit * 100 if est_profit > 0 and not variance_label else None,
 		"last_posting": last_posting,
 		# A job whose ledger caught up after the job's own date. Not an
 		# error — it is normal, and it is what makes a period's actuals move
@@ -115,6 +127,38 @@ def job_row(job, estimate, actual):
 
 def is_cancelled(job):
 	return cint(job.docstatus) == 2 or (job.operations_status or "") == "Cancelled"
+
+
+# Operations statuses that end a submitted job, as the Jobs list has them.
+ENDED_STATUSES = ("On Hold", "Closed", "Cancelled")
+
+
+def job_status(job):
+	"""A job's status as the Jobs list shows it (src/lib/jobs.js jobStatus):
+	Cancelled, Draft, then On Hold / Closed, else Submitted. Other states past
+	submission (Delivered, Ops Completed) keep their own name."""
+	ops = (job.get("operations_status") or "").strip()
+	if cint(job.get("docstatus")) == 2 or ops.lower() == "cancelled":
+		return "Cancelled"
+	if cint(job.get("docstatus")) == 0:
+		return "Draft"
+	ended = next((s for s in ENDED_STATUSES if s.lower() == ops.lower()), None)
+	if ended:
+		return ended
+	return "Submitted" if not ops or ops.lower() == "open" else ops
+
+
+def get_costed(names):
+	"""The jobs with a submitted Purchase Invoice linked (Purchase
+	Invoice.operations)."""
+	return set(
+		frappe.get_all(
+			"Purchase Invoice",
+			filters={"operations": ["in", names], "docstatus": 1},
+			pluck="operations",
+			distinct=True,
+		)
+	)
 
 
 def get_jobs(filters):
