@@ -137,6 +137,7 @@ doc_events = {
 		"before_validate": [
 			"forwarding.purchase_invoice.fill_from_job",
 			"forwarding.purchase_invoice.due_from_credit_period",
+			"forwarding.party_accounts.debit_to_from_job",
 		],
 		"validate": [
 			"forwarding.subscription.enforce_limit",
@@ -155,6 +156,7 @@ doc_events = {
 		"on_submit": [
 			"forwarding.job_events.on_sales_invoice_change",
 			"forwarding.sales_invoice.warn_missing_seller_details",
+			"forwarding.sales_invoice.warn_missing_buyer_vat",
 		],
 		"on_cancel": [
 			"forwarding.custom_methods.update_cost_table_in_operations_on_cancle",
@@ -229,7 +231,11 @@ doc_events = {
 	},
 	"Customer": {
 		"before_insert": "forwarding.naming.set_customer_code",
-		"validate": ["forwarding.party_documents.validate", "forwarding.party_validation.validate_cr_no"],
+		"before_validate": "forwarding.party_accounts.set_party_accounts",
+		"validate": [
+			"forwarding.party_documents.validate",
+			"forwarding.party_validation.validate_cr_no",
+		],
 		"on_update": "forwarding.job_events.on_customer_change",
 		"on_trash": "forwarding.job_events.on_customer_change",
 	},
@@ -259,6 +265,7 @@ doc_events = {
 	},
 	"Supplier": {
 		"before_insert": "forwarding.naming.set_supplier_code",
+		"before_validate": "forwarding.party_accounts.set_party_accounts",
 		"validate": [
 			"forwarding.supplier.validate",
 			"forwarding.party_documents.validate",
