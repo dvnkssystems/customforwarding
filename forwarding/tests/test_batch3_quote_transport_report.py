@@ -100,14 +100,17 @@ class TestQuoteMode(Batch3Case):
 
 class TestQuoteRowsAndAccounts(Batch3Case):
 	# Item 13.
-	def test_a_row_without_item_is_refused_naming_the_row(self):
+	def test_a_row_without_item_saves_but_is_refused_on_submit(self):
+		# A draft may be unfinished: 272 rows on the client's draft quotes
+		# have no Item yet. Submit, which a job needs, refuses it naming the row.
 		item = other_item()
-		with self.assertRaises(frappe.MandatoryError) as raised:
-			make_quote(
-				CUSTOMER,
-				validity_in_days=10,
-				items=[{"item": item, "rate": 100, "units": 1}, {"description": "Handling", "rate": 50, "units": 1}],
-			)
+		quote = make_quote(
+			CUSTOMER,
+			validity_in_days=10,
+			items=[{"item": item, "rate": 100, "units": 1}, {"description": "Handling", "rate": 50, "units": 1}],
+		)
+		with self.assertRaises(frappe.ValidationError) as raised:
+			quote.submit()
 		self.assertIn("row 2", str(raised.exception))
 
 	def test_job_from_quote_opens_with_accounts(self):
