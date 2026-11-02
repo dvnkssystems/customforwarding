@@ -396,9 +396,24 @@ class Operations(Document):
 		for row in self.get_all_children():
 			missing.extend(row._get_missing_mandatory_fields())
 		problems.extend(strip_html(msg) for _fieldname, msg in missing)
+		problems.extend(self.missing_ports())
 		if not has_estimate(self):
 			problems.append(_("Add an estimate: a cost sheet row with an Est. Selling above 0."))
 		return problems
+
+	def missing_ports(self):
+		"""A Sea or Air job is submitted with both ports (ONE Freight, 2 Nov:
+		J-IM-S-26-00001 went through with neither, so its header read
+		"— → Saudi Arabia" and the POD printed Port of Discharge "-"). Frappe's
+		mandatory wording, so the app links each to its field. Land and
+		customs-only jobs may have no port."""
+		if job_rules.mode_of(self) not in ("Sea", "Air"):
+			return []
+		return [
+			_("Value missing for {0}: {1}").format(_(self.doctype), _(self.meta.get_label(fieldname)).strip())
+			for fieldname in ("port_of_loading", "port_of_destination")
+			if self.meta.has_field(fieldname) and not self.get(fieldname)
+		]
 
 	def validate_submit(self):
 		problems = self.submit_problems()

@@ -229,7 +229,7 @@ class TestPhase2PartyPages(IntegrationTestCase):
 		self.assertIn(job.name, c5["message"])
 
 	def test_customer_header_prefill_fields(self):
-		branch = _first("Branch")
+		branch = _first("Branch", {"name": ["!=", "ALL"]})
 		salesman = _first("Sales Person", {"is_group": 0})
 		customer = make_customer(branch=branch, sales_team=[{"sales_person": salesman, "allocated_percentage": 100}])
 		header = fresh_customer(customer.name)["customer"]

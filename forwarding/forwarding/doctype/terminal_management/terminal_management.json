@@ -15,7 +15,7 @@
   {
    "fieldname": "operations",
    "fieldtype": "Link",
-   "label": "Operations",
+   "label": "Job",
    "options": "Operations"
   },
   {
@@ -39,7 +39,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2021-03-07 17:35:47.792095",
+ "modified": "2026-11-02 18:00:00.000000",
  "modified_by": "Administrator",
  "module": "Forwarding",
  "name": "Terminal Management",

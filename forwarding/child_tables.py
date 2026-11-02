@@ -275,3 +275,23 @@ def sync_costs_to_job(doc):
 		)
 		row.ref_id = new.name
 		claimed.add(new.name)
+
+
+def remove_costs_from_job(doc, method=None):
+	"""on_trash of a Transportation / Custom Clearance: the job's copies of its
+	cost rows go too (ONE Freight, 2 Nov: deleting a test transport would
+	otherwise leave its charges on the job). Only rows it added to the job
+	(ref_docname) are removed; a job row it merely took over stays."""
+	if not doc.get("operations"):
+		return
+	for name in frappe.get_all(
+		"Cost Table",
+		filters={
+			"parent": doc.operations,
+			"parenttype": "Operations",
+			"parentfield": "cost_table",
+			"ref_docname": doc.name,
+		},
+		pluck="name",
+	):
+		frappe.db.delete("Cost Table", {"name": name})

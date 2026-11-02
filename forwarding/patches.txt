@@ -83,3 +83,5 @@ forwarding.patches.v1_0.b5_vehicle_form
 forwarding.patches.v1_0.b5_fleet_banner_documents
 forwarding.patches.v1_0.b5_sidebar_cleanup
 forwarding.patches.v1_0.b5_report_totals
+forwarding.patches.v1_0.ofs1_invoice_settings
+forwarding.patches.v1_0.ofs1_clean_start

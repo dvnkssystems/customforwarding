@@ -35,7 +35,8 @@ def make_customer(**values):
 			"customer_group": _first("Customer Group", {"is_group": 0}),
 			"territory": _first("Territory", {"is_group": 0}),
 			# Mandatory on this site (Property Setter / Custom Field).
-			"branch": _first("Branch"),
+			# Not "ALL": a customer belongs to one real branch.
+			"branch": _first("Branch", {"name": ["!=", "ALL"]}),
 			"default_currency": frappe.get_cached_value("Company", company, "default_currency"),
 			"accounts": [{"company": company, "account": receivable}],
 			**values,
