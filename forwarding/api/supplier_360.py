@@ -244,6 +244,8 @@ def build(supplier, date_range=None):
 		# Every money KPI and banner amount is in this, the company's currency.
 		"currency": currency,
 		"supplier": header,
+		# The Details tab (A-26).
+		"details": party_360.party_details(doc, company, roles=header["roles"]),
 		"kpis": kpis,
 		"banners": supplier_banners.evaluate(ctx),
 		"jobs": jobs,

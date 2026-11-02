@@ -37,6 +37,52 @@ def vat_number(doc):
 	return None
 
 
+def party_details(doc, company, credit_limit=None, salesperson=None, roles=None):
+	"""The read-only Details tab (A-26): who the party is on paper. Blank
+	values stay None so the page shows a dash, and VAT goes through
+	vat_number() so a placeholder "0" shows nothing.
+
+	accounts is the party's own Accounts rows (company, account); the
+	default company's account is always listed, marked is_default when it
+	comes from the company or party group rather than a row of its own."""
+	from erpnext.accounts.party import get_party_account
+
+	is_customer = doc.doctype == "Customer"
+	kind = "customer" if is_customer else "supplier"
+	accounts = [
+		{"company": r.company, "account": r.account, "is_default": 0}
+		for r in doc.get("accounts") or []
+		if r.account
+	]
+	if company and not any(a["company"] == company for a in accounts):
+		try:
+			account = get_party_account(doc.doctype, doc.name, company)
+		except Exception:
+			# A missing company default must not take the whole page down.
+			account = None
+		if account:
+			accounts.insert(0, {"company": company, "account": account, "is_default": 1})
+	details = {
+		"name_arabic": doc.get(f"{kind}_name_in_arabic") or None,
+		"party_type": doc.get(f"{kind}_type") or None,
+		"cr_no": doc.get("cr_no") or None,
+		"vat": vat_number(doc),
+		"group": doc.get(f"{kind}_group") or None,
+		"territory": (doc.get("territory") if is_customer else doc.get("country")) or None,
+		"branch": doc.get("branch") or None,
+		"currency": doc.get("default_currency") or None,
+		# The Freight credit period, else ERPNext's Payment Terms Template.
+		"credit_period": doc.get("credit_period") or doc.get("payment_terms") or None,
+		"credit_limit": flt(credit_limit if credit_limit is not None else doc.get("credit_limit_flcs"), 2),
+		"salesperson": salesperson or None,
+		"account_type": "Receivable" if is_customer else "Payable",
+		"accounts": accounts,
+	}
+	if roles is not None:
+		details["roles"] = roles
+	return details
+
+
 def default_company():
 	"""The site's default company. Not the user's: the payload is shared."""
 	return frappe.db.get_single_value("Global Defaults", "default_company") or frappe.db.get_value(
@@ -343,15 +389,41 @@ def evaluate_rules(applies_to, conditions, ctx):
 			continue
 		from forwarding.banner_dismissal import fingerprint_of
 
-		out.append(
-			{
-				"code": rule.rule_code,
-				"priority": rule.priority or 0,
-				"colour": rule.colour or "info",
-				"message": message.strip(),
-				"action": rule.action or None,
-				# A dismissed banner comes back when its message changes (A-22).
-				"fingerprint": fingerprint_of(message.strip()),
-			}
-		)
+		actions = PARTY_ACTIONS.get((applies_to, rule.condition_key)) or []
+		if rule.action and rule.action not in actions:
+			actions = [*actions, rule.action]
+		banner = {
+			"code": rule.rule_code,
+			"priority": rule.priority or 0,
+			"colour": rule.colour or "info",
+			"message": message.strip(),
+			"action": actions[0] if actions else None,
+			"actions": actions,
+			# A dismissed banner comes back when its message changes (A-22).
+			"fingerprint": fingerprint_of(message.strip()),
+		}
+		if rule.condition_key in OVERDUE_KEYS:
+			invoices = overdue_names(ctx.get("overdue"))
+			# The documents its buttons act on, oldest due first; dismissed, it
+			# comes back when another falls overdue or one is paid.
+			banner["invoices"] = invoices
+			banner["invoice"] = invoices[0] if invoices else None
+			banner["fingerprint"] = fingerprint_of(",".join(sorted(invoices)))
+		out.append(banner)
 	return out
+
+
+# Overdue banners that act in place (A-22), like the job's invoice_overdue:
+# their buttons, first is the main one. The rule's own action (View invoices)
+# follows them.
+PARTY_ACTIONS = {
+	("Customer", "overdue_invoices"): ["record_payment", "send_reminder"],
+	("Supplier", "overdue_payables"): ["record_payment"],
+}
+OVERDUE_KEYS = {"overdue_invoices", "overdue_payables"}
+
+
+def overdue_names(rows):
+	"""Names of the overdue rows ({name, due_date}), oldest due first."""
+	rows = sorted(rows or [], key=lambda r: (getdate(r.get("due_date")), r.get("name") or ""))
+	return [r.get("name") for r in rows if r.get("name")]

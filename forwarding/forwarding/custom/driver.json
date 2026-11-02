@@ -1,0 +1,42 @@
+{
+ "custom_fields": [],
+ "custom_perms": [],
+ "doctype": "Driver",
+ "property_setters": [
+  {
+   "creation": "2026-11-02 12:00:00.000000",
+   "default_value": null,
+   "doc_type": "Driver",
+   "docstatus": 0,
+   "doctype_or_field": "DocField",
+   "field_name": "employee",
+   "idx": 0,
+   "modified": "2026-11-02 12:00:00.000000",
+   "modified_by": "Administrator",
+   "name": "Driver-employee-hidden",
+   "owner": "Administrator",
+   "property": "hidden",
+   "property_type": "Check",
+   "row_name": null,
+   "value": "1"
+  },
+  {
+   "creation": "2026-11-02 12:00:00.000000",
+   "default_value": null,
+   "doc_type": "Driver",
+   "docstatus": 0,
+   "doctype_or_field": "DocField",
+   "field_name": "user",
+   "idx": 0,
+   "modified": "2026-11-02 12:00:00.000000",
+   "modified_by": "Administrator",
+   "name": "Driver-user-hidden",
+   "owner": "Administrator",
+   "property": "hidden",
+   "property_type": "Check",
+   "row_name": null,
+   "value": "1"
+  }
+ ],
+ "sync_on_migrate": 1
+}

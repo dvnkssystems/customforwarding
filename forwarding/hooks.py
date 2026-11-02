@@ -281,6 +281,8 @@ doc_events = {
 		"on_trash": "forwarding.job_events.on_supplier_change",
 	},
 	"Vehicle": {
+		# Ahead of ERPNext's own validate, which reads a blank date as today (A-33).
+		"before_validate": "forwarding.vehicle.before_validate",
 		"on_update": "forwarding.job_events.on_fleet_change",
 		"on_trash": "forwarding.job_events.on_fleet_change",
 	},
