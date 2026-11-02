@@ -201,7 +201,9 @@ class TestJob360(IntegrationTestCase):
 		self.assertNotIn("B1", codes(job_360.build(job.name)))
 
 	def test_banner_b2_cleared_by_record_actual(self):
-		job = make(etd_date=add_days(nowdate(), -2), eta_date=add_days(nowdate(), 5))
+		# ATD alerts and Record ATD are for submitted jobs (Batch 2, item 3).
+		job = submit_job(make(etd_date=add_days(nowdate(), -2), eta_date=add_days(nowdate(), 5)))
+		frappe.cache.delete_keys("job_360")
 		self.assertIn("B2", codes(job_360.get(job.name)))
 
 		payload = job_360.record_actual(job.name, "atd", add_days(nowdate(), -1))
@@ -234,7 +236,7 @@ class TestJob360(IntegrationTestCase):
 		self.assertNotIn("B7", codes(job_360.build(make(job_type="Import", svc_customs_clearance=0).name)))
 
 	def test_b4_colour_follows_days_left(self):
-		job = make(eta_date=add_days(nowdate(), -10), ata_date=add_days(nowdate(), -10), free_time_days=5)
+		job = submit_job(make(eta_date=add_days(nowdate(), -10), ata_date=add_days(nowdate(), -10), free_time_days=5))
 		b4 = [b for b in job_360.build(job.name)["banners"] if b["rule_code"] == "B4"]
 		self.assertEqual(b4[0]["colour"], "critical")
 

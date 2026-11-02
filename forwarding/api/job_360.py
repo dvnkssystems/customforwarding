@@ -19,7 +19,7 @@ import json
 
 import frappe
 from frappe import _
-from frappe.utils import cint, cstr, date_diff, flt, get_datetime, getdate, nowdate
+from frappe.utils import cint, cstr, date_diff, flt, get_datetime, getdate, now_datetime, nowdate
 
 from forwarding import banners as job_banners
 from forwarding import party_360
@@ -192,6 +192,12 @@ def record_actual(job, field, value=None):
 	doc.check_permission("write")
 	if doc.docstatus == 2:
 		frappe.throw(_("Job {0} is cancelled.").format(frappe.bold(job)))
+	# A draft has not started moving: ATD / ATA wait for Submit (Simran, 2 Nov).
+	if doc.docstatus != 1:
+		frappe.throw(
+			_("Submit job {0} before recording its {1}.").format(frappe.bold(job), field.upper()),
+			title=_("Job not submitted"),
+		)
 
 	value = getdate(value) if value else None
 	today = getdate(nowdate())
@@ -202,28 +208,56 @@ def record_actual(job, field, value=None):
 			),
 			title=_("Date in the future"),
 		)
-	if doc.docstatus == 0:
-		doc.set(fieldname, value)
-		doc.save()
-	else:
-		# A submitted job cannot be saved; set the date and what follows from it.
-		doc.set(fieldname, value)
-		validate_date_order(doc, pairs=(("atd_date", "ata_date"),))
-		doc.set_free_time_expiry()
-		doc.db_set({fieldname: value, "free_time_expiry": doc.free_time_expiry})
-		# ATD means every cut-off was met: tick them Done.
-		doc.set_cutoff_status()
-		for row in doc.get("cutoffs") or []:
-			row.db_set({"is_done": row.is_done, "cutoff_status": row.cutoff_status})
-		doc.add_comment(
-			"Info",
-			_("{0} recorded as {1}").format(
-				field.upper(), frappe.format(value, "Date") if value else _("blank")
-			),
-		)
+	# A submitted job cannot be saved; set the date and what follows from it.
+	doc.set(fieldname, value)
+	validate_date_order(doc, pairs=(("atd_date", "ata_date"),))
+	doc.set_free_time_expiry()
+	doc.db_set({fieldname: value, "free_time_expiry": doc.free_time_expiry})
+	# ATD means every cut-off was met: tick them Done.
+	doc.set_cutoff_status()
+	for row in doc.get("cutoffs") or []:
+		row.db_set({"is_done": row.is_done, "cutoff_status": row.cutoff_status})
+	doc.add_comment(
+		"Info",
+		_("{0} recorded as {1}").format(field.upper(), frappe.format(value, "Date") if value else _("blank")),
+	)
 
 	clear_job_cache(job)
 	return _for_user(_cached_build(job))
+
+
+@frappe.whitelist(methods=["POST"])
+def add_document(job, document, file_url=None):
+	"""Job 360's + Add document (Batch 2, item 6): a new row on the job's own
+	document table, with its file, without opening the job form.
+
+	The table allows edits after submit, so a submitted job takes one too; a
+	cancelled one does not. The file was uploaded against this job, which made
+	it private (forwarding.private_files): only a file attached to this job can
+	be linked, so a row never points at another record's private file."""
+	doc = _job_for_update(job)
+	if not document or not frappe.db.exists("Document List", document):
+		frappe.throw(_("Pick a document type from the list."), title=_("Document type"))
+	if file_url and not frappe.db.exists(
+		"File", {"file_url": file_url, "attached_to_doctype": "Operations", "attached_to_name": job}
+	):
+		frappe.throw(
+			_("Upload the file to job {0} first.").format(frappe.bold(job)), title=_("File not found")
+		)
+
+	doc.append(
+		"document_table",
+		{
+			"document": document,
+			"attach": file_url,
+			"received": "Yes" if file_url else "No",
+			"uploaded_on": now_datetime() if file_url else None,
+			"uploaded_by": frappe.session.user if file_url else None,
+		},
+	)
+	doc.save()
+	clear_job_cache(job)
+	return get(job)
 
 
 def _cached_build(job):

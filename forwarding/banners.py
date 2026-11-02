@@ -38,13 +38,20 @@ def _active(job):
 	return job.get("docstatus") != 2 and _status(job) not in INACTIVE
 
 
+def _running(job):
+	"""A submitted, open job: the shipment is under way. A draft is still being
+	set up, so its ATD / ATA and free-time alerts wait for Submit (Simran,
+	2 Nov); only Submit makes the dates real enough to chase."""
+	return cint(job.get("docstatus")) == 1 and _active(job)
+
+
 def docs_pending(job, ctx):
 	return _active(job) and cint(ctx.get("docs_received")) < cint(ctx.get("docs_total"))
 
 
 def atd_missing(job, ctx):
 	return bool(
-		_active(job)
+		_running(job)
 		and job.get("etd_date")
 		and getdate(job.get("etd_date")) <= _today(ctx)
 		and not job.get("atd_date")
@@ -55,7 +62,7 @@ def ata_missing(job, ctx):
 	"""Only once the cargo has left (ATD recorded) and the ETA has passed
 	(R3-55): before departure there is nothing to arrive yet."""
 	return bool(
-		_active(job)
+		_running(job)
 		and job.get("atd_date")
 		and job.get("eta_date")
 		and getdate(job.get("eta_date")) <= _today(ctx)
@@ -65,10 +72,11 @@ def ata_missing(job, ctx):
 
 def free_time_expiring(job, ctx):
 	"""Free time runs out within three days. A recorded delivery clears it
-	(A-22: Record delivery)."""
+	(A-22: Record delivery). A draft's free time waits for Submit."""
 	days = ctx.get("free_days_left")
 	return (
-		days is not None
+		_running(job)
+		and days is not None
 		and days <= 3
 		and not job.get("delivery_date")
 		and _status(job) not in FINISHED
