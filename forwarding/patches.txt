@@ -78,3 +78,4 @@ forwarding.patches.v1_0.b1_invoice_fields
 forwarding.patches.v1_0.b3_transport_charges
 forwarding.patches.v1_0.b3_estimate_row_accounts
 forwarding.patches.v1_0.b3_riyadh_city_port
+forwarding.patches.v1_0.b4_hide_driver_employee_user

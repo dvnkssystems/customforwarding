@@ -28,6 +28,45 @@ from forwarding.services import code_mode, job_scopes
 # A job type that fixes the mode.
 MODE_FOR_JOB_TYPE = {"LAND TRANSPORT": "Land"}
 
+
+# -- One message for every broken rule (A-37) ----------------------------------------
+#
+# Saving a job stopped at the first rule it broke (only the Port of Discharge
+# error showed), so each fix revealed the next. While Operations.validate
+# collects (start_collecting), a rule notes its message with rule_error and
+# the checks go on; throw_collected then refuses the save once, listing
+# every message as it would have read on its own. Outside a collecting
+# validate (job_360's ATD / ATA prompt, for one) rule_error throws as before.
+
+
+def start_collecting(doc):
+	doc._rule_errors = []
+
+
+def rule_error(doc, message, title=None):
+	"""Refuse the save with message, or note it while validate collects."""
+	errors = getattr(doc, "_rule_errors", None)
+	if errors is None:
+		frappe.throw(message, title=title)
+	if not any(m == message for m, _t in errors):
+		errors.append((message, title))
+
+
+def throw_collected(doc):
+	"""Stop collecting; throw once if any rule was broken. One message reads
+	exactly as before, title and all; several are joined by <br>, the way
+	quote.before_submit lists its problems."""
+	errors = getattr(doc, "_rule_errors", None) or []
+	doc._rule_errors = None
+	if not errors:
+		return
+	if len(errors) == 1:
+		frappe.throw(errors[0][0], title=errors[0][1])
+	frappe.throw(
+		"<br>".join(message for message, _title in errors),
+		title=_("{0} problems to fix before saving").format(len(errors)),
+	)
+
 # Scopes that do not apply to a mode.
 SCOPES_NOT_FOR_MODE = {"Land": ("Port to Port",)}
 
@@ -167,7 +206,8 @@ def validate(job):
 	not_for_mode = set(excluded_scopes(job.mode_of_shipment))
 	bad_scopes = [s for s in job_scopes(job) if s in not_for_mode]
 	if bad_scopes:
-		frappe.throw(
+		rule_error(
+			job,
 			_("Scope of Work {0} does not apply to a {1} job.").format(
 				", ".join(frappe.bold(s) for s in bad_scopes), frappe.bold(job.mode_of_shipment)
 			),
@@ -181,7 +221,8 @@ def validate(job):
 				continue
 			port_mode = code_mode(frappe.db.get_value("Port", port, "mode_of_shipment"))
 			if port_mode and port_mode in ("Sea", "Air", "Land") and port_mode != mode:
-				frappe.throw(
+				rule_error(
+					job,
 					_("{0} {1} is a {2} port; this is a {3} job.").format(
 						_(job.meta.get_label(fieldname)).strip(), frappe.bold(port), port_mode, frappe.bold(mode)
 					),
@@ -195,7 +236,7 @@ def validate(job):
 	elif mode == "Sea":
 		job.air_line = None
 	elif job.get("shipping_line") and job.get("air_line"):
-		frappe.throw(_("Choose a Shipping Line or an Airline, not both."), title=_("Carrier"))
+		rule_error(job, _("Choose a Shipping Line or an Airline, not both."), title=_("Carrier"))
 
 	words = excluded_item_words(job.job_type, job.mode_of_shipment)
 	if words:
@@ -207,7 +248,8 @@ def validate(job):
 			if r.item and (r.name, r.item) not in old and item_excluded(r.item_name or r.item, words)
 		]
 		if bad:
-			frappe.throw(
+			rule_error(
+				job,
 				_("Estimate row {0}: {1} does not apply to this job ({2}, {3}).").format(
 					bad[0].idx, frappe.bold(bad[0].item), _(job.job_type or ""), _(job.mode_of_shipment or "")
 				),

@@ -150,6 +150,8 @@ def build(customer, date_range=None):
 		# Every money KPI and banner amount is in this, the company's currency.
 		"currency": currency,
 		"customer": _customer_header(doc, company, credit_limit, contacts, addresses),
+		# The Details tab (A-26).
+		"details": party_360.party_details(doc, company, credit_limit, salesperson=_salesman(doc)),
 		"kpis": kpis,
 		"banners": customer_banners.evaluate(ctx),
 		"jobs": frappe.get_all(

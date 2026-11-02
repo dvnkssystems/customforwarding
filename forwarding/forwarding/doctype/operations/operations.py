@@ -26,6 +26,7 @@ from forwarding.child_tables import (
 # A job's Services, its tick-boxes and which codes it may hold (M-05, M-06).
 from forwarding.services import apply_services
 from forwarding import job_rules
+from forwarding.job_rules import rule_error
 
 # kg per cubic metre for air freight volumetric weight (IATA 1:6000)
 AIR_VOLUMETRIC_FACTOR = 167
@@ -192,7 +193,8 @@ def validate_actual_dates(doc, fields=ACTUAL_DATE_FIELDS):
 			continue
 		if not (doc.is_new() or doc.has_value_changed(fieldname)):
 			continue
-		frappe.throw(
+		rule_error(
+			doc,
 			_("{0} cannot be after today ({1}): it records what has already happened.").format(
 				_(doc.meta.get_label(fieldname)), frappe.format(today, "Date")
 			),
@@ -215,7 +217,8 @@ def validate_date_order(doc, pairs=DATE_ORDER):
 			continue
 		if not (doc.is_new() or doc.has_value_changed(departure) or doc.has_value_changed(arrival)):
 			continue
-		frappe.throw(
+		rule_error(
+			doc,
 			_("{0} ({1}) cannot be before {2} ({3}): it arrives after it leaves.").format(
 				_(doc.meta.get_label(arrival)),
 				frappe.format(getdate(arrived), "Date"),
@@ -319,6 +322,26 @@ class Operations(Document):
 	def validate(self):
 		self.set_company()
 		self.set_operation_id()
+		# Every rule below that a save breaks goes into one message (A-37):
+		# shipment type, the R3-24 field rules, home-side port, same ports,
+		# weights, actual dates, date order and cut-offs.
+		job_rules.start_collecting(self)
+		try:
+			self.validate_rules()
+		except Exception:
+			# Something else stopped the save; it speaks for itself.
+			self._rule_errors = None
+			raise
+		job_rules.throw_collected(self)
+		self.set_cutoff_status()
+		self.sync_container_rows()
+		self.set_billing_status()
+		self.set_cost_accounts()
+		self.set_total_cost()
+		self.validate_close()
+
+	def validate_rules(self):
+		"""The rule checks of validate, with what they set along the way."""
 		self.validate_shipment_type()
 		# Each field narrows the next (R3-24): mode from job type, scopes,
 		# ports, carrier, estimate items.
@@ -336,12 +359,6 @@ class Operations(Document):
 		self.set_free_time_expiry()
 		self.set_chargeable_weight()
 		self.validate_cutoffs()
-		self.set_cutoff_status()
-		self.sync_container_rows()
-		self.set_billing_status()
-		self.set_cost_accounts()
-		self.set_total_cost()
-		self.validate_close()
 
 	def before_submit(self):
 		self.validate_submit()
@@ -352,7 +369,8 @@ class Operations(Document):
 			self.weight_uom = WEIGHT_UOMS[0]
 			return
 		if self.weight_uom not in WEIGHT_UOMS:
-			frappe.throw(
+			rule_error(
+				self,
 				_("Weight UOM {0} is not a weight unit. Choose {1}.").format(
 					frappe.bold(self.weight_uom), ", ".join(WEIGHT_UOMS)
 				),
@@ -441,13 +459,20 @@ class Operations(Document):
 	def before_update_after_submit(self):
 		"""Ops keep a submitted job current (schedule, cut-offs, containers,
 		documents): those fields are Allow on Submit. Re-derive what follows
-		from them, as validate does for a draft."""
-		self.validate_actual_dates()
-		self.set_free_time_expiry()
-		self.validate_cutoffs()
+		from them, as validate does for a draft. Its rule errors, too, come
+		in one message (A-37)."""
+		job_rules.start_collecting(self)
+		try:
+			self.validate_actual_dates()
+			self.set_free_time_expiry()
+			self.validate_cutoffs()
+			self.set_cargo_from_containers()
+			self.validate_weights()
+		except Exception:
+			self._rule_errors = None
+			raise
+		job_rules.throw_collected(self)
 		self.set_cutoff_status()
-		self.set_cargo_from_containers()
-		self.validate_weights()
 		self.sync_container_rows()
 		validate_document_rows(self)
 		self.validate_close()
@@ -518,7 +543,8 @@ class Operations(Document):
 		port_country = frappe.db.get_value("Port", port, "country")
 		if port_country == HOME_COUNTRY:
 			return
-		frappe.throw(
+		rule_error(
+			self,
 			_("{0} {1} is {2}. An {3} job's {0} must be a port in {4}.").format(
 				_(self.meta.get_label(port_field)).strip(),
 				frappe.bold(port),
@@ -542,7 +568,8 @@ class Operations(Document):
 			return
 		if not self.port_of_loading or self.port_of_loading != self.port_of_destination:
 			return
-		frappe.throw(
+		rule_error(
+			self,
 			_("Port of Loading and Port of Discharge are both {0}. Choose a different port for one of them.").format(
 				frappe.bold(self.port_of_loading)
 			),
@@ -566,7 +593,8 @@ class Operations(Document):
 			return
 		if not (self.is_new() or self.has_value_changed("gross_weight") or self.has_value_changed("net_weight")):
 			return
-		frappe.throw(
+		rule_error(
+			self,
 			_("Gross weight ({0}) cannot be less than net weight ({1}). Gross weight includes the packing.").format(
 				frappe.format(gross, "Float"), frappe.format(net, "Float")
 			),
@@ -598,9 +626,9 @@ class Operations(Document):
 		mode, disabled = frappe.db.get_value(
 			"Shipment Type", self.shipment_type, ["mode_of_shipment", "disabled"]) or (None, 0)
 		if disabled:
-			frappe.throw(_("Shipment Type {0} is no longer in use.").format(frappe.bold(self.shipment_type)))
-		if mode and mode != self.mode_of_shipment:
-			frappe.throw(_("Shipment Type {0} is for {1} shipments, not {2}.").format(
+			rule_error(self, _("Shipment Type {0} is no longer in use.").format(frappe.bold(self.shipment_type)))
+		elif mode and mode != self.mode_of_shipment:
+			rule_error(self, _("Shipment Type {0} is for {1} shipments, not {2}.").format(
 				frappe.bold(self.shipment_type), frappe.bold(mode), frappe.bold(self.mode_of_shipment)))
 
 	def calculate_package_totals(self):
@@ -708,7 +736,8 @@ class Operations(Document):
 			for fieldname in ("deadline",):
 				value = row.get(fieldname)
 				if value and getdate(value) > etd:
-					frappe.throw(
+					rule_error(
+						self,
 						_("{0} Row #{1} ({2}): Cut-off can't be after ETD ({3}).").format(
 							_(self.meta.get_label("cutoffs")),
 							row.idx,
@@ -724,7 +753,8 @@ class Operations(Document):
 			return
 		for row in self.get("cutoffs") or []:
 			if row.milestone == AES_DEADLINE:
-				frappe.throw(
+				rule_error(
+					self,
 					_("Row {0}: {1} only applies when the destination country is the United States.").format(
 						row.idx, frappe.bold(_(AES_DEADLINE))
 					),

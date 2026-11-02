@@ -55,10 +55,26 @@ def customer_cache_key(customer):
 
 
 def clear_customer_cache(*customers):
-	for customer in {c for c in customers if c}:
-		frappe.cache.delete_value(customer_cache_key(customer))
+	keys = [customer_cache_key(c) for c in {c for c in customers if c}]
+	_drop_party_keys(keys)
+	_drop_again_after_commit(keys)
+
+
+def _drop_party_keys(keys):
+	for key in keys:
+		frappe.cache.delete_value(key)
 		# Copies built for a date range (party_360.ranged_cache_key).
-		frappe.cache.delete_keys(f"{customer_cache_key(customer)}|")
+		frappe.cache.delete_keys(f"{key}|")
+
+
+def _drop_again_after_commit(keys):
+	"""Clear the same 360 caches once the change is committed (A-28). A page
+	read that lands between this request's on_update and its commit still
+	sees the old rows and caches them for a minute; the expiry chip and
+	alert then only showed once that ran out."""
+	if not keys or not getattr(frappe.local, "db", None):
+		return
+	frappe.db.after_commit.add(lambda: _drop_party_keys(keys))
 
 
 SUPPLIER_CACHE_PREFIX = "supplier_360:"
@@ -81,10 +97,9 @@ def supplier_cache_key(supplier):
 
 
 def clear_supplier_cache(*suppliers):
-	for supplier in {s for s in suppliers if s}:
-		frappe.cache.delete_value(supplier_cache_key(supplier))
-		# Copies built for a date range (party_360.ranged_cache_key).
-		frappe.cache.delete_keys(f"{supplier_cache_key(supplier)}|")
+	keys = [supplier_cache_key(s) for s in {s for s in suppliers if s}]
+	_drop_party_keys(keys)
+	_drop_again_after_commit(keys)
 
 
 def job_supplier_links(job):
