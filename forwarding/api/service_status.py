@@ -32,7 +32,7 @@ digits only, R3-41) still runs.
 
 import frappe
 from frappe import _
-from frappe.utils import nowdate
+from frappe.utils import nowdate, nowtime
 
 FLOWS = {
 	"Custom Clearance": {
@@ -69,8 +69,10 @@ FLOWS = {
 		# is delivered (ONE Freight, 2 Nov: one went Planned -> Delivered
 		# with none of them).
 		"needs": {"In Transit": ["vehicle", "driver"], "Delivered": ["destination_location_address"]},
-		"accepts": {"In Transit": ["pickup_date"], "Delivered": ["delivery_date"]},
+		"accepts": {"In Transit": ["pickup_date"], "Delivered": ["delivery_date", "delivery_time"]},
 		"stamp": {"In Transit": "pickup_date", "Delivered": "delivery_date"},
+		# filled with the time now: the Proof of Delivery prints it (2 Nov)
+		"stamp_time": {"Delivered": "delivery_time"},
 	},
 }
 
@@ -182,5 +184,8 @@ def set_status(doctype, name, status, values=None):
 	stamp = flow["stamp"].get(status)
 	if stamp and doc.meta.has_field(stamp) and not doc.get(stamp):
 		doc.set(stamp, nowdate())
+	stamp_time = flow.get("stamp_time", {}).get(status)
+	if stamp_time and doc.meta.has_field(stamp_time) and not doc.get(stamp_time):
+		doc.set(stamp_time, nowtime())
 	doc.save()
 	return describe(doc)
