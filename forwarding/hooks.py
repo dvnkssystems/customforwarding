@@ -96,11 +96,12 @@ doctype_js = {
 
 # Jinja
 # -----
-# Used by the "Freight Tax Invoice", "Bilingual Tax Invoice" and "Proof of Delivery" print formats.
+# Used by the "Freight Tax Invoice", "Bilingual Tax Invoice", "Proof of Delivery" and "Transport Order" print formats.
 jinja = {
 	"methods": [
 		"forwarding.invoice_print.get_tax_invoice_context",
 		"forwarding.pod_print.get_pod_context",
+		"forwarding.transport_print.get_transport_order_context",
 	],
 }
 

@@ -25,6 +25,7 @@
   "destination_location",
   "destination_location_address",
   "delivery_date",
+  "delivery_time",
   "section_break_7",
   "container_details",
   "section_break_3",
@@ -144,6 +145,12 @@
    "label": "Delivery Date"
   },
   {
+   "fieldname": "delivery_time",
+   "fieldtype": "Time",
+   "label": "Delivery Time",
+   "description": "Set to the time it was marked Delivered, unless typed."
+  },
+  {
    "fieldname": "section_break_7",
    "fieldtype": "Section Break",
    "label": "Containers"
@@ -229,5 +236,6 @@
  "quick_entry": 1,
  "sort_field": "modified",
  "sort_order": "DESC",
- "track_changes": 1
+ "track_changes": 1,
+ "default_print_format": "Transport Order"
 }

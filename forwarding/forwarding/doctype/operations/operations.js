@@ -350,13 +350,13 @@ function import_containers(frm) {
 }
 
 // ---------------------------------------------------------------------------
-// Prints: a delivery note for chosen containers, and the arrival notice.
+// Prints: a Proof of Delivery for chosen containers, and the arrival notice.
 // ---------------------------------------------------------------------------
 
 frappe.ui.form.on("Operations", {
 	refresh(frm) {
 		if (frm.is_new()) return;
-		frm.add_custom_button(__("Delivery Note"), () => print_delivery_note(frm), __("Print"));
+		frm.add_custom_button(__("Proof of Delivery"), () => print_delivery_note(frm), __("Print"));
 		frm.add_custom_button(__("Arrival Notice"), () => open_job_print(frm, "Arrival Notice"), __("Print"));
 	},
 });
@@ -370,16 +370,16 @@ function open_job_print(frm, format, extra) {
 	window.open(`/printview?${params.toString()}`, "_blank");
 }
 
-// With several containers, ask which ones this delivery note covers.
+// With several containers, ask which ones this Proof of Delivery covers.
 function print_delivery_note(frm) {
 	const rows = frm.doc.container_details || [];
 	if (rows.length < 2) {
-		open_job_print(frm, "Job Delivery Note");
+		open_job_print(frm, "Proof of Delivery");
 		return;
 	}
 
 	const dialog = new frappe.ui.Dialog({
-		title: __("Delivery Note"),
+		title: __("Proof of Delivery"),
 		fields: [
 			{
 				fieldname: "containers",
@@ -403,7 +403,7 @@ function print_delivery_note(frm) {
 				return;
 			}
 			dialog.hide();
-			open_job_print(frm, "Job Delivery Note", { containers: picked.join(",") });
+			open_job_print(frm, "Proof of Delivery", { containers: picked.join(",") });
 		},
 	});
 	dialog.show();

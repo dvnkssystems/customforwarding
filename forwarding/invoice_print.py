@@ -257,8 +257,14 @@ def _line_vat(doc):
 def get_tax_invoice_context(doc):
 	"""Everything the Freight Tax Invoice print format shows."""
 	company = _values("Company", doc.company, ["company_name", "tax_id", "company_arabic_name", "address_arabic"])
-	customer = _values("Customer", doc.customer, ["tax_id", "customer_name_in_arabic"])
-	customer_tax_id = doc.get("tax_id") or customer.get("tax_id")
+	customer = _values(
+		"Customer", doc.customer, ["tax_id", "custom_vat_registration_number", "customer_name_in_arabic"]
+	)
+	# The customer form's "VAT Registration Number" is its own field; many
+	# customers have only that one (ONE Freight, 2 Nov: buyer VAT printed "-").
+	customer_tax_id = (
+		doc.get("tax_id") or customer.get("tax_id") or customer.get("custom_vat_registration_number")
+	)
 
 	job = frappe._dict()
 	if doc.get("operations"):
@@ -292,8 +298,8 @@ def get_tax_invoice_context(doc):
 	grand_total = doc.rounded_total if doc.get("rounded_total") and not doc.get("disable_rounded_total") else doc.grand_total
 
 	seller_name = company.get("company_name") or doc.company
-	seller_tax_id = doc.get("company_tax_id") or company.get("tax_id") or ""
 	header = company_header(doc.company)
+	seller_tax_id = doc.get("company_tax_id") or company.get("tax_id") or header.tax_id or ""
 	return frappe._dict(
 		seller=frappe._dict(
 			name=seller_name,

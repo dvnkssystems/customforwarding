@@ -7,11 +7,15 @@ else packages, else the job's own piece count), and who delivers it (the
 job's latest Transportation that is not cancelled).
 
 `?containers=<row name>,<row name>` in the print URL limits the POD to those
-containers, as the Job Delivery Note does.
+containers. It replaced the Job Delivery Note (ONE Freight, 2 Nov): the job's
+"Proof of Delivery" print button asks which containers when there are several.
+
+Delivery time, driver and truck come from the Transportation, and when the
+job itself lists no containers its Transportation's containers are the goods.
 """
 
 import frappe
-from frappe.utils import cint, flt, formatdate
+from frappe.utils import cint, flt, format_time, formatdate
 
 from forwarding.invoice_print import company_header
 
@@ -29,9 +33,10 @@ def _weight(value):
 	return f"{flt(value, 3):,g}" if flt(value) else ""
 
 
-def _containers(doc):
+def _containers(doc, rows=None):
 	picked = [c for c in (frappe.form_dict.get("containers") or "").split(",") if c]
-	rows = doc.get("container_details") or []
+	if rows is None:
+		rows = doc.get("container_details") or []
 	if picked:
 		rows = [r for r in rows if r.name in picked]
 	lines = []
@@ -76,7 +81,7 @@ def _transport(doc):
 	rows = frappe.get_all(
 		"Transportation",
 		filters={"operations": doc.name, "docstatus": ["<", 2]},
-		fields=["transporter", "driver", "vehicle", "delivery_date", "destination_location_address"],
+		fields=["name", "transporter", "driver", "vehicle", "delivery_date", "delivery_time", "destination_location_address"],
 		order_by="creation desc",
 		limit=1,
 	)
@@ -90,7 +95,14 @@ def _transport(doc):
 		driver=(frappe.db.get_value("Driver", t.driver, "full_name") or t.driver) if t.driver else "",
 		vehicle=t.vehicle or "",
 		delivery_date=t.delivery_date,
+		delivery_time=t.delivery_time,
 		address=t.destination_location_address or "",
+		containers=frappe.get_all(
+			"Container Details",
+			filters={"parenttype": "Transportation", "parent": t.name},
+			fields=["*"],
+			order_by="idx",
+		),
 	)
 
 
@@ -110,6 +122,8 @@ def get_pod_context(doc):
 		carrier = _join(doc.get("vessel_name"), doc.get("voyage_number"))
 
 	lines = _containers(doc)
+	if not lines and transport.get("containers"):
+		lines = _containers(doc, transport.containers)
 	unit = "containers"
 	if not lines:
 		lines = _packages(doc)
@@ -134,6 +148,7 @@ def get_pod_context(doc):
 		port=_place(doc.get("port_of_destination")),
 		delivery_address=doc.get("delivery_address") or transport.get("address") or doc.get("place_of_delivery") or "",
 		delivery_date=formatdate(delivery_date) if delivery_date else "",
+		delivery_time=format_time(transport.delivery_time, "HH:mm") if transport.get("delivery_time") else "",
 		lines=lines,
 		unit=unit,
 		total_packages=doc.get("no_of_pieces") or doc.get("packages") or "",
