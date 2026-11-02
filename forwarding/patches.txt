@@ -72,3 +72,4 @@ forwarding.patches.v1_0.a21_services_from_orders
 forwarding.patches.v1_0.cargo_into_containers
 forwarding.patches.v1_0.r3_05_client_ports
 forwarding.patches.v1_0.a08_buying_defaults
+forwarding.patches.v1_0.kanoo_handling_agent
