@@ -56,16 +56,39 @@ def any_service_scope():
 	return TEST_SCOPE
 
 
+def default_ports(job_type, mode):
+	"""{port_of_loading, port_of_destination} a Sea / Air job can be submitted
+	with (both are needed since ONE Freight's review, 2 Nov): the home side a
+	Saudi port, the other side one abroad. {} when the site has none."""
+	# Another job type (Land Transport, …) picks its own mode.
+	if mode not in ("Sea", "Air") or job_type not in ("Import", "Export"):
+		return {}
+	home = frappe.db.get_value("Port", {"mode_of_shipment": mode, "country": "Saudi Arabia"}, "name", order_by="name")
+	away = frappe.db.get_value(
+		"Port", {"mode_of_shipment": mode, "country": ["not in", ["Saudi Arabia", ""]]}, "name", order_by="name"
+	)
+	if not (home and away):
+		return {}
+	if job_type == "Export":
+		return {"port_of_loading": home, "port_of_destination": away}
+	return {"port_of_loading": away, "port_of_destination": home}
+
+
 def make(**values):
-	"""An Operations job with the site's first branch / mode / job type."""
+	"""An Operations job with the site's first branch / mode / job type, and
+	ports a Sea / Air job can be submitted with unless the test names its own."""
+	job_type = values.pop("job_type", "Import")
+	mode = values.pop("mode_of_shipment", "Air")
+	if "port_of_loading" not in values and "port_of_destination" not in values:
+		values = {**default_ports(job_type, mode), **values}
 	job = frappe.get_doc(
 		{
 			"doctype": "Operations",
 			"company": _first("Company"),
 			"customer": CUSTOMER,
 			"branch": _first("Branch", {"abbreviation": ["is", "set"]}),
-			"job_type": values.pop("job_type", "Import"),
-			"mode_of_shipment": values.pop("mode_of_shipment", "Air"),
+			"job_type": job_type,
+			"mode_of_shipment": mode,
 			"scope_of_work": values.pop("scope_of_work", None) or any_service_scope(),
 			"date": nowdate(),
 			**values,

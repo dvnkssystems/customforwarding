@@ -42,6 +42,14 @@ def validate_cr_no(doc, method=None):
 		return
 	number = "".join((doc.get("cr_no") or "").split())
 	doc.cr_no = number or None
+	if not number and needs_cr_no(doc):
+		frappe.throw(
+			_("Value missing for {0}: {1}").format(_(doc.doctype), _(doc.meta.get_label("cr_no")).strip())
+			+ "<br>"
+			+ _("A Saudi customer needs a CR No. For a customer in another country, change the Country."),
+			frappe.MandatoryError,
+			title=_("CR No required"),
+		)
 	if not number or is_overseas_party(doc):
 		return
 	if len(number) == CR_DIGITS and number.isdigit() and number.isascii():
@@ -53,3 +61,49 @@ def validate_cr_no(doc, method=None):
 		_("{0} must be exactly {1} digits.").format(_(doc.meta.get_label("cr_no")), CR_DIGITS),
 		title=_("Invalid CR No"),
 	)
+
+
+def needs_cr_no(doc):
+	"""A Saudi customer must have a CR No; one abroad need not (ONE Freight,
+	2 Nov). Asked of a new customer, or one whose Country or group was just
+	changed, so customers saved before this rule still save until one of
+	those is edited. Suppliers keep their CR No optional."""
+	if doc.doctype != "Customer" or is_overseas_party(doc):
+		return False
+	if doc.is_new():
+		return True
+	before = doc.get_doc_before_save()
+	return bool(before) and any(before.get(f) != doc.get(f) for f in ("country", "customer_group"))
+
+
+ALL_BRANCHES = "ALL"
+
+
+def validate_customer_branch(doc, method=None):
+	"""A customer belongs to one real branch, not "ALL" (ONE Freight, 2 Nov):
+	the branch picks its receivable account. Checked when the branch is set or
+	changed, so a customer already on ALL saves until its branch is edited."""
+	if doc.get("branch") != ALL_BRANCHES:
+		return
+	before = None if doc.is_new() else doc.get_doc_before_save()
+	if before and before.get("branch") == ALL_BRANCHES:
+		return
+	frappe.throw(
+		_("{0} is not a branch a customer can belong to. Choose the customer's own branch.").format(
+			frappe.bold(ALL_BRANCHES)
+		),
+		title=_("Branch"),
+	)
+
+
+def default_customer_currency(doc, method=None):
+	"""before_validate: a new customer's Billing Currency is the company's
+	(SAR) unless one was chosen (ONE Freight, 2 Nov)."""
+	if doc.get("default_currency") or not doc.is_new():
+		return
+	company = frappe.defaults.get_user_default("Company") or frappe.db.get_single_value(
+		"Global Defaults", "default_company"
+	)
+	currency = company and frappe.get_cached_value("Company", company, "default_currency")
+	if currency:
+		doc.default_currency = currency

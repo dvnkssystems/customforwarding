@@ -179,9 +179,14 @@ class TestServiceStatusSteps(R3BackendCase):
 
 		job = make()
 		tt = frappe.get_doc({"doctype": "Transportation", "operations": job.name}).insert(ignore_permissions=True)
-		state = set_status("Transportation", tt.name, "In Transit")
+		vehicle = frappe.db.get_value("Vehicle", {}, "name")
+		driver = frappe.db.get_value("Driver", {}, "name")
+		if not (vehicle and driver):
+			self.skipTest("needs a Vehicle and a Driver")
+		# Start transit needs the truck and driver, Delivered the address (ONE Freight, 2 Nov).
+		state = set_status("Transportation", tt.name, "In Transit", {"vehicle": vehicle, "driver": driver})
 		self.assertEqual((state["status"], state["next_label"]), ("In Transit", "Mark Delivered"))
-		state = set_status("Transportation", tt.name, "Delivered")
+		state = set_status("Transportation", tt.name, "Delivered", {"destination_location_address": "Warehouse 4, Riyadh"})
 		self.assertEqual((state["next_status"], [e["label"] for e in state["extra"]]), (None, ["Mark Container Returned"]))
 		self.assertTrue(frappe.db.get_value("Transportation", tt.name, "delivery_date"))
 		self.assertEqual(set_status("Transportation", tt.name, "Container Returned")["extra"], [])

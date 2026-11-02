@@ -139,6 +139,7 @@ doc_events = {
 	"Sales Invoice": {
 		"before_validate": [
 			"forwarding.purchase_invoice.fill_from_job",
+			"forwarding.invoice_currency.fill_exchange_rate",
 			"forwarding.purchase_invoice.due_from_credit_period",
 			"forwarding.party_accounts.debit_to_from_job",
 		],
@@ -172,6 +173,7 @@ doc_events = {
 		"before_insert": "forwarding.purchase_invoice.branch_for_naming",
 		"before_validate": [
 			"forwarding.purchase_invoice.fill_from_job",
+			"forwarding.invoice_currency.fill_exchange_rate",
 			"forwarding.purchase_invoice.due_from_credit_period",
 		],
 		"validate": [
@@ -219,12 +221,14 @@ doc_events = {
 	"Transportation": {
 		"validate": "forwarding.child_tables.apply",
 		"on_update": "forwarding.job_events.on_linked_change",
-		"on_trash": "forwarding.job_events.on_linked_change",
+		# Its charges leave the job's cost sheet with it.
+		"on_trash": ["forwarding.child_tables.remove_costs_from_job", "forwarding.job_events.on_linked_change"],
 	},
 	"Custom Clearance": {
 		"validate": "forwarding.child_tables.apply",
 		"on_update": "forwarding.job_events.on_linked_change",
-		"on_trash": "forwarding.job_events.on_linked_change",
+		# Its charges leave the job's cost sheet with it.
+		"on_trash": ["forwarding.child_tables.remove_costs_from_job", "forwarding.job_events.on_linked_change"],
 	},
 	"Freight Voucher": {
 		"validate": "forwarding.subscription.enforce_limit",
@@ -237,10 +241,15 @@ doc_events = {
 			"forwarding.naming.set_customer_code",
 			"forwarding.customer_contact.set_primary_contact_email",
 		],
-		"before_validate": "forwarding.party_accounts.set_party_accounts",
+		# The currency first: it picks the receivable account.
+		"before_validate": [
+			"forwarding.party_validation.default_customer_currency",
+			"forwarding.party_accounts.set_party_accounts",
+		],
 		"validate": [
 			"forwarding.party_documents.validate",
 			"forwarding.party_validation.validate_cr_no",
+			"forwarding.party_validation.validate_customer_branch",
 		],
 		"on_update": "forwarding.job_events.on_customer_change",
 		"on_trash": "forwarding.job_events.on_customer_change",

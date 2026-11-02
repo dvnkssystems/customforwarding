@@ -21,7 +21,8 @@ Custom Clearance   Draft -> Submitted to Customs -> Under Review
                    ("Submit to Customs"). Submit to Customs needs Bayan No. and
                    Bayan Date (passed in `values` or already on the record).
 Transportation     Planned -> In Transit -> Delivered, then Container
-                   Returned from the More menu.
+                   Returned from the More menu. Start transit needs the
+                   Vehicle and Driver; Mark Delivered the delivery address.
 
 Only the next step (or an extra move) is accepted, so the status cannot jump
 or go back. `values` sets only the fields that step asks for; anything else in
@@ -64,7 +65,10 @@ FLOWS = {
 		},
 		"extra": {"Container Returned": ["Delivered"]},
 		"resume": {},
-		"needs": {},
+		# The truck and its driver before it leaves; where it went before it
+		# is delivered (ONE Freight, 2 Nov: one went Planned -> Delivered
+		# with none of them).
+		"needs": {"In Transit": ["vehicle", "driver"], "Delivered": ["destination_location_address"]},
 		"accepts": {"In Transit": ["pickup_date"], "Delivered": ["delivery_date"]},
 		"stamp": {"In Transit": "pickup_date", "Delivered": "delivery_date"},
 	},
@@ -94,7 +98,13 @@ def next_status(flow, status):
 
 def _field(doc, fieldname):
 	df = doc.meta.get_field(fieldname)
-	return {"fieldname": fieldname, "label": _(df.label) if df else fieldname, "fieldtype": df.fieldtype if df else "Data"}
+	return {
+		"fieldname": fieldname,
+		"label": _(df.label) if df else fieldname,
+		"fieldtype": df.fieldtype if df else "Data",
+		# A Link's DocType, so the pop-up can offer a picker.
+		"options": df.options if df and df.fieldtype == "Link" else None,
+	}
 
 
 def describe(doc):
