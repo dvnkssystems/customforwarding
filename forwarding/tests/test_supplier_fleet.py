@@ -32,7 +32,21 @@ RATE_KEYS = {
 	"status",
 	"days_left",
 }
-VEHICLE_KEYS = {"name", "license_plate", "make", "model", "insurance_end_date", "expiry_status", "days_left"}
+VEHICLE_KEYS = {
+	"name",
+	"license_plate",
+	"make",
+	"model",
+	"vehicle_type",
+	"insurance_end_date",
+	"registration_expiry",
+	"inspection_expiry",
+	"documents",
+	"expiry_date",
+	"expiry_document",
+	"expiry_status",
+	"days_left",
+}
 DRIVER_KEYS = {"name", "full_name", "license_number", "expiry_date", "expiry_status", "days_left"}
 UNLINKED = "Not linked to a job; this cost will not show on any job or in cost variance"
 

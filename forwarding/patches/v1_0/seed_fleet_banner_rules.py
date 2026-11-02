@@ -11,13 +11,14 @@ overwritten.
 
 import frappe
 
-# One row: "Vehicle ABC-123 insurance expires 12 Nov" / "Driver Ali licence
-# expired 03 Oct"; several: a count.
+# One row: "Vehicle ABC-123 insurance expires 12 Nov" (or registration
+# (Istimara) / inspection (Fahas), A-31) / "Driver Ali licence expired 03 Oct";
+# several: a count.
 EXPIRING = (
 	"{% set rows = ctx.expiring_fleet %}"
 	"{% if rows|length == 1 %}"
 	"{% if rows[0].kind == 'Vehicle' %}"
-	"{{ _('Vehicle {0} insurance expires {1}').format(rows[0].label, format_date(rows[0].date)) }}"
+	"{{ _('Vehicle {0} {1} expires {2}').format(rows[0].label, _(rows[0].document or 'insurance'), format_date(rows[0].date)) }}"
 	"{% else %}"
 	"{{ _('Driver {0} licence expires {1}').format(rows[0].label, format_date(rows[0].date)) }}"
 	"{% endif %}"
@@ -29,7 +30,7 @@ EXPIRED = (
 	"{% set rows = ctx.expired_fleet %}"
 	"{% if rows|length == 1 %}"
 	"{% if rows[0].kind == 'Vehicle' %}"
-	"{{ _('Vehicle {0} insurance expired {1}').format(rows[0].label, format_date(rows[0].date)) }}"
+	"{{ _('Vehicle {0} {1} expired {2}').format(rows[0].label, _(rows[0].document or 'insurance'), format_date(rows[0].date)) }}"
 	"{% else %}"
 	"{{ _('Driver {0} licence expired {1}').format(rows[0].label, format_date(rows[0].date)) }}"
 	"{% endif %}"
