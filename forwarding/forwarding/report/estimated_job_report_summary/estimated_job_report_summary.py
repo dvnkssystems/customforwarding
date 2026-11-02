@@ -56,7 +56,9 @@ def execute(filters=None):
 				row.update({"pnl":flt(flt(ct['received_amount']) - flt(ct['paid_amount'])),"epnl":flt(flt(ct['rate']) - flt(ct['cost']))})
 				data.append(row)
 
-		add_total(data)
+	# Once, after every job (A-41): inside the loop it appended a Total row per
+	# job, each summing the Total rows before it.
+	add_total(data)
 
 	return columns, data
 

@@ -654,28 +654,57 @@ def _by_expiry(rows, status_field, date_field, today):
 	)
 
 
+# A vehicle's dated documents (A-31): the field, and how a banner names it.
+VEHICLE_DOCUMENTS = (
+	("end_date", "insurance"),
+	("registration_expiry", "registration (Istimara)"),
+	("inspection_expiry", "inspection (Fahas)"),
+)
+
+
 def _fleet(supplier, today, days):
 	"""The transporter's Vehicles (by our Vehicle.transporter; insurance ends
-	on end_date) and Drivers (ERPNext's Driver.transporter; licence ends on
-	expiry_date), each ordered like the rates (SU6, §5.5)."""
+	on end_date, registration and inspection on registration_expiry and
+	inspection_expiry) and Drivers (ERPNext's Driver.transporter; licence ends
+	on expiry_date), each ordered like the rates (SU6, §5.5). A vehicle's
+	expiry_date / expiry_status are those of its soonest document, which is
+	also its worst."""
 	vehicles = []
-	if frappe.get_meta("Vehicle").has_field("transporter"):
+	meta = frappe.get_meta("Vehicle")
+	if meta.has_field("transporter"):
+		dated = [(f, label) for f, label in VEHICLE_DOCUMENTS if meta.has_field(f)]
+		extra = [f for f in ("vehicle_type",) if meta.has_field(f)]
 		for r in frappe.get_all(
 			"Vehicle",
 			filters={"transporter": supplier},
-			fields=["name", "license_plate", "make", "model", "end_date"],
+			fields=["name", "license_plate", "make", "model", *extra, *(f for f, _label in dated)],
 			order_by="name asc",
 		):
-			end = getdate(r.end_date) if r.end_date else None
+			documents = []
+			for field, label in dated:
+				date = getdate(r.get(field)) if r.get(field) else None
+				if date:
+					documents.append(
+						{"document": label, "date": date, "status": party_documents.expiry_status(date, today, days)}
+					)
+			documents.sort(key=lambda d: d["date"])
+			soonest = documents[0]["date"] if documents else None
+			end = getdate(r.end_date) if r.get("end_date") else None
 			vehicles.append(
 				{
 					"name": r.name,
 					"license_plate": r.license_plate,
 					"make": r.make,
 					"model": r.model,
+					"vehicle_type": r.get("vehicle_type"),
 					"insurance_end_date": end,
-					"expiry_status": party_documents.expiry_status(end, today, days),
-					"days_left": date_diff(end, today) if end else None,
+					"registration_expiry": getdate(r.registration_expiry) if r.get("registration_expiry") else None,
+					"inspection_expiry": getdate(r.inspection_expiry) if r.get("inspection_expiry") else None,
+					"documents": documents,
+					"expiry_date": soonest,
+					"expiry_document": documents[0]["document"] if documents else None,
+					"expiry_status": party_documents.expiry_status(soonest, today, days),
+					"days_left": date_diff(soonest, today) if soonest else None,
 				}
 			)
 
@@ -698,22 +727,29 @@ def _fleet(supplier, today, days):
 			}
 		)
 	return (
-		_by_expiry(vehicles, "expiry_status", "insurance_end_date", today),
+		_by_expiry(vehicles, "expiry_status", "expiry_date", today),
 		_by_expiry(drivers, "expiry_status", "expiry_date", today),
 	)
 
 
 def _fleet_alerts(vehicles, drivers):
-	"""{expiring, expired}: [{kind, label, date}] for S5 / S9, soonest first.
-	A row is in one list or the other, never both."""
+	"""{expiring, expired}: [{kind, label, document, date}] for S5 / S9,
+	soonest first. A vehicle gives a row per document (insurance,
+	registration, inspection) needing attention; a document is in one list or
+	the other, never both."""
 	out = {"expiring": [], "expired": []}
-	rows = [("Vehicle", v["license_plate"] or v["name"], v["insurance_end_date"], v["expiry_status"]) for v in vehicles]
-	rows += [("Driver", d["full_name"] or d["name"], d["expiry_date"], d["expiry_status"]) for d in drivers]
-	for kind, label, date, status in rows:
+	rows = [
+		("Vehicle", v["license_plate"] or v["name"], d["document"], d["date"], d["status"])
+		for v in vehicles
+		for d in v.get("documents") or []
+	]
+	rows += [("Driver", d["full_name"] or d["name"], "licence", d["expiry_date"], d["expiry_status"]) for d in drivers]
+	for kind, label, document, date, status in rows:
+		row = {"kind": kind, "label": label, "document": document, "date": date}
 		if status == party_documents.EXPIRING:
-			out["expiring"].append({"kind": kind, "label": label, "date": date})
+			out["expiring"].append(row)
 		elif status == party_documents.EXPIRED:
-			out["expired"].append({"kind": kind, "label": label, "date": date})
+			out["expired"].append(row)
 	for key in out:
 		out[key].sort(key=lambda r: r["date"])
 	return out

@@ -79,3 +79,7 @@ forwarding.patches.v1_0.b3_transport_charges
 forwarding.patches.v1_0.b3_estimate_row_accounts
 forwarding.patches.v1_0.b3_riyadh_city_port
 forwarding.patches.v1_0.b4_hide_driver_employee_user
+forwarding.patches.v1_0.b5_vehicle_form
+forwarding.patches.v1_0.b5_fleet_banner_documents
+forwarding.patches.v1_0.b5_sidebar_cleanup
+forwarding.patches.v1_0.b5_report_totals

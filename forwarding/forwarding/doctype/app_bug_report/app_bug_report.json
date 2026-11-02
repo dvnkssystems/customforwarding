@@ -1,0 +1,49 @@
+{
+ "actions": [],
+ "autoname": "BUG-.#####",
+ "creation": "2026-11-02 18:00:00.000000",
+ "description": "A bug a user reported from the app's bug icon (A-47). Saved here always; also raised as a GitHub issue when the site config names a repository and token.",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "subject",
+  "page",
+  "message",
+  "image",
+  "column_break_report",
+  "reported_by",
+  "status",
+  "github_section",
+  "github_status",
+  "github_issue_url",
+  "github_error"
+ ],
+ "fields": [
+  {"fieldname": "subject", "fieldtype": "Data", "in_list_view": 1, "label": "Subject", "length": 140, "reqd": 1},
+  {"description": "The app page the report was sent from.", "fieldname": "page", "fieldtype": "Small Text", "label": "Page"},
+  {"fieldname": "message", "fieldtype": "Text", "label": "Message", "reqd": 1},
+  {"fieldname": "image", "fieldtype": "Attach Image", "label": "Image"},
+  {"fieldname": "column_break_report", "fieldtype": "Column Break"},
+  {"default": "__user", "fieldname": "reported_by", "fieldtype": "Link", "in_list_view": 1, "in_standard_filter": 1, "label": "Reported By", "options": "User", "read_only": 1},
+  {"default": "Open", "fieldname": "status", "fieldtype": "Select", "in_list_view": 1, "in_standard_filter": 1, "label": "Status", "options": "Open\nClosed"},
+  {"fieldname": "github_section", "fieldtype": "Section Break", "label": "GitHub"},
+  {"default": "Not Configured", "fieldname": "github_status", "fieldtype": "Select", "in_list_view": 1, "label": "GitHub Status", "options": "Not Configured\nQueued\nCreated\nFailed", "read_only": 1},
+  {"fieldname": "github_issue_url", "fieldtype": "Data", "label": "GitHub Issue", "options": "URL", "read_only": 1},
+  {"fieldname": "github_error", "fieldtype": "Small Text", "label": "GitHub Error", "read_only": 1}
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-11-02 18:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Forwarding",
+ "name": "App Bug Report",
+ "owner": "Administrator",
+ "permissions": [
+  {"create": 1, "delete": 1, "read": 1, "report": 1, "role": "System Manager", "write": 1, "export": 1, "print": 1}
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "subject",
+ "track_changes": 1
+}
