@@ -14,6 +14,7 @@
   "column_break_6",
   "vehicle",
   "driver",
+  "driver_name",
   "transport_status",
   "delivery_trip",
   "trip_mon",
@@ -84,6 +85,15 @@
    "fieldtype": "Link",
    "label": "Driver",
    "options": "Driver"
+  },
+  {
+   "depends_on": "driver",
+   "description": "The driver's name; Driver above is the record's id (HR-DRI-…).",
+   "fetch_from": "driver.full_name",
+   "fieldname": "driver_name",
+   "fieldtype": "Data",
+   "label": "Driver Name",
+   "read_only": 1
   },
   {
    "default": "Planned",
@@ -214,7 +224,7 @@
    "link_fieldname": "transportation"
   }
  ],
- "modified": "2026-11-02 18:00:00.000000",
+ "modified": "2026-11-03 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Forwarding",
  "name": "Transportation",
