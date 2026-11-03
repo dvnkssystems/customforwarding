@@ -238,6 +238,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Branch",
+   "link_filters": "[[\"Branch\", \"name\", \"!=\", \"ALL\"]]",
    "options": "Branch",
    "reqd": 1
   },
@@ -428,13 +429,13 @@
   {
    "fieldname": "port_of_loading",
    "fieldtype": "Link",
-   "label": " Port Of Loading",
+   "label": "Port of Loading",
    "options": "Port"
   },
   {
    "fieldname": "port_of_destination",
    "fieldtype": "Link",
-   "label": "Port Of Discharge",
+   "label": "Port of Discharge",
    "options": "Port"
   },
   {
@@ -1592,7 +1593,7 @@
    "link_fieldname": "operations"
   }
  ],
- "modified": "2026-10-29 18:00:00.000000",
+ "modified": "2026-11-03 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Forwarding",
  "name": "Operations",

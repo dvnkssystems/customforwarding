@@ -405,12 +405,13 @@ class Operations(Document):
 		"""A Sea or Air job is submitted with both ports (ONE Freight, 2 Nov:
 		J-IM-S-26-00001 went through with neither, so its header read
 		"— → Saudi Arabia" and the POD printed Port of Discharge "-"). Frappe's
-		mandatory wording, so the app links each to its field. Land and
+		"Port of Loading is required" (3 Nov: not Frappe's "Value missing for
+		Operations: …"); the app links it to the field by its label. Land and
 		customs-only jobs may have no port."""
 		if job_rules.mode_of(self) not in ("Sea", "Air"):
 			return []
 		return [
-			_("Value missing for {0}: {1}").format(_(self.doctype), _(self.meta.get_label(fieldname)).strip())
+			_("{0} is required").format(_(self.meta.get_label(fieldname)).strip())
 			for fieldname in ("port_of_loading", "port_of_destination")
 			if self.meta.has_field(fieldname) and not self.get(fieldname)
 		]
@@ -422,9 +423,8 @@ class Operations(Document):
 		if len(problems) == 1:
 			message = _("Can't submit yet: {0}").format(problems[0])
 		else:
-			message = _("Can't submit yet. Still missing:") + "<ul>" + "".join(
-				"<li>{0}</li>".format(p) for p in problems
-			) + "</ul>"
+			# A line each (<br>, not a list), so the app reads and links each one.
+			message = "<br>".join([_("Can't submit yet. Still missing:"), *problems])
 		frappe.throw(message, title=_("Not ready to submit"))
 
 	def validate_estimate(self):

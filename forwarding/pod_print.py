@@ -17,12 +17,33 @@ job itself lists no containers its Transportation's containers are the goods.
 import frappe
 from frappe.utils import cint, flt, format_time, formatdate
 
-from forwarding.invoice_print import company_header
+from forwarding.invoice_print import address_lines, company_header
 
 
 def _place(value):
 	"""A location as people write it: a leading "-" from the Port master dropped."""
 	return (value or "").lstrip("- ").strip()
+
+
+_KIND = {"sea": "Port", "air": "Airport"}
+
+
+def port_label(value):
+	"""A Port as the prints show it: "Ad Dammam Port (SADMM)", not its record
+	name "SADMM-Ad Dammam" (ONE Freight, 3 Nov). Sea ports get "Port", airports
+	"Airport", unless the name already says so; anything that is not a Port
+	record prints as typed."""
+	if not value:
+		return ""
+	port = frappe.db.get_value("Port", value, ["port_name", "port_code", "mode_of_shipment"], as_dict=True)
+	if not port or not (port.port_name or "").strip():
+		return _place(value)
+	name = port.port_name.strip()
+	kind = _KIND.get((port.mode_of_shipment or "").lower())
+	if kind and kind.lower() not in name.lower():
+		name = f"{name} {kind}"
+	code = (port.port_code or "").strip(" -")
+	return f"{name} ({code})" if code and code.lower() != port.port_name.strip().lower() else name
 
 
 def _join(*parts, sep=" / "):
@@ -140,13 +161,15 @@ def get_pod_context(doc):
 		bl_awb=doc.get("awb_number") or doc.get("mbl_number") or "",
 		hbl=doc.get("house_number") or "",
 		customer=customer_name,
-		consignee=doc.get("consignee") or "",
+		consignee=doc.get("consignee") or customer_name,
 		shipper=doc.get("shipper") or "",
 		carrier_label=carrier_label,
 		carrier_label_ar=carrier_label_ar,
 		carrier=carrier,
-		port=_place(doc.get("port_of_destination")),
-		delivery_address=doc.get("delivery_address") or transport.get("address") or doc.get("place_of_delivery") or "",
+		port=port_label(doc.get("port_of_destination")),
+		delivery_address=", ".join(
+			address_lines(transport.get("address") or doc.get("delivery_address") or doc.get("place_of_delivery"))
+		),
 		delivery_date=formatdate(delivery_date) if delivery_date else "",
 		delivery_time=format_time(transport.delivery_time, "HH:mm") if transport.get("delivery_time") else "",
 		lines=lines,

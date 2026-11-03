@@ -13,7 +13,7 @@ import frappe
 from frappe.utils import format_time, formatdate
 
 from forwarding.invoice_print import address_lines, company_header
-from forwarding.pod_print import _containers, _join, _place, _weight
+from forwarding.pod_print import _containers, _join, _weight, port_label
 
 
 def _name(doctype, name, field):
@@ -52,9 +52,9 @@ def get_transport_order_context(doc):
 		job_no=job.get("name") or "",
 		bl_awb=job.get("awb_number") or job.get("mbl_number") or "",
 		carrier=carrier,
-		port=_place(job.get("port_of_destination")),
+		port=port_label(job.get("port_of_destination")),
 		customer=_name("Customer", customer, "customer_name"),
-		consignee=job.get("consignee") or "",
+		consignee=job.get("consignee") or _name("Customer", customer, "customer_name"),
 		cargo=job.get("cargo_description") or "",
 		gross_weight=_weight(job.get("gross_weight")),
 		weight_uom=job.get("weight_uom") or "Kg",

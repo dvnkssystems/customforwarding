@@ -37,8 +37,8 @@ class TestJobPorts(OfsCase):
 		job = make(mode_of_shipment="Air", port_of_loading=None, port_of_destination=None)
 		problems = job.missing_ports()
 		self.assertEqual(len(problems), 2)
-		self.assertTrue(all(p.startswith("Value missing for") for p in problems))
-		self.assertTrue(any("Port of Loading" in p or "Port Of Loading" in p for p in problems))
+		# 3 Nov: "Port of Loading is required", not "Value missing for Operations: …".
+		self.assertEqual(problems, ["Port of Loading is required", "Port of Discharge is required"])
 
 	def test_land_jobs_need_no_port(self):
 		job = make(mode_of_shipment="Air")
