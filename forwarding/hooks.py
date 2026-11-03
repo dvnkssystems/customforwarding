@@ -101,6 +101,7 @@ jinja = {
 	"methods": [
 		"forwarding.invoice_print.get_tax_invoice_context",
 		"forwarding.pod_print.get_pod_context",
+		"forwarding.pod_print.port_label",
 		"forwarding.transport_print.get_transport_order_context",
 	],
 }

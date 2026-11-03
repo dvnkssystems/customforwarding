@@ -87,3 +87,5 @@ forwarding.patches.v1_0.ofs1_invoice_settings
 forwarding.patches.v1_0.ofs1_clean_start
 forwarding.patches.v1_0.ofs1_clean_start_project
 forwarding.patches.v1_0.ofs1_prints
+forwarding.patches.v1_0.ofs1_retest2
+forwarding.patches.v1_0.ofs1_customer_connections
