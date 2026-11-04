@@ -258,7 +258,7 @@ def get_tax_invoice_context(doc):
 	"""Everything the Freight Tax Invoice print format shows."""
 	company = _values("Company", doc.company, ["company_name", "tax_id", "company_arabic_name", "address_arabic"])
 	customer = _values(
-		"Customer", doc.customer, ["tax_id", "custom_vat_registration_number", "customer_name_in_arabic"]
+		"Customer", doc.customer, ["tax_id", "custom_vat_registration_number", "customer_name_in_arabic", "cr_no"]
 	)
 	# The customer form's "VAT Registration Number" is its own field; many
 	# customers have only that one (ONE Freight, 2 Nov: buyer VAT printed "-").
@@ -315,6 +315,7 @@ def get_tax_invoice_context(doc):
 			name=doc.customer_name or doc.customer,
 			name_ar=doc.get("customer_name_in_arabic") or customer.get("customer_name_in_arabic") or "",
 			tax_id=customer_tax_id or "",
+			cr=customer.get("cr_no") or "",
 			address=address_lines(doc.get("address_display") or _render_address(doc.get("customer_address"))),
 		),
 		job_no=job.get("name") or "",
@@ -330,6 +331,21 @@ def get_tax_invoice_context(doc):
 		words_en=doc.get("in_words") or money_in_words(grand_total, doc.currency),
 		words_ar=amount_in_words_ar(grand_total, doc.currency),
 		qr=zatca_qr(doc, seller_name, seller_tax_id),
-		title=_("Tax Invoice") if not doc.get("is_return") else _("Credit Note"),
-		title_ar="فاتورة ضريبية" if not doc.get("is_return") else "إشعار دائن",
+		**invoice_title(doc, customer_tax_id),
 	)
+
+
+def invoice_title(doc, buyer_tax_id):
+	"""The document's title in English and Arabic, as ZATCA names it.
+
+	A return is a Credit Note and a debit note a Debit Note. Otherwise a buyer
+	with a VAT number gets a (standard) Tax Invoice and one without a
+	Simplified Tax Invoice.
+	"""
+	if doc.get("is_return"):
+		return {"title": _("Credit Note"), "title_ar": "إشعار دائن"}
+	if doc.get("is_debit_note"):
+		return {"title": _("Debit Note"), "title_ar": "إشعار مدين"}
+	if not buyer_tax_id:
+		return {"title": _("Simplified Tax Invoice"), "title_ar": "فاتورة ضريبية مبسطة"}
+	return {"title": _("Tax Invoice"), "title_ar": "فاتورة ضريبية"}

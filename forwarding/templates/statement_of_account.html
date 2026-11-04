@@ -17,10 +17,14 @@
 	tr.total td { font-weight: 600; border-top: 1px solid #9aa5b1; border-bottom: none; }
 	tr.opening td { font-style: italic; }
 	.ageing { margin-top: 18px; width: 60%; }
+	.lh-top { margin-bottom: 12px; }
+	.lh-top img { max-width: 100%; }
+	.print-format { margin-bottom: 22mm; }
 	.closing { margin-top: 10px; font-size: 13px; font-weight: 600; text-align: right; }
 </style>
 </head>
 <body>
+	{% if lh.header %}<div class="lh-top">{{ lh.header }}</div>{% endif %}
 	<div class="head">
 		<div>
 			<h1>{{ _("Statement of Account") }}</h1>
@@ -91,5 +95,6 @@
 		</tbody>
 	</table>
 	<p class="muted">{{ _("Ageing as of {0}, by days past due date.").format(formatdate(s.to_date)) }}</p>
+	{% if lh.footer %}<div id="footer-html" class="visible-pdf">{{ lh.footer }}</div>{% endif %}
 </body>
 </html>

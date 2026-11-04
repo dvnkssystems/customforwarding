@@ -104,3 +104,57 @@ class TestBilingualTaxInvoice(IntegrationTestCase):
 		html = frappe.get_print("Sales Invoice", si.name, "Bilingual Tax Invoice", doc=si, no_letterhead=1)
 		for text in ("TAX INVOICE", "فاتورة ضريبية", "Bank Details", "بيانات البنك", "311111111100003"):
 			self.assertIn(text, html)
+
+	def test_title_follows_zatca_document_type(self):
+		si = make_invoice()
+		self.assertEqual(invoice_print.invoice_title(si, "311111111100003")["title"], "Tax Invoice")
+		self.assertEqual(invoice_print.invoice_title(si, "")["title_ar"], "فاتورة ضريبية مبسطة")
+		si.is_debit_note = 1
+		self.assertEqual(invoice_print.invoice_title(si, "311111111100003")["title"], "Debit Note")
+		si.is_return = 1
+		self.assertEqual(invoice_print.invoice_title(si, "311111111100003")["title"], "Credit Note")
+
+
+class TestLetterHead(IntegrationTestCase):
+	"""Our custom formats print the Letter Head in place of their own header."""
+
+	def setUp(self):
+		self.lh = frappe.get_doc(
+			{
+				"doctype": "Letter Head",
+				"letter_head_name": "_Test OFS Letter Head",
+				"source": "HTML",
+				"content": "<div>LH-TOP {{ letterhead_company(doc).name }}</div>",
+				"footer_source": "HTML",
+				"footer": "<div>LH-FOOT</div>",
+			}
+		).insert(ignore_permissions=True)
+
+	def tearDown(self):
+		frappe.delete_doc("Letter Head", self.lh.name, force=True, ignore_permissions=True)
+
+	def test_formats_use_the_letter_head(self):
+		cases = (
+			("Sales Invoice", make_invoice(), "Bilingual Tax Invoice"),
+			("Operations", make_job(), "Proof of Delivery"),
+			("Operations", make_job(), "Arrival Notice"),
+		)
+		for doctype, doc, fmt in cases:
+			html = frappe.get_print(doctype, doc.name, fmt, doc=doc, letterhead=self.lh.name)
+			self.assertIn("LH-TOP " + frappe.db.get_value("Company", company(), "company_name"), html, fmt)
+			self.assertIn('id="footer-html"', html, fmt)
+			self.assertIn("LH-FOOT", html, fmt)
+			self.assertNotIn('class="hdr"', html, fmt)
+
+	def test_built_header_without_letter_head(self):
+		html = frappe.get_print("Operations", "J-TEST-POD-0001", "Proof of Delivery", doc=make_job(), no_letterhead=1)
+		self.assertIn('class="hdr"', html)
+		self.assertNotIn("LH-FOOT", html)
+
+	def test_statement_letterhead(self):
+		from forwarding import print_letterhead
+
+		frappe.db.set_value("Company", company(), "default_letter_head", self.lh.name)
+		lh = print_letterhead.company_letterhead(company())
+		self.assertIn("LH-TOP", lh.header)
+		self.assertIn("LH-FOOT", lh.footer)

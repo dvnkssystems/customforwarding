@@ -103,6 +103,7 @@ jinja = {
 		"forwarding.pod_print.get_pod_context",
 		"forwarding.pod_print.port_label",
 		"forwarding.transport_print.get_transport_order_context",
+		"forwarding.print_letterhead.letterhead_company",
 	],
 }
 
