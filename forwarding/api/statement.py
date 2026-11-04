@@ -30,6 +30,7 @@ from frappe.query_builder.functions import Min, Sum
 from frappe.utils import cint, date_diff, flt, fmt_money, formatdate, getdate, nowdate
 
 from forwarding.party_360 import default_company, vat_number
+from forwarding.print_letterhead import company_letterhead
 
 # Party type -> the invoice DocType a user must be able to read to see it.
 PARTY_TYPES = {"Customer": "Sales Invoice", "Supplier": "Purchase Invoice"}
@@ -330,6 +331,7 @@ def render(statement):
 		TEMPLATE,
 		{
 			"s": frappe._dict(statement),
+			"lh": company_letterhead(statement.get("company")),
 			"money": lambda amount: fmt_money(flt(amount), precision=2, currency=statement["currency"]),
 			"formatdate": formatdate,
 			"buckets": [label for label, _limit in BUCKETS],
