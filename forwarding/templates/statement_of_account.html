@@ -19,7 +19,8 @@
 	.ageing { margin-top: 18px; width: 60%; }
 	.lh-top { margin-bottom: 12px; }
 	.lh-top img { max-width: 100%; }
-	.print-format { margin-bottom: 22mm; }
+	/* Read as the PDF bottom margin (frappe.utils.pdf), so the footer has room. */
+	.print-format { margin-bottom: 18mm; }
 	.closing { margin-top: 10px; font-size: 13px; font-weight: 600; text-align: right; }
 </style>
 </head>
@@ -95,6 +96,6 @@
 		</tbody>
 	</table>
 	<p class="muted">{{ _("Ageing as of {0}, by days past due date.").format(formatdate(s.to_date)) }}</p>
-	{% if lh.footer %}<div id="footer-html" class="visible-pdf">{{ lh.footer }}</div>{% endif %}
+	{% if lh.footer %}<div id="footer-html" class="visible-pdf"><div class="letter-head-footer">{{ lh.footer }}</div></div>{% endif %}
 </body>
 </html>
