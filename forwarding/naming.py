@@ -48,10 +48,30 @@ def _suffixes():
 			yield first + second
 
 
+def dashed_job_code(job):
+	"""job_code() with dashes between branch, type + mode, year and serial:
+	R-IM-S-26-00001 -> R-IS-26-00001. A name in any other shape is kept as it is."""
+	parts = (job or "").split("-")
+	if len(parts) in (5, 6) and all(parts) and parts[3].isdigit() and parts[4].isdigit():
+		branch, job_type, mode, year, serial = parts[:5]
+		return f"{branch}-{job_type[0]}{mode}-{year}-{serial}".upper()
+	return (job or "").upper()
+
+
+def dashed_service_numbers():
+	"""Whether this site numbers orders with dashes (TR-IS-26-00001).
+
+	Royal Eagle's spec (M-13) is TRIA2607014, so that stays the default; a
+	site turns the dashed style on with `"service_number_style": "dashed"` in
+	its site_config.json (ONE Freight)."""
+	return (frappe.conf.get("service_number_style") or "").strip().lower() == "dashed"
+
+
 def service_name(doctype, prefix, job):
 	"""The next free name for a job's Transportation (T) or Custom Clearance
-	(C): TRIA2607014, then TRIA2607014B, TRIA2607014C, ..."""
-	base = prefix + job_code(job)
+	(C): TRIA2607014, then TRIA2607014B, TRIA2607014C, ... or, on a site with
+	dashed numbers, TR-IA-26-07014, TR-IA-26-07014B, ..."""
+	base = prefix + (dashed_job_code(job) if dashed_service_numbers() else job_code(job))
 	for suffix in _suffixes():
 		if not frappe.db.exists(doctype, base + suffix):
 			return base + suffix
