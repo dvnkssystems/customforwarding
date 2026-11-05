@@ -176,6 +176,18 @@ class TestServiceNumbers(R2Case):
 			self.assertEqual(service_name("Transportation", "T", "R-IM-A-26-07014"), "TRIA2607014")
 			self.assertEqual(service_name("Custom Clearance", "C", "R-IM-A-26-07014"), "CRIA2607014")
 
+	def test_dashed_numbers_when_the_site_asks(self):
+		with patch("frappe.db.exists", return_value=False), patch.dict(
+			frappe.conf, {"service_number_style": "dashed"}
+		):
+			self.assertEqual(service_name("Transportation", "T", "R-IM-S-26-00001"), "TR-IS-26-00001")
+			self.assertEqual(service_name("Custom Clearance", "C", "R-IM-S-26-00001"), "CR-IS-26-00001")
+			self.assertEqual(service_name("Transportation", "T", "ALL-EX-A-26-07050-1"), "TALL-EA-26-07050")
+		with patch("frappe.db.exists", side_effect=lambda dt, name: name == "TR-IS-26-00001"), patch.dict(
+			frappe.conf, {"service_number_style": "dashed"}
+		):
+			self.assertEqual(service_name("Transportation", "T", "R-IM-S-26-00001"), "TR-IS-26-00001B")
+
 
 class TestTransportationLayout(R2Case):
 	def test_route_section_order(self):
