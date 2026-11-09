@@ -113,6 +113,21 @@
    "modified_by": "Administrator",
    "docstatus": 0,
    "default": "15"
+  },
+  {
+   "dt": "Company",
+   "fieldname": "company_stamp",
+   "fieldtype": "Attach Image",
+   "label": "Company Stamp",
+   "insert_after": "address_arabic",
+   "description": "PNG with a transparent background; printed beside the QR on tax invoices.",
+   "name": "Company-company_stamp",
+   "module": "Forwarding",
+   "owner": "Administrator",
+   "creation": "2026-11-09 00:00:00.000000",
+   "modified": "2026-11-09 00:00:00.000000",
+   "modified_by": "Administrator",
+   "docstatus": 0
   }
  ],
  "custom_perms": [],

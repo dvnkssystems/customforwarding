@@ -17,7 +17,7 @@ import re
 
 import frappe
 from frappe import _
-from frappe.utils import cint, flt, money_in_words
+from frappe.utils import cint, cstr, flt, money_in_words
 
 LINE_BREAK = re.compile(r"<br\s*/?>|\n", re.IGNORECASE)
 TAG = re.compile(r"<[^>]+>")
@@ -268,12 +268,16 @@ def get_tax_invoice_context(doc):
 
 	job = frappe._dict()
 	if doc.get("operations"):
-		job = frappe.db.get_value(
+		job = _values(
 			"Operations",
 			doc.operations,
-			["name", "awb_number", "mbl_number", "house_number"],
-			as_dict=True,
-		) or frappe._dict()
+			[
+				"awb_number", "mbl_number", "house_number", "mode_of_shipment",
+				"vessel_name", "voyage_number", "flight_number", "port_of_loading", "port_of_destination",
+			],
+		)
+		if job:
+			job["name"] = doc.operations
 
 	precision = doc.precision("amount", "items") if doc.get("items") else 2
 	vat = _line_vat(doc)
@@ -309,6 +313,7 @@ def get_tax_invoice_context(doc):
 			address_ar=address_lines(company.get("address_arabic")),
 			logo=header.logo,
 			cr=header.cr,
+			stamp=company_stamp(doc.company),
 		),
 		bank=company_bank(doc.company),
 		buyer=frappe._dict(
@@ -321,6 +326,7 @@ def get_tax_invoice_context(doc):
 		job_no=job.get("name") or "",
 		bl_awb=job.get("awb_number") or job.get("mbl_number") or "",
 		hbl=job.get("house_number") or "",
+		shipment=invoice_shipment(job),
 		lines=lines,
 		has_line_vat=bool(vat),
 		taxes=[t for t in doc.get("taxes") or [] if flt(t.tax_amount)],
@@ -332,6 +338,80 @@ def get_tax_invoice_context(doc):
 		words_ar=amount_in_words_ar(grand_total, doc.currency),
 		qr=zatca_qr(doc, seller_name, seller_tax_id),
 		**invoice_title(doc, customer_tax_id),
+	)
+
+
+def company_stamp(company_name):
+	"""The Company's stamp image for the print, or "" (ONE Freight, 9 Nov)."""
+	if not company_name or not frappe.get_meta("Company").has_field("company_stamp"):
+		return ""
+	return _existing_file(frappe.db.get_value("Company", company_name, "company_stamp"))
+
+
+def container_size_type(size, container_type):
+	"""A container's size and type as a forwarder writes it: 40' GP.
+
+	The Container Type is often "40GP" (size included) and sometimes only
+	"GP" beside the Size column; both read 40' GP."""
+	kind = (container_type or "").strip().upper()
+	match = re.match(r"^(\d{2})\s*(.*)$", kind)
+	if match:
+		size, kind = match.group(1), match.group(2)
+	size = cstr(size).strip()
+	return " ".join(p for p in ((size + "'") if size else "", kind) if p)
+
+
+# More containers than this print as counts per size/type plus the first
+# numbers, so the invoice stays on one page.
+MAX_LISTED_CONTAINERS = 40
+
+
+def invoice_containers(job_name):
+	"""The job's containers for the invoice: {"listed": ["MSCU4821356 – 40' GP", ...],
+	"more": n, "summary": "35 × 40' GP, 5 × 20' GP"}."""
+	if not job_name:
+		return frappe._dict(listed=[], more=0, summary="")
+	rows = frappe.get_all(
+		"Container Details",
+		filters={"parent": job_name, "parenttype": "Operations"},
+		fields=["container_no", "size", "container_type", "qty"],
+		order_by="idx asc",
+	)
+	listed, counts = [], {}
+	for row in rows:
+		label = container_size_type(row.size, row.container_type)
+		number = (row.container_no or "").strip().upper()
+		count = 1 if number else max(cint(row.qty), 1)
+		if label:
+			counts[label] = counts.get(label, 0) + count
+		if number:
+			listed.append(f"{number} – {label}" if label else number)
+		elif label:
+			listed.append(f"{count} × {label}")
+	summary = ", ".join(f"{n} × {label}" for label, n in counts.items())
+	more = max(len(listed) - MAX_LISTED_CONTAINERS, 0)
+	return frappe._dict(listed=listed[:MAX_LISTED_CONTAINERS], more=more, summary=summary if more else "")
+
+
+def invoice_shipment(job):
+	"""Vessel / voyage (or flight), ports and containers for the invoice
+	(ONE Freight, 5 and 9 Nov). Empty values are left out by the print."""
+	from forwarding.pod_print import port_label
+
+	if not job:
+		return frappe._dict()
+	is_air = (job.get("mode_of_shipment") or "").strip().lower() == "air"
+	carrier = (
+		job.get("flight_number")
+		if is_air
+		else " / ".join(p for p in (job.get("vessel_name"), job.get("voyage_number")) if p)
+	)
+	return frappe._dict(
+		is_air=is_air,
+		carrier=carrier or "",
+		pol=port_label(job.get("port_of_loading")),
+		pod=port_label(job.get("port_of_destination")),
+		containers=invoice_containers(job.get("name")),
 	)
 
 
