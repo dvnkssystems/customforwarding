@@ -368,8 +368,8 @@ def container_size_type(size, container_type):
 
 
 # More containers than this print as counts per size/type plus the first
-# numbers, so the invoice stays on one page.
-MAX_LISTED_CONTAINERS = 40
+# numbers, so the invoice stays on one page (60 containers checked, 9 Nov).
+MAX_LISTED_CONTAINERS = 12
 
 
 def invoice_containers(job_name):
