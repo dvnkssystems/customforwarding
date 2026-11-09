@@ -120,6 +120,11 @@ class TestBilingualTaxInvoice(IntegrationTestCase):
 class TestInvoiceShipment(IntegrationTestCase):
 	"""Vessel / voyage, ports, containers and the stamp (ONE Freight, 5 and 9 Nov)."""
 
+	def test_iban_printed_in_groups_of_four(self):
+		self.assertEqual(invoice_print.iban_groups("SA5780000525608011547961"), "SA57 8000 0525 6080 1154 7961")
+		self.assertEqual(invoice_print.iban_groups(" sa57 8000 0525 6080 1154 7961"), "SA57 8000 0525 6080 1154 7961")
+		self.assertEqual(invoice_print.iban_groups(None), "")
+
 	def test_container_size_type(self):
 		self.assertEqual(invoice_print.container_size_type("40", "40GP"), "40' GP")
 		self.assertEqual(invoice_print.container_size_type("40", "GP"), "40' GP")

@@ -148,9 +148,15 @@ def company_bank(company_name):
 		bank=account.get("bank") or "",
 		account_name=account.get("account_name") or "",
 		account_no=account.get("bank_account_no") or "",
-		iban=account.get("iban") or "",
+		iban=iban_groups(account.get("iban")),
 		swift=swift or "",
 	)
+
+
+def iban_groups(iban):
+	"""An IBAN as it is printed: SA57 8000 0525 6080 1154 7961."""
+	compact = re.sub(r"\s+", "", iban or "").upper()
+	return " ".join(compact[i : i + 4] for i in range(0, len(compact), 4))
 
 
 def zatca_qr(doc, seller_name, seller_tax_id):
