@@ -3,6 +3,8 @@
 
 Rendered from documents built in memory, so nothing is saved."""
 
+from unittest.mock import patch
+
 import frappe
 from frappe.tests import IntegrationTestCase
 from frappe.utils import nowdate
@@ -113,6 +115,59 @@ class TestBilingualTaxInvoice(IntegrationTestCase):
 		self.assertEqual(invoice_print.invoice_title(si, "311111111100003")["title"], "Debit Note")
 		si.is_return = 1
 		self.assertEqual(invoice_print.invoice_title(si, "311111111100003")["title"], "Credit Note")
+
+
+class TestInvoiceShipment(IntegrationTestCase):
+	"""Vessel / voyage, ports, containers and the stamp (ONE Freight, 5 and 9 Nov)."""
+
+	def test_container_size_type(self):
+		self.assertEqual(invoice_print.container_size_type("40", "40GP"), "40' GP")
+		self.assertEqual(invoice_print.container_size_type("40", "GP"), "40' GP")
+		self.assertEqual(invoice_print.container_size_type("", "20RF"), "20' RF")
+		self.assertEqual(invoice_print.container_size_type("", ""), "")
+
+	def test_containers_listed_then_summarised(self):
+		rows = [frappe._dict(container_no="mscu4821356", size="40", container_type="40GP", qty=1)]
+		with patch("frappe.get_all", return_value=rows):
+			c = invoice_print.invoice_containers("J-1")
+		self.assertEqual((c.listed, c.more, c.summary), (["MSCU4821356 – 40' GP"], 0, ""))
+
+		many = [frappe._dict(container_no=f"MSCU{i:07d}", size="40", container_type="GP", qty=1) for i in range(45)]
+		many += [frappe._dict(container_no="", size="20", container_type="GP", qty=3)]
+		with patch("frappe.get_all", return_value=many):
+			c = invoice_print.invoice_containers("J-1")
+		self.assertEqual(len(c.listed), invoice_print.MAX_LISTED_CONTAINERS)
+		self.assertEqual(c.more, 46 - invoice_print.MAX_LISTED_CONTAINERS)
+		self.assertEqual(c.summary, "45 × 40' GP, 3 × 20' GP")
+
+	def test_air_job_prints_the_flight(self):
+		job = frappe._dict(name="J-1", mode_of_shipment="Air", flight_number="SV 123", vessel_name="X")
+		with patch("frappe.get_all", return_value=[]):
+			s = invoice_print.invoice_shipment(job)
+		self.assertEqual((s.is_air, s.carrier), (True, "SV 123"))
+
+	def test_renders_shipment_and_stamp(self):
+		si = make_invoice()
+		shipment = frappe._dict(
+			is_air=False,
+			carrier="MSC AURORA / 245E",
+			pol="Shanghai Port (CNSHA)",
+			pod="Jeddah Islamic Port (SAJED)",
+			containers=frappe._dict(listed=["MSCU4821356 – 40' GP"], more=0, summary=""),
+		)
+		with patch.object(invoice_print, "invoice_shipment", return_value=shipment), patch.object(
+			invoice_print, "company_stamp", return_value="/files/stamp.png"
+		):
+			html = frappe.get_print("Sales Invoice", si.name, "Bilingual Tax Invoice", doc=si, no_letterhead=1)
+		for text in (
+			"Shipment Details", "MSC AURORA / 245E", "Shanghai Port (CNSHA)", "Jeddah Islamic Port (SAJED)",
+			"MSCU4821356 – 40' GP", "Containers (1)", "/files/stamp.png",
+		):
+			self.assertIn(text, html)
+
+	def test_no_shipment_box_without_a_job(self):
+		html = frappe.get_print("Sales Invoice", "x", "Bilingual Tax Invoice", doc=make_invoice(), no_letterhead=1)
+		self.assertNotIn("Shipment Details", html)
 
 
 class TestLetterHead(IntegrationTestCase):
