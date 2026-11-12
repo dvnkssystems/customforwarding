@@ -42,7 +42,9 @@ ARABIC_CURRENCY = {
 
 
 def address_lines(html):
-	"""Stored address HTML as a list of non-empty lines, "None" parts dropped."""
+	"""Stored address HTML as a list of non-empty lines, "None" parts dropped.
+	A line that repeats an earlier one is dropped too: a district typed in both
+	Address Line 2 and Area printed twice (ONE Freight, 11 Nov)."""
 	lines = []
 	for raw in LINE_BREAK.split(html or ""):
 		text = TAG.sub("", raw).strip().strip(",").strip()
@@ -51,7 +53,7 @@ def address_lines(html):
 		# "Surat, None" -> "Surat": a None between commas on one line.
 		parts = [p.strip() for p in text.split(",")]
 		text = ", ".join(p for p in parts if p.lower() not in EMPTY_PARTS)
-		if text:
+		if text and text.lower() not in (line.lower() for line in lines):
 			lines.append(text)
 	return lines
 

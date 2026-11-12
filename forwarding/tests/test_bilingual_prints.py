@@ -218,3 +218,49 @@ class TestLetterHead(IntegrationTestCase):
 		lh = print_letterhead.company_letterhead(company())
 		self.assertIn("LH-TOP", lh.header)
 		self.assertIn("LH-FOOT", lh.footer)
+
+
+class TestSaudiAddressAndPorts(IntegrationTestCase):
+	"""ONE Freight, 11 Nov: building number on the buyer address, district once,
+	port names in one case."""
+
+	def render(self, **fields):
+		from forwarding.patches.v1_0.saudi_address_building_number import TEMPLATE
+
+		values = dict.fromkeys(
+			["address_line1", "address_line2", "custom_area", "custom_building_number", "city", "state", "pincode", "country", "phone", "fax", "email_id"]
+		)
+		values.update(fields)
+		return invoice_print.address_lines(frappe.render_template(TEMPLATE, values))
+
+	def test_building_number_and_district_once(self):
+		self.assertEqual(
+			self.render(
+				address_line1="King Fahd Road",
+				address_line2="Al Olaya",
+				custom_area="Al Olaya",
+				custom_building_number="7421",
+				city="Riyadh",
+				pincode="12214",
+				country="Saudi Arabia",
+			),
+			["Building No. 7421, King Fahd Road", "Al Olaya", "Riyadh 12214", "Saudi Arabia"],
+		)
+
+	def test_address_without_building_number_or_area(self):
+		self.assertEqual(
+			self.render(address_line1="Port Road", city="Jeddah", country="Saudi Arabia"),
+			["Port Road", "Jeddah", "Saudi Arabia"],
+		)
+
+	def test_repeated_line_in_stored_address_dropped(self):
+		self.assertEqual(
+			invoice_print.address_lines("King Fahd Road<br>Al Olaya<br>Riyadh<br>al olaya<br>12214"),
+			["King Fahd Road", "Al Olaya", "Riyadh", "12214"],
+		)
+
+	def test_port_names_in_capitals_print_in_normal_case(self):
+		self.assertEqual(pod_print._proper_case("SHANGHAI"), "Shanghai")
+		self.assertEqual(pod_print._proper_case("NEW YORK"), "New York")
+		self.assertEqual(pod_print._proper_case("Jeddah Islamic Port"), "Jeddah Islamic Port")
+		self.assertEqual(pod_print._proper_case("Ad Dammam"), "Ad Dammam")

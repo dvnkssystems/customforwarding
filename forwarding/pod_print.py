@@ -14,6 +14,8 @@ Delivery time, driver and truck come from the Transportation, and when the
 job itself lists no containers its Transportation's containers are the goods.
 """
 
+import re
+
 import frappe
 from frappe.utils import cint, flt, format_time, formatdate
 
@@ -26,6 +28,16 @@ def _place(value):
 
 
 _KIND = {"sea": "Port", "air": "Airport"}
+_WORD = re.compile(r"[^\W\d_]+")
+
+
+def _proper_case(name):
+	"""A port name typed in capitals as the other names are written: "SHANGHAI"
+	-> "Shanghai", "NEW YORK" -> "New York" (ONE Freight, 11 Nov). Names already
+	in mixed case are kept as they are."""
+	if not name.isupper():
+		return name
+	return _WORD.sub(lambda m: m.group(0).capitalize(), name)
 
 
 def port_label(value):
@@ -38,7 +50,7 @@ def port_label(value):
 	port = frappe.db.get_value("Port", value, ["port_name", "port_code", "mode_of_shipment"], as_dict=True)
 	if not port or not (port.port_name or "").strip():
 		return _place(value)
-	name = port.port_name.strip()
+	name = _proper_case(port.port_name.strip())
 	kind = _KIND.get((port.mode_of_shipment or "").lower())
 	if kind and kind.lower() not in name.lower():
 		name = f"{name} {kind}"
