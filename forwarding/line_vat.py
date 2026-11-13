@@ -130,6 +130,18 @@ def apply(doc, method=None):
 			row.vat_type = by_template[row.item_tax_template]
 
 
+def fill_choices(doc, method=None):
+	"""Sales Invoice validate: a line nobody chose for shows what its template
+	is. ERPNext fills the template from the charge during its own validate,
+	after before_validate has run, so this runs after it."""
+	if not frappe.get_meta(doc.meta.get_field("items").options).has_field("vat_type"):
+		return
+	by_template = {name: kind for kind, name in templates(doc.company).items()}
+	for row in doc.get("items") or []:
+		if not row.get("vat_type") and row.get("item_tax_template") in by_template:
+			row.vat_type = by_template[row.item_tax_template]
+
+
 def set_item_default(item, vat_type, company):
 	"""Make `vat_type` the Item's default for the company and list the other
 	two after it. ERPNext swaps a line's template for the Item's first one when

@@ -166,3 +166,27 @@ class TestLineVat(IntegrationTestCase):
 		self.assertEqual([o["vat_type"] for o in opts], list(line_vat.VAT_TYPES))
 		self.assertEqual(opts[0]["item_tax_rate"][self.vat], 15)
 		self.assertEqual(opts[2]["item_tax_rate"][self.vat], 0)
+
+	def test_untouched_lines_show_their_charge_default_after_save(self):
+		# As the app and the job -> invoice mapping save it: no choice, and the
+		# template is filled in by ERPNext's own validate.
+		freight = self.item("LV Freight", line_vat.ZERO)
+		clearance = self.item("LV Clearance", line_vat.STANDARD)
+		doc = frappe.new_doc("Sales Invoice")
+		doc.update(
+			{
+				"company": self.company,
+				"customer": self.customer,
+				"posting_date": frappe.utils.nowdate(),
+				"due_date": frappe.utils.nowdate(),
+				"taxes": [
+					{"charge_type": "On Net Total", "account_head": self.vat, "description": "VAT 15%", "rate": 15}
+				],
+			}
+		)
+		doc.append("items", {"item_code": freight, "qty": 1, "rate": 1000})
+		doc.append("items", {"item_code": clearance, "qty": 1, "rate": 500})
+		doc.insert(ignore_permissions=True)
+		doc.reload()
+		self.assertEqual([r.vat_type for r in doc.items], [line_vat.ZERO, line_vat.STANDARD])
+		self.assertEqual(doc.total_taxes_and_charges, 75)

@@ -152,6 +152,7 @@ doc_events = {
 			"forwarding.invoice_guard.validate",
 			"forwarding.sales_invoice.enforce_overseas_zero_rating",
 			"forwarding.credit_note.validate",
+			"forwarding.line_vat.fill_choices",
 		],
 		"before_submit": [
 			"forwarding.sales_invoice.block_zero_value_job_invoice",
