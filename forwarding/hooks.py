@@ -145,6 +145,7 @@ doc_events = {
 			"forwarding.invoice_currency.fill_exchange_rate",
 			"forwarding.purchase_invoice.due_from_credit_period",
 			"forwarding.party_accounts.debit_to_from_job",
+			"forwarding.line_vat.apply",
 		],
 		"validate": [
 			"forwarding.subscription.enforce_limit",

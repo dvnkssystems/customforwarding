@@ -54,6 +54,45 @@
 		dialog.show();
 	}
 
+	// VAT per line (ONE Freight, 12 Nov): the line's VAT choice and its Item
+	// Tax Template follow each other. forwarding.line_vat does the same on
+	// save; here the form (desk and app) shows the new VAT at once.
+	const vat_options = {};
+	async function vat_map(company) {
+		if (!company) return [];
+		if (!vat_options[company]) {
+			vat_options[company] = frappe
+				.call("forwarding.line_vat.options", { company })
+				.then((r) => (r && r.message !== undefined ? r.message : r) || [])
+				.catch(() => {
+					delete vat_options[company];
+					return [];
+				});
+		}
+		return vat_options[company];
+	}
+
+	frappe.ui.form.on("Sales Invoice Item", {
+		async vat_type(frm, cdt, cdn) {
+			const row = locals[cdt] && locals[cdt][cdn] ? locals[cdt][cdn] : (frm.doc.items || []).find((r) => r.name === cdn);
+			if (!row || !row.vat_type || frm.doc.docstatus !== 0) return;
+			const option = (await vat_map(frm.doc.company)).find((o) => o.vat_type === row.vat_type);
+			if (!option || row.item_tax_template === option.template) return;
+			await frappe.model.set_value(cdt, cdn, {
+				item_tax_template: option.template,
+				item_tax_rate: JSON.stringify(option.item_tax_rate || {}),
+			});
+		},
+		async item_tax_template(frm, cdt, cdn) {
+			const row = locals[cdt] && locals[cdt][cdn] ? locals[cdt][cdn] : (frm.doc.items || []).find((r) => r.name === cdn);
+			if (!row || !row.item_tax_template || frm.doc.docstatus !== 0) return;
+			const option = (await vat_map(frm.doc.company)).find((o) => o.template === row.item_tax_template);
+			if (option && row.vat_type !== option.vat_type) {
+				await frappe.model.set_value(cdt, cdn, { vat_type: option.vat_type });
+			}
+		},
+	});
+
 	frappe.ui.form.on("Sales Invoice", {
 		refresh(frm) {
 			if (frm.doc.docstatus === 1 && !frm.doc.is_return) {
