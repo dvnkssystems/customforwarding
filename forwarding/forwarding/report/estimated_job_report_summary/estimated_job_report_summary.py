@@ -4,7 +4,7 @@
 from __future__ import unicode_literals
 import frappe
 from frappe import _
-import pandas as pd
+from forwarding.report_totals import sum_numeric
 from frappe.utils import flt
 
 def execute(filters=None):
@@ -16,24 +16,20 @@ def execute(filters=None):
 	for item in items:
 		cost_table_details_ = get_cost_table_details(item.operations)
 		cost_table_details = [dict(ct_dict_) for ct_dict_ in cost_table_details_]
-		df = pd.DataFrame(cost_table_details)
-		if not df.empty:
-			# numeric_only: the frame carries text columns too (item, account,
-			# ref ids). Older pandas skipped them here; current pandas tries to
-			# add str to int and raises — which is why this report stopped running.
-			total = df.sum(numeric_only=True)
+		if cost_table_details:
+			total = sum_numeric(cost_table_details)
 			item.update({
 							"item":'',
 							"account":"Total",
-							"cost":total['cost'],
-							"rate":total['rate'],
-							"paid_amount":total['paid_amount'],
-							'pending_amount': total['pending_amount'],
-							'received_amount': total['received_amount'],
-							'pending_amount_to_receive': total['pending_amount_to_receive'],
+							"cost":total.get('cost', 0),
+							"rate":total.get('rate', 0),
+							"paid_amount":total.get('paid_amount', 0),
+							'pending_amount': total.get('pending_amount', 0),
+							'received_amount': total.get('received_amount', 0),
+							'pending_amount_to_receive': total.get('pending_amount_to_receive', 0),
 							})
-			pnl = flt(total['received_amount']) - flt(total['paid_amount'])
-			epnl = flt(total['rate']) - flt(total['cost'])
+			pnl = flt(total.get('received_amount', 0)) - flt(total.get('paid_amount', 0))
+			epnl = flt(total.get('rate', 0)) - flt(total.get('cost', 0))
 			item.update({'pnl':pnl,'epnl':epnl})
 		else:
 			item.update({
@@ -69,23 +65,17 @@ def add_total(data):
 		total_row = {
 			"customer": _(frappe.bold("Total"))
 		}
-		data_ = [dict(ct_dict_) for ct_dict_ in data]
-		df = pd.DataFrame(data_)
-		data_df = df[df['date'].notna()]
-		data_df = data_df.fillna(0)
-		# numeric_only: the frame carries text columns too (item, account,
-		# ref ids). Older pandas skipped them here; current pandas tries to
-		# add str to int and raises — which is why this report stopped running.
-		final_totals = data_df.sum(numeric_only=True)
-		if 'cost' in data_df.columns:
+		dated = [row for row in data if dict(row).get('date') is not None]
+		final_totals = sum_numeric(dated)
+		if any('cost' in dict(row) for row in dated):
 			total_row.update({
 						"date":_(frappe.bold("Total")),
-						"cost":final_totals.get('cost', default=0),
-						"rate":final_totals.get('rate', default=0),
-						"paid_amount":final_totals.get('paid_amount', default=0),
-						'pending_amount': final_totals.get('pending_amount', default=0),
-						'received_amount': final_totals.get('received_amount', default=0),
-						'pending_amount_to_receive': final_totals.get('pending_amount_to_receive', default=0),
+						"cost":final_totals.get('cost', 0),
+						"rate":final_totals.get('rate', 0),
+						"paid_amount":final_totals.get('paid_amount', 0),
+						'pending_amount': final_totals.get('pending_amount', 0),
+						'received_amount': final_totals.get('received_amount', 0),
+						'pending_amount_to_receive': final_totals.get('pending_amount_to_receive', 0),
 						})
 			pnl = flt(total_row['received_amount']) - flt(total_row['paid_amount'])
 			epnl = flt(total_row['rate']) - flt(total_row['cost'])
